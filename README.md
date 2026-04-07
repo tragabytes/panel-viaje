@@ -52,3 +52,6 @@ En desarrollo. Fase actual: configuración inicial del repositorio. Ver `docs/se
 ## Uso personal
 
 Este es un proyecto personal sin pretensiones comerciales. El código es público porque GitHub Pages gratuito lo requiere, pero está pensado para uso del autor.
+
+## Añado botón para abrir en COLAB
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/tragabytes/panel-viaje/blob/main/tests/fase1_geocoding.ipynb)
