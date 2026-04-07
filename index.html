@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0f1117">
+<title>Panel de viaje — test inicial</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    height: 100%;
+    background: #0f1117;
+    color: #fff;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    overflow-y: auto;
+  }
+  h1 {
+    font-size: 22px;
+    font-weight: 500;
+    color: #fff;
+  }
+  .subtitle {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.5);
+    margin-top: -8px;
+  }
+  .card {
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .card-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: rgba(255, 255, 255, 0.45);
+    margin-bottom: 8px;
+  }
+  .card-content {
+    font-size: 14px;
+    line-height: 1.5;
+    color: #fff;
+    word-break: break-word;
+  }
+  .card-content .label {
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 12px;
+  }
+  .card-content .value {
+    font-weight: 500;
+    margin-bottom: 6px;
+  }
+  button {
+    background: #1e5cb8;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 14px 20px;
+    font-size: 15px;
+    font-weight: 500;
+    cursor: pointer;
+    width: 100%;
+  }
+  button:active {
+    background: #174a96;
+  }
+  button:disabled {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.4);
+  }
+  .status-ok { color: #4caf50; }
+  .status-error { color: #f44336; }
+  .status-pending { color: #ffc107; }
+  .footer {
+    text-align: center;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.3);
+    margin-top: auto;
+    padding-top: 20px;
+  }
+</style>
+</head>
+<body>
+
+<h1>Panel de viaje — test inicial</h1>
+<p class="subtitle">Validación del entorno antes de empezar el desarrollo</p>
+
+<div class="card">
+  <div class="card-title">Estado del entorno</div>
+  <div class="card-content">
+    <div><span class="label">URL servida:</span> <span id="url-info" class="value">—</span></div>
+    <div><span class="label">Protocolo HTTPS:</span> <span id="https-info" class="value">—</span></div>
+    <div><span class="label">API de geolocalización:</span> <span id="geo-api-info" class="value">—</span></div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">Navegador</div>
+  <div class="card-content">
+    <div><span class="label">User agent:</span></div>
+    <div id="ua-info" class="value" style="font-size: 11px; color: rgba(255,255,255,0.7);">—</div>
+    <div><span class="label">Plataforma:</span> <span id="platform-info" class="value">—</span></div>
+    <div><span class="label">Idioma:</span> <span id="lang-info" class="value">—</span></div>
+    <div><span class="label">Pantalla:</span> <span id="screen-info" class="value">—</span></div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">Geolocalización</div>
+  <div class="card-content">
+    <div id="geo-status" class="value status-pending">Pendiente de solicitar permiso</div>
+    <div id="geo-result" style="display: none;">
+      <div><span class="label">Latitud:</span> <span id="lat" class="value">—</span></div>
+      <div><span class="label">Longitud:</span> <span id="lon" class="value">—</span></div>
+      <div><span class="label">Precisión:</span> <span id="acc" class="value">—</span></div>
+      <div><span class="label">Velocidad:</span> <span id="spd" class="value">—</span></div>
+      <div><span class="label">Rumbo:</span> <span id="hdg" class="value">—</span></div>
+      <div><span class="label">Última actualización:</span> <span id="ts" class="value">—</span></div>
+    </div>
+  </div>
+</div>
+
+<button id="gps-btn">Solicitar permiso de GPS</button>
+
+<div class="footer">
+  Panel de viaje — fase 0.5 (configuración)<br>
+  github.com/tragabytes/panel-viaje
+</div>
+
+<script>
+  // Información del entorno
+  document.getElementById('url-info').textContent = location.href;
+
+  var isHttps = location.protocol === 'https:';
+  var httpsEl = document.getElementById('https-info');
+  httpsEl.textContent = isHttps ? 'Sí ✓' : 'No (GPS no funcionará)';
+  httpsEl.className = isHttps ? 'value status-ok' : 'value status-error';
+
+  var hasGeo = 'geolocation' in navigator;
+  var geoApiEl = document.getElementById('geo-api-info');
+  geoApiEl.textContent = hasGeo ? 'Disponible ✓' : 'No disponible';
+  geoApiEl.className = hasGeo ? 'value status-ok' : 'value status-error';
+
+  // Navegador
+  document.getElementById('ua-info').textContent = navigator.userAgent;
+  document.getElementById('platform-info').textContent = navigator.platform || '—';
+  document.getElementById('lang-info').textContent = navigator.language || '—';
+  document.getElementById('screen-info').textContent = window.screen.width + ' × ' + window.screen.height + ' px';
+
+  // GPS
+  var btn = document.getElementById('gps-btn');
+  var statusEl = document.getElementById('geo-status');
+  var resultEl = document.getElementById('geo-result');
+  var watchId = null;
+
+  function fmt(n, d) { return n == null ? '—' : Number(n).toFixed(d); }
+
+  function onPosition(pos) {
+    statusEl.textContent = 'Recibiendo posición ✓';
+    statusEl.className = 'value status-ok';
+    resultEl.style.display = 'block';
+
+    document.getElementById('lat').textContent = fmt(pos.coords.latitude, 6);
+    document.getElementById('lon').textContent = fmt(pos.coords.longitude, 6);
+    document.getElementById('acc').textContent = fmt(pos.coords.accuracy, 1) + ' m';
+    document.getElementById('spd').textContent = pos.coords.speed != null
+      ? fmt(pos.coords.speed * 3.6, 1) + ' km/h'
+      : 'no disponible (parado)';
+    document.getElementById('hdg').textContent = pos.coords.heading != null
+      ? fmt(pos.coords.heading, 0) + '°'
+      : 'no disponible (parado)';
+    document.getElementById('ts').textContent = new Date(pos.timestamp).toLocaleTimeString();
+  }
+
+  function onError(err) {
+    var msg = 'Error: ';
+    switch (err.code) {
+      case 1: msg += 'permiso denegado'; break;
+      case 2: msg += 'posición no disponible'; break;
+      case 3: msg += 'tiempo de espera agotado'; break;
+      default: msg += err.message;
+    }
+    statusEl.textContent = msg;
+    statusEl.className = 'value status-error';
+  }
+
+  btn.addEventListener('click', function() {
+    if (!hasGeo) {
+      statusEl.textContent = 'Tu navegador no soporta geolocalización';
+      statusEl.className = 'value status-error';
+      return;
+    }
+    statusEl.textContent = 'Solicitando permiso...';
+    statusEl.className = 'value status-pending';
+    btn.disabled = true;
+    btn.textContent = 'GPS activo';
+
+    if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+    watchId = navigator.geolocation.watchPosition(onPosition, onError, {
+      enableHighAccuracy: true,
+      maximumAge: 1000,
+      timeout: 15000
+    });
+  });
+</script>
+
+</body>
+</html>
