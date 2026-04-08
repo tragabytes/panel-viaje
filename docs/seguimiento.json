@@ -1,0 +1,524 @@
+{
+  "meta": {
+    "titulo": "Seguimiento del desarrollo",
+    "subtitulo": "Panel de viaje para coche — estado del proyecto",
+    "repositorio": "https://github.com/tragabytes/panel-viaje",
+    "url_panel": "https://tragabytes.github.io/panel-viaje/",
+    "nota_pie": "Actualizar al final de cada sesión de trabajo"
+  },
+  "estado_actual": {
+    "fase_actual": "Fase 1 — Análisis e investigación de APIs (prácticamente completada: bloques 1.1, 1.2, 1.3, 1.4 y 1.5 cerrados)",
+    "ultima_actualizacion": "Sesión 06 — cierre completo del bloque 1.4 (Overpass validado) y de la segunda parte del bloque 1.2 (próxima salida de autovía con estrategia consulta única + filtrado local)",
+    "siguiente_hito": "Decisión sobre arrancar fase 2 (módulos de datos) o cerrar antes la sub-tarea pendiente menor de validar Wikidata por proximidad geográfica como fuente de imagen para POIs de Overpass",
+    "bloqueos": "Ninguno"
+  },
+  "fases": [
+    { "id": "0",   "nombre": "Preparación del entorno local",         "estado": "Omitida",          "notas": "No necesaria: el ciclo es editar y subir directo a GitHub Pages" },
+    { "id": "0.5", "nombre": "Configuración de GitHub",               "estado": "Completada",       "notas": "Repo, docs, Pages y prueba en móvil viejo OK" },
+    { "id": "1",   "nombre": "Análisis e investigación de APIs",      "estado": "Casi completada", "notas": "1.1, 1.2, 1.3, 1.4 y 1.5 cerrados. Pendiente menor: validar Wikidata por proximidad geográfica como fuente de imagen para POIs de Overpass (no bloqueante)" },
+    { "id": "2",   "nombre": "Módulos de datos",                      "estado": "Pendiente",        "notas": "" },
+    { "id": "3",   "nombre": "UI estática",                           "estado": "Pendiente",        "notas": "" },
+    { "id": "4",   "nombre": "Ensamblaje y lógica",                   "estado": "Pendiente",        "notas": "" },
+    { "id": "5",   "nombre": "Pruebas en carretera",                  "estado": "Pendiente",        "notas": "" },
+    { "id": "6",   "nombre": "Mejoras y extras",                      "estado": "Pendiente",        "notas": "" }
+  ],
+  "entorno_movil": {
+    "intro": "Datos recogidos en la prueba inicial del 7 de abril de 2026 con el móvil viejo que se usará como panel en el coche. Sirve como referencia para todas las decisiones técnicas del proyecto.",
+    "campos": [
+      ["Sistema operativo", "Android 10"],
+      ["Navegador", "Chrome 146.0.0.0"],
+      ["User agent", "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 Chrome/146.0.0.0 Mobile Safari/537.36"],
+      ["Plataforma", "Linux armv8l"],
+      ["Pantalla (CSS pixels)", "360 × 800 px"],
+      ["Idioma", "es-ES"],
+      ["HTTPS", "Sí (GitHub Pages)"],
+      ["API de geolocalización", "Disponible"],
+      ["Precisión GPS observada (interior)", "15.9 m"],
+      ["Velocidad detectada en parado moviendo mano", "0.8 km/h"],
+      ["Rumbo detectado", "Sí (163° observado)"]
+    ],
+    "conclusion": "El móvil objetivo es perfectamente apto. Aunque físicamente sea antiguo, el navegador está actualizado a la última versión de Chrome, lo que significa que podemos usar CSS y JavaScript modernos sin preocupación. El GPS es de buena calidad (15 m de precisión en interior es excelente) y expone velocidad y rumbo en cuanto detecta movimiento."
+  },
+  "fichas_api": [
+    {
+      "titulo": "Nominatim (geocodificación inversa)",
+      "campos": [
+        ["Nombre de la API", "Nominatim (OpenStreetMap)"],
+        ["URL base / endpoint", "https://nominatim.openstreetmap.org/reverse"],
+        ["Autenticación", "Ninguna. Requiere cabecera User-Agent identificativa (obligatorio por política de uso)"],
+        ["Límites conocidos", "Máximo 1 petición por segundo por cliente. Uso intensivo debe migrar a instancia propia"],
+        ["Campos que nos interesan", "address.city / address.town / address.village (municipio), address.province (provincia), address.state (CCAA), address.road (vía con zoom alto), class y type"],
+        ["Ejemplo de petición usada", "GET https://nominatim.openstreetmap.org/reverse?lat=40.4064&lon=-1.4433&format=json&accept-language=es&zoom=14&addressdetails=1"],
+        ["Resultado de la prueba", "12/12 municipios y 12/12 CCAA correctos en 12 coordenadas (una por CCAA), incluyendo pueblos pequeños. En la prueba de 7 puntos sobre firme de autovía a zoom 17, las 7 fueron clasificadas como highway/motorway con nombre de vía. Para autovías radiales devuelve nombre descriptivo (Autovía del Nordeste); para otras, código directo"],
+        ["Latencia media observada", "191 ms a zoom 14 y 149 ms a zoom 17 (desde Google Colab). Rango 72-706 ms"],
+        ["Tamaño típico de respuesta", "677 bytes a zoom 14, 870 bytes a zoom 17 con extratags=1. Despreciable"],
+        ["Problemas encontrados", "(1) Para autovías radiales devuelve nombre descriptivo, no código corto. Resuelto con tabla de mapeo (decisión 09). (2) El tag ref no se expone consistentemente en extratags. (3) CCAA en formato oficial completo, requiere normalización"],
+        ["Veredicto final", "APTA. API principal para los bloques 1.1 y 1.2 del plan"],
+        ["Fecha de evaluación", "7 de abril de 2026 (sesión 03)"]
+      ]
+    },
+    {
+      "titulo": "Photon",
+      "campos": [
+        ["Nombre de la API", "Photon (Komoot, basada en OpenStreetMap)"],
+        ["URL base / endpoint", "https://photon.komoot.io/reverse"],
+        ["Autenticación", "Ninguna. Sí requiere cabecera User-Agent propia; rechaza con 403 el User-Agent por defecto de requests"],
+        ["Límites conocidos", "No documentados. Uso razonable esperado"],
+        ["Campos que nos interesaban", "properties.city / town / village, properties.county, properties.state, properties.osm_key y osm_value"],
+        ["Ejemplo de petición usada", "GET https://photon.komoot.io/reverse?lat=40.4064&lon=-1.4433&lang=default"],
+        ["Resultado de la prueba", "12/12 municipios devueltos pero con un problema de diseño importante: Photon resuelve al POI más cercano, no al contenedor administrativo. El campo county devuelve comarcas en lugar de provincias. El campo street devuelve la calle del POI, no la vía por la que se circula"],
+        ["Latencia media observada", "647 ms (desde Google Colab). Más del triple que Nominatim"],
+        ["Tamaño típico de respuesta", "454 bytes"],
+        ["Problemas encontrados", "(1) Rechaza peticiones sin User-Agent propio con 403. (2) No soporta español. (3) Resuelve al POI más cercano. (4) No detecta carretera de forma útil. (5) Nomenclatura en idiomas cooficiales"],
+        ["Veredicto final", "DESCARTADA como geocodificador administrativo"],
+        ["Fecha de evaluación", "7 de abril de 2026 (sesión 03)"]
+      ]
+    },
+    {
+      "titulo": "Open-Meteo (meteorología)",
+      "campos": [
+        ["Nombre de la API", "Open-Meteo (operada por Patrick Zippenfenig, agrega modelos meteorológicos nacionales: DWD ICON, ECMWF IFS, MeteoFrance, NOAA GFS, etc.)"],
+        ["URL base / endpoint", "https://api.open-meteo.com/v1/forecast"],
+        ["Autenticación", "Ninguna. No requiere API key"],
+        ["Límites conocidos", "Uso no comercial gratuito sin límite estricto documentado para volúmenes razonables. Licencia CC-BY 4.0"],
+        ["Campos que nos interesan", "current: temperature_2m, apparent_temperature, relative_humidity_2m, weather_code, is_day, wind_speed_10m, wind_direction_10m. hourly: los mismos más precipitation_probability"],
+        ["Ejemplo de petición usada", "GET https://api.open-meteo.com/v1/forecast?latitude=40.4168&longitude=-3.7038&current=temperature_2m,...&timezone=auto"],
+        ["Resultado de la prueba", "12/12 puntos OK. Datos meteorológicamente coherentes. Mapeo de los 28 códigos WMO a 6 categorías visuales completo"],
+        ["Latencia media observada", "Mediana 821 ms, media 1156 ms (rango 791–1869 ms). Dos puntos requirieron reintento por timeout 504 transitorio"],
+        ["Tamaño típico de respuesta", "608 bytes para current, 1220 bytes para current + hourly con 24 horas"],
+        ["Problemas encontrados", "(1) Timeouts 504 transitorios resueltos con reintentos. (2) forecast_days=1 devuelve día natural completo desde 00:00, no las próximas 24 h"],
+        ["Veredicto final", "APTA. Fuente única de meteorología para el bloque 1.3"],
+        ["Fecha de evaluación", "7 de abril de 2026 (sesión 04)"]
+      ]
+    },
+    {
+      "titulo": "Wikidata SPARQL (POIs y datos de municipio)",
+      "campos": [
+        ["Nombre de la API", "Wikidata Query Service (SPARQL endpoint sobre la base de conocimiento de Wikidata)"],
+        ["URL base / endpoint", "https://query.wikidata.org/sparql"],
+        ["Autenticación", "Ninguna. Requiere cabecera User-Agent identificativa"],
+        ["Límites conocidos", "Sin cuota documentada para uso razonable. Recomendado: pausar 1 segundo entre peticiones desde el mismo cliente"],
+        ["Campos que nos interesan", "Para POIs: ?item, rdfs:label, schema:description, wdt:P31 (instancia de), wdt:P18 (imagen), wdt:P625 (coordenadas), schema:about hacia es.wikipedia. Para datos de municipio: wdt:P1082 (población), wdt:P2044 (altitud), wdt:P2046 (superficie), wdt:P361 (part of)"],
+        ["Resultado de la prueba", "5/5 municipios devuelven POIs útiles tras refinar la consulta. Cobertura por municipio (POIs / con imagen / con artículo es.wiki / con ambos): Medinaceli 7/7/3/3, Albarracín 28/19/11/11, Chinchón 12/12/4/4, Trujillo 21/14/10/8, Pedraza 3/3/0/0. La consulta de datos de municipio devuelve 4/4 campos para 4/5 (Pedraza no tiene comarca formal)"],
+        ["Latencia media observada", "POIs: 344-1228 ms según tamaño del municipio. Datos de municipio: 130-315 ms"],
+        ["Tamaño típico de respuesta", "POIs: 2-25 KB por municipio. Datos de municipio: <1 KB"],
+        ["Problemas encontrados", "(1) Los QIDs no se pueden meter de memoria, deben resolverse por consulta verificable (P04). (2) Los filtros SPARQL no se pueden diseñar sin haber visto antes los datos reales (P05). (3) schema:about no es fiable como única fuente para detectar artículos (P06). (4) El servidor cachea respuestas por hash de URL, conviene añadir cache-buster (P07). (5) El campo P361 devuelve cualquier tipo de pertenencia, no necesariamente comarca administrativa"],
+        ["Veredicto final", "APTA. En el módulo POI quedará como fuente de enriquecimiento (foto P18 + texto Wikipedia) sobre el inventario de Overpass. Fuente única para datos de municipio (bloque 1.5)"],
+        ["Fecha de evaluación", "7 de abril de 2026 (sesión 05)"]
+      ]
+    },
+    {
+      "titulo": "Wikipedia REST API (resúmenes y miniaturas de POIs)",
+      "campos": [
+        ["Nombre de la API", "Wikipedia REST API v1 (en es.wikipedia.org)"],
+        ["URL base / endpoint", "https://es.wikipedia.org/api/rest_v1/page/summary/{título}"],
+        ["Autenticación", "Ninguna. User-Agent identificativo recomendado"],
+        ["Límites conocidos", "200 peticiones por segundo por IP según la documentación oficial"],
+        ["Campos que nos interesan", "extract (texto del resumen), thumbnail.source (URL de miniatura), thumbnail.width / .height, originalimage.source, type (standard, disambiguation, redirect, no-extract...)"],
+        ["Resultado de la prueba", "Validada con cascada de tres vías: (1) URL Wikipedia enlazada desde Wikidata, (2) construcción del título desde label, (3) imagen Wikidata P18 como respaldo. 5/5 pueblos con 3/3 fotos, casi todos con texto. Detección de páginas de desambiguación funciona vía type=disambiguation"],
+        ["Latencia media observada", "67-451 ms por llamada a /summary. Mucho más rápido que SPARQL"],
+        ["Tamaño típico de respuesta", "JSON summary: ~2-3 KB. Miniatura Wikipedia: 25-58 KB. Miniatura Wikidata: 50-110 KB"],
+        ["Problemas encontrados", "(1) Wikipedia en español es incompleta para POIs de pueblos pequeños. (2) Las páginas de desambiguación hay que detectarlas. (3) Algunos labels Wikidata vienen mal formados. (4) Problema conocido de pedanías: la iglesia de la Asunción de Medinaceli es de Beltejar"],
+        ["Veredicto final", "APTA como fuente de enriquecimiento (texto + miniatura) para los POIs de Overpass que tengan artículo. Cobertura del 100% de la muestra cuando se combina con foto Wikidata como respaldo"],
+        ["Fecha de evaluación", "7 de abril de 2026 (sesión 05)"]
+      ]
+    },
+    {
+      "titulo": "Overpass API (POIs, pueblos cercanos y motorway_junction)",
+      "campos": [
+        ["Nombre de la API", "Overpass API (sobre datos de OpenStreetMap)"],
+        ["URL base / endpoint", "https://overpass-api.de/api/interpreter (mirrors alternativos: overpass.kumi.systems, overpass.private.coffee)"],
+        ["Autenticación", "Ninguna. User-Agent identificativo obligatorio"],
+        ["Límites conocidos", "Sin cuota documentada. Estructuralmente inestable: en 2/2 sesiones que lo probamos los mirrors han estado en mal estado (sesión 05 los tres caídos, sesión 06 sólo 1 de 3 operativos y con latencia anómala). Pausa 3-5 s entre peticiones recomendada"],
+        ["Campos que nos interesan", "Para pueblos cercanos: node[place=village|town|city]. Para POIs: node y way con tags historic=*, tourism=viewpoint|attraction, natural=peak, building=castle|church|monastery|cathedral|chapel. Para próxima salida de autovía: node[highway=motorway_junction] con tags ref y a veces name"],
+        ["Resultado de las pruebas", "P5 (pueblos cercanos): 3/3 puntos OK con top 4 por distancia coherente. P3 (POIs): los 5 municipios cubiertos. Pedraza pasa de 3 POIs (Wikidata) a 15 POIs con nombre (Overpass), Trujillo de 21 a 37. Próxima salida (motorway_junction): refs aparecen, names rara vez. Estrategia consulta única + filtrado local validada con simulación de avance del coche"],
+        ["Latencia media observada", "Hoy con mirror cargado: 0.5-3.5 s para queries reales, 8 s para query trivial de salud. En condiciones normales se esperan latencias 200-800 ms"],
+        ["Tamaño típico de respuesta", "Pueblos cercanos en 15 km: 2-9 KB. POIs en 1.5 km: 4-14 KB. motorway_junction en 50 km: 13-25 KB"],
+        ["Problemas encontrados", "(1) Mirrors estructuralmente inestables (P-2sesiones). (2) Bug 'out tags;' devuelve nodos sin coordenadas, corregido a 'out;' (P08). (3) Mirror cargado requiere [timeout:180] interno + timeout=120 cliente (P09). (4) Para próxima salida, motorway_junction es el endpoint correcto, no motorway_link (P10). (5) Las refs son a veces número de salida y a veces kilómetro, convención varía por autovía"],
+        ["Veredicto final", "APTA con caché agresiva. Fuente principal de inventario de POIs (mejor que Wikidata para pueblos pequeños) y fuente única de pueblos cercanos al GPS. Para próxima salida de autovía: estrategia consulta única + filtrado local en cliente"],
+        ["Fecha de evaluación", "7 de abril de 2026 (sesión 06)"]
+      ]
+    }
+  ],
+  "fichas_pendientes": "Fichas pendientes de completar adicionalmente: IGN de España (si tiene API pública). No bloqueante.",
+  "decisiones": [
+    {
+      "id": 1,
+      "titulo": "Formato de la aplicación",
+      "campos": [
+        ["Fecha", "sesión inicial de conceptualización"],
+        ["Decisión", "construir una PWA en HTML/CSS/JS vanilla, no una app nativa ni una híbrida"],
+        ["Alternativas consideradas", "app nativa Kotlin, app híbrida con Capacitor, PWA"],
+        ["Razón", "PWA es la opción más simple, no requiere proceso de instalación complejo, permite iterar rápido y funciona en el navegador existente del móvil viejo"],
+        ["Consecuencias", "acceso al GPS en segundo plano limitado, pero aceptable porque la pantalla estará encendida todo el viaje"]
+      ]
+    },
+    {
+      "id": 2,
+      "titulo": "Diseño de tres vistas deslizables",
+      "campos": [
+        ["Fecha", "sesión inicial de conceptualización"],
+        ["Decisión", "panel con tres vistas horizontales: completa, ubicación+meteo, qué ver por la zona"],
+        ["Razón", "tres vistas deslizables permiten al usuario elegir el nivel de información según el momento sin menús ni botones"],
+        ["Consecuencias", "hay que duplicar algunos elementos (cabecera de carretera y ubicación) en las tres vistas para no perder contexto"]
+      ]
+    },
+    {
+      "id": 3,
+      "titulo": "Stack de APIs gratuitas sin key por defecto",
+      "campos": [
+        ["Fecha", "sesión inicial de conceptualización"],
+        ["Decisión", "priorizar APIs gratuitas y sin API key (Open-Meteo, Nominatim, Overpass, Wikipedia, Wikidata) sobre alternativas de pago o con registro"],
+        ["Razón", "simplicidad y coste cero. Las APIs gratuitas cubren el 90% de lo que necesitamos"],
+        ["Consecuencias", "hay que validar en la fase 1 que la calidad en España es suficiente, especialmente en pueblos pequeños"]
+      ]
+    },
+    {
+      "id": 4,
+      "titulo": "Hosting en GitHub Pages",
+      "campos": [
+        ["Fecha", "sesión 02"],
+        ["Decisión", "alojar el código y desplegar el panel en GitHub Pages mediante el repositorio tragabytes/panel-viaje"],
+        ["Razón", "gratuito, HTTPS automático (requisito para GPS del navegador), historial de cambios, interfaz web sin instalar nada"],
+        ["Consecuencias", "el repositorio debe ser público. Despliegue tarda 1-2 minutos. No se podrán usar APIs que requieran proxy server"]
+      ]
+    },
+    {
+      "id": 5,
+      "titulo": "Flujo de trabajo: interfaz web en lugar de git CLI",
+      "campos": [
+        ["Fecha", "sesión 02"],
+        ["Decisión", "gestionar el repositorio exclusivamente mediante la interfaz web de GitHub (arrastrar y soltar archivos)"],
+        ["Razón", "el usuario no tiene experiencia con git, terminal ni desarrollo. Curva de aprendizaje mínima"],
+        ["Consecuencias", "subir muchos archivos a la vez es algo más tedioso. No se usarán branches: todo va directo a main"]
+      ]
+    },
+    {
+      "id": 6,
+      "titulo": "Omitir la fase 0 (entorno local)",
+      "campos": [
+        ["Fecha", "sesión 02"],
+        ["Decisión", "no montar un servidor local de desarrollo. Editar el código, subirlo al repo por la web de GitHub, probar directamente en la URL pública"],
+        ["Razón", "GitHub Pages despliega en 1-2 minutos sin fricción. El usuario no sabe usar terminal ni tiene Node instalado"],
+        ["Consecuencias", "cada iteración implica subir archivos al repo. A cambio, todo el desarrollo se hace sobre el entorno real final"]
+      ]
+    },
+    {
+      "id": 7,
+      "titulo": "Validación del móvil destino",
+      "campos": [
+        ["Fecha", "sesión 02"],
+        ["Decisión", "validar Chrome 146 en Android 10 como entorno objetivo. Se puede usar CSS y JavaScript modernos sin polyfills"],
+        ["Razón", "Google mantiene Chrome actualizado en Android a través de Play Store independientemente del SO"],
+        ["Consecuencias", "se puede usar CSS Grid, Flexbox, animaciones modernas, Fetch API, async/await, módulos ES6"]
+      ]
+    },
+    {
+      "id": 8,
+      "titulo": "Nominatim como fuente principal de geocodificación inversa y detección de vía",
+      "campos": [
+        ["Fecha", "7 de abril de 2026, sesión 03"],
+        ["Decisión", "usar Nominatim (OSM) como única fuente de geocodificación inversa, tanto para el contenedor administrativo a zoom 14 como para el nombre de la vía actual a zoom 17"],
+        ["Razón", "calidad de datos superior, formato de respuesta predecible, soporte nativo de español, latencia razonable, sin API key"],
+        ["Consecuencias", "el panel hará dos peticiones a Nominatim por actualización de ubicación. Hay que respetar el límite de 1 req/s, lo que fuerza a no hacerlas en paralelo sino secuenciales"]
+      ]
+    },
+    {
+      "id": 9,
+      "titulo": "Tabla estática de mapeo de nombres descriptivos de autovías a códigos",
+      "campos": [
+        ["Fecha", "7 de abril de 2026, sesión 03"],
+        ["Decisión", "mantener una tabla estática de equivalencias en el cliente para mostrar el código corto de la carretera (A-2 en lugar de Autovía del Nordeste)"],
+        ["Razón", "el conjunto de autovías es finito (~25-30 entradas), estable y conocido. Una tabla estática evita segundas peticiones"],
+        ["Consecuencias", "hay que mantener la tabla. Si aparece una autovía nueva o se renombra alguna, hay que actualizar manualmente"]
+      ]
+    },
+    {
+      "id": 10,
+      "titulo": "Open-Meteo como fuente única de meteorología",
+      "campos": [
+        ["Fecha", "7 de abril de 2026, sesión 04"],
+        ["Decisión", "usar Open-Meteo como única fuente de meteorología del panel, tanto para tiempo actual como para previsión por horas"],
+        ["Razón", "encaja con todos los principios del proyecto. Sin API key, gratuita, datos coherentes, tamaño mínimo"],
+        ["Consecuencias", "(1) Una sola petición combinada (current + hourly) cada 15 min. (2) Patrón de reintento con timeout 30 s y hasta 3 intentos. (3) AEMET queda parqueada como validación cruzada en fase 5"]
+      ]
+    },
+    {
+      "id": 11,
+      "titulo": "Wikidata + Wikipedia como cascada para POIs por pueblo (SUPERSEDED)",
+      "campos": [
+        ["Fecha", "7 de abril de 2026, sesión 05"],
+        ["Estado", "SUSTITUIDA por la decisión 13 tras los hallazgos de la sesión 06. Se mantiene aquí por trazabilidad"],
+        ["Decisión original", "el módulo de POIs por pueblo usaría una cascada Wikidata SPARQL → Wikipedia REST → Wikidata image como respaldo"],
+        ["Por qué se sustituyó", "en sesión 06 se demostró que Overpass devuelve más POIs útiles que Wikidata en pueblos pequeños (Pedraza pasó de 3 a 15 POIs). El rol de fuente principal del inventario pasa a Overpass"]
+      ]
+    },
+    {
+      "id": 12,
+      "titulo": "Wikidata SPARQL como fuente única de datos del municipio (bloque 1.5 absorbido)",
+      "campos": [
+        ["Fecha", "7 de abril de 2026, sesión 05"],
+        ["Decisión", "obtener los datos básicos del municipio (población, altitud, superficie, comarca cuando exista) directamente de Wikidata SPARQL, cerrando el bloque 1.5 del plan"],
+        ["Razón", "la consulta sale prácticamente gratis si el módulo POI ya está hablando con Wikidata. No añade dependencias nuevas"],
+        ["Consecuencias", "(1) El campo P361 no es comarca administrativa pura: en el módulo real habrá que filtrar o aceptar omitir el campo. (2) Los datos se cachean durante días"]
+      ]
+    },
+    {
+      "id": 13,
+      "titulo": "Overpass como fuente principal de inventario de POIs + Wikidata/Wikipedia como enriquecimiento (refina decisión 11)",
+      "campos": [
+        ["Fecha", "7 de abril de 2026, sesión 06"],
+        ["Decisión", "el módulo POI usará una arquitectura híbrida en dos pasos. Paso 1 (inventario): consulta a Overpass por cada pueblo cercano para obtener todos los POIs con nombre, tipo y coordenadas, filtrados por radio (~1.5 km) alrededor del centro del pueblo. Paso 2 (enriquecimiento): para los 2-3 POIs seleccionados por pueblo, intentar conseguir foto y texto cruzando con Wikipedia REST por título construido y, como fallback, con Wikidata por proximidad geográfica (consulta SPARQL pidiendo items con P18 imagen en un radio pequeño alrededor de las coordenadas del POI)"],
+        ["Contexto", "En sesión 06, la prueba 3 demostró que Overpass devuelve POIs útiles para los 5 municipios de la muestra con cobertura significativamente mayor que Wikidata, especialmente en pueblos pequeños: Pedraza pasó de 3 POIs (Wikidata sesión 05) a 15 POIs con nombre (Overpass sesión 06). Trujillo de 21 a 37. Tags ricos (historic=castle, tourism=viewpoint, etc.) que permiten filtrar y priorizar fácilmente. Coordenadas garantizadas, lo que resuelve el problema conocido de las pedanías filtrando por distancia al centro del pueblo"],
+        ["Alternativas consideradas", "(a) Mantener Wikidata como fuente principal (decisión 11): descartada porque deja sin POIs a Pedraza y a casi cualquier pueblo de menos de 1000 habitantes. (b) Overpass puro sin Wikidata: descartada porque Overpass no da fotos ni texto narrativo, y la vista 3 los necesita. (c) Las dos en paralelo y fusionar: descartada por complejidad y por duplicación de peticiones"],
+        ["Razón", "Overpass cubre mejor el caso de uso real del proyecto (carreteras secundarias por pueblos pequeños), mientras que Wikidata + Wikipedia mantienen la calidad visual donde existe contenido. La cascada Overpass → Wikipedia → Wikidata cubre 100% de la muestra"],
+        ["Consecuencias", "(1) Sub-tarea pendiente menor de fase 1: validar la consulta Wikidata por proximidad geográfica como fuente de imagen para POIs sin artículo en Wikipedia. (2) En fase 2, el POIModule implementará la cascada en el orden Overpass → Wikipedia REST → Wikidata image → tipo de POI con icono. (3) Filtrado por distancia al centro del pueblo para resolver el problema de las pedanías. (4) Priorización por tags Overpass: castle > cathedral > monastery > church > viewpoint > historic monument. (5) Caché agresiva de los inventarios de Overpass (horas o días). (6) Decisión 11 queda como SUPERSEDED por trazabilidad"]
+      ]
+    },
+    {
+      "id": 14,
+      "titulo": "Estrategia 'consulta única + filtrado local' para próxima salida de autovía",
+      "campos": [
+        ["Fecha", "7 de abril de 2026, sesión 06"],
+        ["Decisión", "para la detección de próxima salida de autovía, usar una arquitectura de una única consulta amplia a Overpass por segmento + filtrado local en cliente. Concretamente: cuando Nominatim detecta que la ref de la vía actual cambia a una autovía nueva, lanzar una sola consulta a Overpass pidiendo todos los node[highway=motorway_junction] en un radio de 50 km. Cachear la lista en memoria. En cada actualización del GPS, recalcular localmente la próxima salida con un filtro de heading + distancia mínima sobre los datos cacheados, sin volver a tocar Overpass. Cuando el coche se acerca al final del segmento cacheado, pedir el siguiente"],
+        ["Contexto", "A 120 km/h, la información de 'próxima salida' debe actualizarse en pantalla cada pocos segundos para ser honesta. Refrescar contra Overpass en cada actualización significaría ~120-180 peticiones por viaje de 3 horas, en contra del principio de minimizar consumo de datos y batería. La sesión 06 validó que una sola consulta de 50 km devuelve 80-150 junctions en 13-25 KB con latencias 0.5-1.5 s incluso con el mirror cargado. La cobertura de 50 km equivale a ~25 minutos a 120 km/h"],
+        ["Alternativas consideradas", "(A) Refresco por tiempo cada 30-60 s: ~120-180 peticiones por viaje de 3 h, demasiado costoso. (B) Refresco por desplazamiento cada ~2 km: similar al anterior pero con mismos problemas. (C) Consulta única + filtrado local: estimado 3-5 peticiones por viaje de 3 h"],
+        ["Razón", "La opción C reduce el coste de red en dos órdenes de magnitud, mantiene la información actualizada a la velocidad del GPS, y es resiliente a fallos transitorios de Overpass mientras quede caché por delante"],
+        ["Consecuencias", "(1) El módulo de próxima salida en fase 2 implementa una caché en memoria con la lista de junctions del segmento actual. (2) El filtrado local usa los mismos parámetros validados en sesión 06: distancia mínima 300 m, tolerancia angular 45° entre rumbo del coche y rumbo al junction. (3) IMPORTANTE: en cada cálculo el filtro debe usar el heading actual del GPS, NO un heading cacheado, para que el filtro siga siendo preciso cuando la autovía gira. (4) El módulo solo se activa cuando la vía detectada por Nominatim es autovía. Para nacionales y secundarias se apaga y se vacía la caché. (5) Observaciones a tener en cuenta: descartar junctions con ref=0 o sin ref, dedupar por ref para nudos modelados con varios nodos, idealmente enriquecer con destinos legibles desde los motorway_link adyacentes (mejora futura). (6) Las refs de salida son inconsistentes en autovías españolas (a veces número de salida, a veces kilómetro, a veces mezcladas en la misma autovía): el panel mostrará ref tal cual sin intentar interpretar"]
+      ]
+    }
+  ],
+  "sesiones": [
+    {
+      "n": 1,
+      "titulo": "Conceptualización inicial",
+      "campos": [
+        ["Fecha", "sesión inicial"],
+        ["Fase trabajada", "conceptualización previa al desarrollo"],
+        ["Lo que se ha hecho", "definición del problema, exploración de soluciones existentes, decisión del hardware, diseño de las tres vistas, elaboración del plan de desarrollo en fases, redacción de instrucciones y documento de seguimiento"],
+        ["Decisiones tomadas", "decisiones 01, 02 y 03"],
+        ["Pendiente para la próxima sesión", "decidir dónde alojar el proyecto"]
+      ]
+    },
+    {
+      "n": 2,
+      "titulo": "Setup de GitHub y validación del entorno",
+      "campos": [
+        ["Fecha", "7 de abril de 2026"],
+        ["Fase trabajada", "fase 0.5 (configuración de GitHub)"],
+        ["Lo que se ha hecho", "creación del repo, subida de la documentación a /docs, README personalizado, index.html mínimo de prueba con diagnóstico GPS, activación de GitHub Pages, pruebas en tres entornos distintos"],
+        ["Resultados de las pruebas", "ordenador OK, móvil viejo OK con precisión 15.9 m en interior, detección correcta de velocidad y rumbo"],
+        ["Decisiones tomadas", "decisiones 04, 05, 06 y 07"],
+        ["Pendiente", "empezar la fase 1 con la evaluación de Nominatim"]
+      ]
+    },
+    {
+      "n": 3,
+      "titulo": "Evaluación de geocodificación inversa y detección de carretera",
+      "campos": [
+        ["Fecha", "7 de abril de 2026"],
+        ["Fase trabajada", "Fase 1, bloques 1.1 y 1.2 (parcial)"],
+        ["Lo que se ha hecho", "creación de tests/fase1_geocoding.ipynb con 4 pruebas: Nominatim a zoom 14, Photon, comparativa, Nominatim a zoom 17 sobre autovías. Diagnóstico del 403 de Photon. Fichas de Nominatim (apta) y Photon (descartada)"],
+        ["Decisiones tomadas", "decisiones 08 y 09"],
+        ["Pendiente", "bloque 1.3 (meteorología) con Open-Meteo. Detección de próxima salida queda para sesión específica"]
+      ]
+    },
+    {
+      "n": 4,
+      "titulo": "Evaluación de meteorología (Open-Meteo)",
+      "campos": [
+        ["Fecha", "7 de abril de 2026"],
+        ["Fase trabajada", "Fase 1, bloque 1.3"],
+        ["Lo que se ha hecho", "creación de tests/fase1_meteo.ipynb con 5 pruebas. Refuerzo del patrón de reintentos tras timeouts 504 transitorios. Ficha de Open-Meteo"],
+        ["Decisiones tomadas", "decisión 10"],
+        ["Pendiente", "decidir entre bloque 1.4 (POIs) o segunda parte del 1.2 (próxima salida)"]
+      ]
+    },
+    {
+      "n": 5,
+      "titulo": "Evaluación de POIs por pueblo (Wikidata + Wikipedia + Overpass parcial)",
+      "campos": [
+        ["Fecha", "7 de abril de 2026"],
+        ["Fase trabajada", "Fase 1, bloque 1.4 y bloque 1.5"],
+        ["Lo que se ha hecho", "creación de tests/fase1_pois.ipynb con 5 pruebas planificadas. Muestra de 5 municipios. Iteración exhaustiva de la consulta SPARQL hasta dejarla limpia. Cascada Wikipedia REST + Wikidata image. Datos del municipio (cierre del bloque 1.5)"],
+        ["Resultados", "5/5 municipios con POIs útiles vía Wikidata. 5/5 con foto vía cascada. 4/5 con texto narrativo. Pruebas Overpass aplazadas por saturación de los tres mirrors"],
+        ["Decisiones tomadas", "decisiones 11 y 12"],
+        ["Pendiente", "sesión específica de Overpass cuando los servidores estén operativos"]
+      ]
+    },
+    {
+      "n": 6,
+      "titulo": "Sesión Overpass — pueblos cercanos, POIs y próxima salida",
+      "campos": [
+        ["Fecha", "7 de abril de 2026"],
+        ["Fase trabajada", "Fase 1, cierre del bloque 1.4 (pruebas Overpass aplazadas) y de la segunda parte del bloque 1.2 (próxima salida)"],
+        ["Lo que se ha hecho", "Creación de tests/fase1_overpass.ipynb con cuatro pruebas (P0 salud de mirrors, P5 pueblos cercanos, P3 POIs Overpass vs Wikidata, próxima salida con motorway_junction y validación de la opción C). Las cuatro pruebas validadas tras varias iteraciones de corrección"],
+        ["Resultados clave", "(1) P0: 1/3 mirrors operativos (overpass-api.de) con latencia anómalamente alta; los otros dos en timeout. Confirmada la inestabilidad estructural de Overpass. (2) P5: pueblos cercanos en radio 15 km validados, top 4 por distancia coherente para los 3 puntos de carretera. (3) P3: HALLAZGO IMPORTANTE — Overpass devuelve más POIs útiles que Wikidata en pueblos pequeños. Pedraza pasa de 3 a 15 POIs con nombre, Trujillo de 21 a 37. Tags ricos (historic=castle, tourism=viewpoint, etc.). Esto cambia la decisión 11 (Overpass deja de ser fallback y pasa a ser fuente principal de inventario, decisión 13). (4) Próxima salida: motorway_junction es el endpoint correcto (no motorway_link), con filtro Δ<45° + dist>300m. (5) Validación opción C — consulta única radio 50 km + filtrado local: 80-150 junctions en 13-25 KB, simulación de avance del coche valida la mecánica, estimado 3-5 consultas Overpass por viaje de 3h vs ~120-180 con refresco continuo"],
+        ["Problemas encontrados", "P08: bug 'out tags;' devolvía nodos sin coordenadas, todas las distancias salían ~4500 km contra el punto (0,0) en el Golfo de Guinea. Corregido a 'out;' con check defensivo. P09: mirror cargado requiere [timeout:180] interno + timeout=120 cliente para que las queries de POIs no den 504. P10: motorway_junction es el endpoint correcto para próxima salida, no motorway_link como se pensó al principio. P11: KeyError en la celda de resumen final por leer claves desactualizadas tras reescribir la celda de próxima salida. Aprendizaje: cuando se cambian las claves de un diccionario, hay que revisar todas las celdas que las leen. Observaciones para fase 2: refs inconsistentes (a veces número de salida, a veces km), heading actualizado obligatorio en cada cálculo del filtro, descartar ref=0, dedupar por ref"],
+        ["Decisiones tomadas", "decisiones 13 (refina la 11) y 14"],
+        ["Pendiente", "Sub-tarea menor de fase 1: validar la consulta Wikidata por proximidad geográfica como fuente de imagen para POIs de Overpass sin artículo en Wikipedia. No bloqueante: se puede arrancar la fase 2 antes y validarla cuando convenga. Aparte: pasar el seguimiento a un sistema content+presentation (JSON + generador) para que las próximas actualizaciones sean más rápidas"]
+      ]
+    }
+  ],
+  "problemas_abiertos": [],
+  "problemas_resueltos": [
+    {
+      "id": "P01",
+      "titulo": "Android bloquea diálogo de permisos por overlays",
+      "campos": [
+        ["Fecha de aparición", "sesión 02"],
+        ["Síntoma", "Android muestra el mensaje 'Este sitio web no puede solicitarte permiso. Cierra todos los cuadros o superposiciones de otras aplicaciones'"],
+        ["Causa", "hay una app con permiso de mostrar sobre otras aplicaciones activo en el móvil del usuario"],
+        ["Resolución", "no se resolvió en el móvil actual porque no es el dispositivo destino. En el móvil viejo destino no existe el problema"],
+        ["Estado", "cerrado, no bloqueante"]
+      ]
+    },
+    {
+      "id": "P02",
+      "titulo": "Photon rechaza peticiones con 403 Forbidden por User-Agent",
+      "campos": [
+        ["Fecha de aparición", "sesión 03"],
+        ["Síntoma", "todas las peticiones a Photon desde Google Colab fallaban con error de parseo JSON"],
+        ["Causa", "el servidor de Photon devuelve HTTP 403 con cuerpo HTML a clientes con User-Agent por defecto"],
+        ["Resolución", "añadir cabecera User-Agent identificativa. Esta práctica queda como estándar del proyecto"],
+        ["Estado", "cerrado"]
+      ]
+    },
+    {
+      "id": "P03",
+      "titulo": "Photon no soporta español como idioma",
+      "campos": [
+        ["Fecha de aparición", "sesión 03"],
+        ["Síntoma", "tras resolver el 403, las peticiones con lang=es devolvían HTTP 400"],
+        ["Causa", "Photon solo soporta default, alemán, inglés y francés"],
+        ["Resolución", "usar lang=default. Documentado como limitación conocida"],
+        ["Estado", "cerrado"]
+      ]
+    },
+    {
+      "id": "P04",
+      "titulo": "QIDs de Wikidata metidos de memoria son frecuentemente incorrectos",
+      "campos": [
+        ["Fecha de aparición", "sesión 05"],
+        ["Síntoma", "el primer intento de la prueba 1 devolvía resultados completamente incoherentes: Medinaceli devolvía una cordillera de Oregón, Albarracín calles de Cataluña"],
+        ["Causa", "los QIDs estaban metidos a mano por conocimiento general. 5/5 incorrectos"],
+        ["Resolución", "celda de resolución automática de QIDs por consulta SPARQL al inicio del notebook"],
+        ["Aprendizaje meta", "los identificadores externos (QIDs Wikidata, IDs OSM, códigos INE) se obtienen siempre por consulta verificable, nunca por memoria. Regla del proyecto"],
+        ["Estado", "cerrado"]
+      ]
+    },
+    {
+      "id": "P05",
+      "titulo": "Filtros SPARQL diseñados sin ver datos reales fallaron repetidamente",
+      "campos": [
+        ["Fecha de aparición", "sesión 05"],
+        ["Síntoma", "la consulta SPARQL de POIs requirió cinco iteraciones de refinamiento. Filtros sucesivos eliminaban POIs legítimos por herencia accidental de subclases"],
+        ["Causa", "se diseñaron los filtros sin haber visto antes los datos reales. Las jerarquías de subclases en Wikidata tienen sorpresas"],
+        ["Resolución", "celda de diagnóstico que descubre los QIDs reales por consulta. Filtrado por instancia DIRECTA en lugar de transitiva. Capa adicional de filtrado en código Python por palabra clave"],
+        ["Aprendizaje meta", "antes de filtrar resultados de una API estructurada, ejecutar primero una consulta sin filtros y mirar los datos reales. Los filtros se escriben sobre observación, no sobre suposición"],
+        ["Estado", "cerrado"]
+      ]
+    },
+    {
+      "id": "P06",
+      "titulo": "Wikipedia es incompleta: muchos POIs reales no tienen artículo propio en es.wiki",
+      "campos": [
+        ["Fecha de aparición", "sesión 05"],
+        ["Síntoma", "Pedraza, pueblo pequeño con patrimonio relevante, tiene 3 POIs en Wikidata pero ninguno con artículo propio en Wikipedia en español"],
+        ["Causa", "Wikipedia en español tiene cobertura desigual de patrimonio español. Muchos pueblos pequeños tienen un único artículo (el del municipio) que describe su patrimonio dentro"],
+        ["Resolución", "decisión arquitectónica 11 (cascada de fuentes), posteriormente reforzada por la decisión 13 (Overpass como inventario primario)"],
+        ["Estado", "cerrado mediante decisión arquitectónica"]
+      ]
+    },
+    {
+      "id": "P07",
+      "titulo": "Caché de Wikidata o del proxy de Colab daba latencias imposibles y resultados aparentemente idénticos",
+      "campos": [
+        ["Fecha de aparición", "sesión 05"],
+        ["Síntoma", "tras modificar la celda con filtros nuevos, los resultados eran idénticos byte por byte y las latencias bajaban a 70-200 ms"],
+        ["Causa", "la respuesta SPARQL estaba cacheada en algún punto entre Colab y Wikidata"],
+        ["Resolución", "añadir un cache-buster aleatorio (parámetro &_cb=NUMERO) a la URL"],
+        ["Aprendizaje", "las pruebas en notebook deben incorporar cache-busters cuando sirven para validar cambios de código"],
+        ["Estado", "cerrado"]
+      ]
+    },
+    {
+      "id": "P08",
+      "titulo": "Overpass 'out tags;' devuelve nodos sin coordenadas",
+      "campos": [
+        ["Fecha de aparición", "sesión 06"],
+        ["Síntoma", "en la prueba 5 (pueblos cercanos), todas las distancias calculadas salían en torno a 4500-4700 km, idénticas dentro de cada grupo. Los pueblos devueltos eran correctos pero los cálculos absurdos"],
+        ["Causa", "la query usaba 'out tags;' como output. Esa variante devuelve cada nodo solo con sus tags, sin las propiedades lat/lon. El código hacía e.get('lat', 0), por lo que todas las distancias se calculaban contra el punto (0, 0) en el Golfo de Guinea, que está a unos 4500-4700 km de España"],
+        ["Resolución", "cambiar 'out tags;' por 'out;' (que devuelve cada nodo completo: id + lat + lon + tags). Cambio adicional: e.get('lat') con check explícito a None en lugar de fallback a 0, para que el bug no pueda repetirse silenciosamente"],
+        ["Aprendizaje", "los modos de salida de Overpass (out, out tags, out body, out skel, out center) tienen diferencias importantes. Hay que elegirlos sabiendo qué incluyen"],
+        ["Estado", "cerrado"]
+      ]
+    },
+    {
+      "id": "P09",
+      "titulo": "Overpass devuelve 504 a las queries de POIs cuando el mirror está cargado",
+      "campos": [
+        ["Fecha de aparición", "sesión 06"],
+        ["Síntoma", "la query de POIs de Medinaceli (7 sub-consultas combinadas) devolvía 504 Gateway Timeout incluso tras reintentos. El ping a Overpass había tardado 8 s para una query trivial, indicando mirror operativo pero cargado"],
+        ["Causa", "el timeout interno de la query estaba en [timeout:50], que el servidor interpreta como 'no me devuelvas error si no termino antes de 50 s'. Con el mirror cargado, la query necesitaba más tiempo. El timeout del cliente Python (60 s) tampoco era suficiente"],
+        ["Resolución", "(1) [timeout:180] dentro de la query. (2) timeout=120 en la llamada Python a fetch_overpass. (3) Radio bajado de 2000 a 1500 m para reducir el área de búsqueda. (4) Pausa entre municipios subida de 3 a 5 s"],
+        ["Aprendizaje", "el timeout interno de Overpass (en la query) y el timeout del cliente HTTP son dos cosas distintas y deben ajustarse en conjunto. Para uso de producción del panel conviene tener el timeout interno alto por defecto"],
+        ["Estado", "cerrado"]
+      ]
+    },
+    {
+      "id": "P10",
+      "titulo": "motorway_link es el endpoint equivocado para próxima salida; el correcto es motorway_junction",
+      "campos": [
+        ["Fecha de aparición", "sesión 06"],
+        ["Síntoma", "el primer intento de la prueba de próxima salida devolvía 34-37 ways de motorway_link por punto, casi todos sin tags útiles (sin destination, sin destination:ref, sin junction:ref, sin ref). La función de agrupación por nudo de salida fallaba porque caía siempre al fallback de 'sin clave', contando cada way como una salida única"],
+        ["Causa", "los motorway_link son los ramales físicos del enlace de salida (las curvas que conectan la autovía con la vía secundaria). Casi nunca llevan tags identificativos. Los nudos de salida en OSM se modelan con un nodo distinto: highway=motorway_junction, que sí lleva ref (número/km de salida) y a veces name (destinos)"],
+        ["Resolución", "cambiar la query a 'node[highway=motorway_junction]'. Eliminar la función de agrupación (cada junction es un punto único). Endurecer el filtro angular a Δ<45° (en lugar de <90°) y añadir distancia mínima 300 m"],
+        ["Aprendizaje", "antes de diseñar una query Overpass para algo, conviene mirar en wiki.openstreetmap.org cómo modela OSM ese concepto. La información puede estar en un nodo, en un way, en una relación o en una combinación, y elegir mal el contenedor cuesta tiempo"],
+        ["Estado", "cerrado"]
+      ]
+    },
+    {
+      "id": "P11",
+      "titulo": "KeyError en la celda de resumen final por claves desactualizadas tras reescribir otra celda",
+      "campos": [
+        ["Fecha de aparición", "sesión 06"],
+        ["Síntoma", "la celda de resumen final del notebook explotaba con KeyError 'total_links' al ejecutarse. Las pruebas anteriores se habían ejecutado correctamente"],
+        ["Causa", "la primera versión de la celda de próxima salida usaba motorway_link y guardaba en resultados_salidas las claves total_links, delante, salidas_unicas. Cuando se reescribió la celda con motorway_junction, las claves cambiaron a total, delante, top. La celda del resumen final no se actualizó y siguió leyendo las claves viejas"],
+        ["Resolución", "actualizar la celda del resumen final para leer las claves nuevas. Aprovechar para añadir la sección de la opción C, que tampoco estaba"],
+        ["Aprendizaje", "cuando se cambian las claves de un diccionario en una celda de notebook, hay que revisar todas las celdas que las leen. En código de proyecto real esto se mitiga con tipos o con tests, pero en notebooks exploratorios el ojo es la única defensa"],
+        ["Estado", "cerrado"]
+      ]
+    }
+  ],
+  "ideas_parqueadas": [
+    {
+      "titulo": "Validar Wikidata por proximidad geográfica como fuente de imagen para POIs de Overpass",
+      "texto": "Sub-tarea menor de fase 1 que quedó pendiente al cierre de la sesión 06. Consiste en una consulta SPARQL del tipo 'dame items con P18 imagen en un radio de 100 m alrededor de estas coordenadas' para enriquecer con foto los POIs de Overpass que no tienen artículo propio en Wikipedia. Es la pieza que faltaría para cerrar al 100% la decisión 13. No es bloqueante para arrancar la fase 2."
+    },
+    {
+      "titulo": "Photon como fuente secundaria de POIs en la fase 1.4",
+      "texto": "Aunque Photon se descartó como geocodificador administrativo en la fase 1.1, su capacidad de devolver el POI más cercano podría ser útil cuando un pueblo no tenga POIs en Overpass ni en Wikidata. Evaluar si la cascada principal se queda corta en pruebas en carretera."
+    },
+    {
+      "titulo": "Prueba 6: pedanías y entidades singulares de población",
+      "texto": "Castrillo de los Polvazares se descubrió en sesión 05 que es pedanía de Astorga, no municipio independiente, y por tanto la consulta SPARQL para municipios españoles no lo encuentra. Sin embargo, turísticamente es un destino reconocido. Esto requiere ampliar la búsqueda para incluir entidades singulares de población. Aplazado para fase 2."
+    },
+    {
+      "titulo": "Mejora de la consulta de comarcas en datos del municipio",
+      "texto": "La consulta SPARQL de la prueba 4 usa wdt:P361 (part of) para obtener la comarca, pero P361 devuelve cualquier tipo de pertenencia. Para el panel sería más útil filtrar a entidades que sean instancia de 'comarca de España', o aceptar que muchos municipios no tienen comarca formal y omitir el campo cuando no haya valor útil."
+    },
+    {
+      "titulo": "Filtro de POIs por distancia al centro del municipio",
+      "texto": "En municipios grandes con pedanías (Medinaceli es ejemplo), Overpass y Wikidata devuelven POIs que están dentro del término municipal pero en pedanías alejadas de la villa cabecera. Mitigación futura: filtrar POIs por distancia a las coordenadas del centro del municipio, poniendo arriba los más cercanos. Con el inventario de Overpass esto es directo porque cada POI viene con sus coordenadas."
+    },
+    {
+      "titulo": "Optimización de tamaño de las miniaturas en el módulo POI",
+      "texto": "En producción se pedirán miniaturas a width=320 (igual que las miniaturas por defecto de Wikipedia REST), reduciendo el tamaño un 30-40%. Cargar solo 1 foto por pueblo (la del POI principal) en lugar de las 3."
+    },
+    {
+      "titulo": "Mejoras a la próxima salida de autovía: enriquecimiento con destinos legibles",
+      "texto": "Los node[motorway_junction] llevan ref pero rara vez name. Los ways adyacentes (motorway_link) sí suelen llevar destination y destination:ref con los textos legibles ('Madrid', 'Zaragoza por A-2'). Mejora futura del POIModule: para los 1-2 junctions más próximos, hacer una segunda query a Overpass por sus motorway_link adyacentes y extraer los destinos. Coste extra: 1 query adicional cuando estamos a punto de pasar una salida. Beneficio: el cartel verde de la vista 1 puede mostrar destinos como un cartel real en lugar de solo el número de salida."
+    }
+  ]
+}
