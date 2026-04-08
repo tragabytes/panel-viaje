@@ -7,15 +7,15 @@
     "nota_pie": "Actualizar al final de cada sesión de trabajo"
   },
   "estado_actual": {
-    "fase_actual": "Fase 1 — Análisis e investigación de APIs (prácticamente completada: bloques 1.1, 1.2, 1.3, 1.4 y 1.5 cerrados)",
-    "ultima_actualizacion": "Sesión 06 — cierre completo del bloque 1.4 (Overpass validado) y de la segunda parte del bloque 1.2 (próxima salida de autovía con estrategia consulta única + filtrado local)",
-    "siguiente_hito": "Decisión sobre arrancar fase 2 (módulos de datos) o cerrar antes la sub-tarea pendiente menor de validar Wikidata por proximidad geográfica como fuente de imagen para POIs de Overpass",
+    "fase_actual": "Fase 1 — Análisis e investigación de APIs (COMPLETADA al 100%)",
+    "ultima_actualizacion": "Sesión 07 — validación de Wikidata por proximidad geográfica como fuente de imagen para POIs de Overpass. Cierra el último fleco de la decisión 13 y de la fase 1",
+    "siguiente_hito": "Arrancar fase 2 (módulos de datos) empezando por LocationModule o WeatherModule según preferencia",
     "bloqueos": "Ninguno"
   },
   "fases": [
     { "id": "0",   "nombre": "Preparación del entorno local",         "estado": "Omitida",          "notas": "No necesaria: el ciclo es editar y subir directo a GitHub Pages" },
     { "id": "0.5", "nombre": "Configuración de GitHub",               "estado": "Completada",       "notas": "Repo, docs, Pages y prueba en móvil viejo OK" },
-    { "id": "1",   "nombre": "Análisis e investigación de APIs",      "estado": "Casi completada", "notas": "1.1, 1.2, 1.3, 1.4 y 1.5 cerrados. Pendiente menor: validar Wikidata por proximidad geográfica como fuente de imagen para POIs de Overpass (no bloqueante)" },
+    { "id": "1",   "nombre": "Análisis e investigación de APIs",      "estado": "Completada",       "notas": "1.1, 1.2, 1.3, 1.4 y 1.5 cerrados. Fleco de Wikidata por proximidad cerrado en sesión 07" },
     { "id": "2",   "nombre": "Módulos de datos",                      "estado": "Pendiente",        "notas": "" },
     { "id": "3",   "nombre": "UI estática",                           "estado": "Pendiente",        "notas": "" },
     { "id": "4",   "nombre": "Ensamblaje y lógica",                   "estado": "Pendiente",        "notas": "" },
@@ -98,13 +98,13 @@
         ["URL base / endpoint", "https://query.wikidata.org/sparql"],
         ["Autenticación", "Ninguna. Requiere cabecera User-Agent identificativa"],
         ["Límites conocidos", "Sin cuota documentada para uso razonable. Recomendado: pausar 1 segundo entre peticiones desde el mismo cliente"],
-        ["Campos que nos interesan", "Para POIs: ?item, rdfs:label, schema:description, wdt:P31 (instancia de), wdt:P18 (imagen), wdt:P625 (coordenadas), schema:about hacia es.wikipedia. Para datos de municipio: wdt:P1082 (población), wdt:P2044 (altitud), wdt:P2046 (superficie), wdt:P361 (part of)"],
-        ["Resultado de la prueba", "5/5 municipios devuelven POIs útiles tras refinar la consulta. Cobertura por municipio (POIs / con imagen / con artículo es.wiki / con ambos): Medinaceli 7/7/3/3, Albarracín 28/19/11/11, Chinchón 12/12/4/4, Trujillo 21/14/10/8, Pedraza 3/3/0/0. La consulta de datos de municipio devuelve 4/4 campos para 4/5 (Pedraza no tiene comarca formal)"],
-        ["Latencia media observada", "POIs: 344-1228 ms según tamaño del municipio. Datos de municipio: 130-315 ms"],
-        ["Tamaño típico de respuesta", "POIs: 2-25 KB por municipio. Datos de municipio: <1 KB"],
-        ["Problemas encontrados", "(1) Los QIDs no se pueden meter de memoria, deben resolverse por consulta verificable (P04). (2) Los filtros SPARQL no se pueden diseñar sin haber visto antes los datos reales (P05). (3) schema:about no es fiable como única fuente para detectar artículos (P06). (4) El servidor cachea respuestas por hash de URL, conviene añadir cache-buster (P07). (5) El campo P361 devuelve cualquier tipo de pertenencia, no necesariamente comarca administrativa"],
-        ["Veredicto final", "APTA. En el módulo POI quedará como fuente de enriquecimiento (foto P18 + texto Wikipedia) sobre el inventario de Overpass. Fuente única para datos de municipio (bloque 1.5)"],
-        ["Fecha de evaluación", "7 de abril de 2026 (sesión 05)"]
+        ["Campos que nos interesan", "Para POIs: ?item, rdfs:label, schema:description, wdt:P31 (instancia de), wdt:P18 (imagen), wdt:P625 (coordenadas), schema:about hacia es.wikipedia. Para datos de municipio: wdt:P1082 (población), wdt:P2044 (altitud), wdt:P2046 (superficie), wdt:P361 (part of). Para proximidad geográfica: SERVICE wikibase:around con wikibase:center (Point WKT) y wikibase:radius (en km)"],
+        ["Resultado de la prueba", "5/5 municipios devuelven POIs útiles tras refinar la consulta. Cobertura por municipio (POIs / con imagen / con artículo es.wiki / con ambos): Medinaceli 7/7/3/3, Albarracín 28/19/11/11, Chinchón 12/12/4/4, Trujillo 21/14/10/8, Pedraza 3/3/0/0. La consulta de datos de municipio devuelve 4/4 campos para 4/5 (Pedraza no tiene comarca formal). En sesión 07 se validó además el caso de uso de proximidad geográfica: query con SERVICE wikibase:around + GROUP_CONCAT sobre instance + FILTER NOT EXISTS contra Q2074737. Cobertura real con priorización de tipos y umbral Jaccard sim>=0.5: 87.5% en pueblos medios patrimoniales (Chinchón 7/8), 37.5% en pueblos grandes (Trujillo 3/8), 12.5% en pueblos muy pequeños (Pedraza 1/8). Global 45.8% con cero falsos positivos tras aplicar umbral estricto"],
+        ["Latencia media observada", "POIs: 344-1228 ms según tamaño del municipio. Datos de municipio: 130-315 ms. Proximidad geográfica (sesión 07): mediana 264 ms, rango 131-1000 ms en comportamiento normal, con picos ocasionales hasta 16 s bajo carga del endpoint público. 39 consultas medidas"],
+        ["Tamaño típico de respuesta", "POIs: 2-25 KB por municipio. Datos de municipio: <1 KB. Proximidad geográfica: mediana 2 KB, máximo 8 KB por consulta"],
+        ["Problemas encontrados", "(1) Los QIDs no se pueden meter de memoria, deben resolverse por consulta verificable (P04). (2) Los filtros SPARQL no se pueden diseñar sin haber visto antes los datos reales (P05). (3) schema:about no es fiable como única fuente para detectar artículos (P06). (4) El servidor cachea respuestas por hash de URL, conviene añadir cache-buster (P07). (5) El campo P361 devuelve cualquier tipo de pertenencia, no necesariamente comarca administrativa. (6) En la query de proximidad, un item con varios wdt:P31 sale duplicado (una fila por instance), se resuelve con GROUP_CONCAT. (7) El propio municipio aparece siempre como primer match a 0 m en queries de proximidad sobre su centro, hay que excluirlo con FILTER NOT EXISTS contra Q2074737. (8) La distancia sola no basta para clasificar matches como correctos: en cascos históricos hay decenas de edificios en 50 m. El criterio que funciona es similitud de label (Jaccard sobre palabras significativas con stopwords de dominio). (9) Picos ocasionales de latencia de 8-16 s bajo carga, deben mitigarse con timeout por consulta + reintento único"],
+        ["Veredicto final", "APTA. En el módulo POI queda como fuente de enriquecimiento (foto P18 + texto Wikipedia) sobre el inventario de Overpass, y como fallback por proximidad geográfica cuando el POI no tiene artículo propio en Wikipedia. Fuente única para datos de municipio (bloque 1.5). Parámetros operativos definidos en decisión 13 y sesión 07"],
+        ["Fecha de evaluación", "7 de abril de 2026 (sesiones 05 y 07)"]
       ]
     },
     {
@@ -268,11 +268,14 @@
       "titulo": "Overpass como fuente principal de inventario de POIs + Wikidata/Wikipedia como enriquecimiento (refina decisión 11)",
       "campos": [
         ["Fecha", "7 de abril de 2026, sesión 06"],
+        ["Estado", "COMPLETAMENTE VALIDADA en sesión 07 tras confirmar la consulta Wikidata por proximidad geográfica como fallback de imagen"],
         ["Decisión", "el módulo POI usará una arquitectura híbrida en dos pasos. Paso 1 (inventario): consulta a Overpass por cada pueblo cercano para obtener todos los POIs con nombre, tipo y coordenadas, filtrados por radio (~1.5 km) alrededor del centro del pueblo. Paso 2 (enriquecimiento): para los 2-3 POIs seleccionados por pueblo, intentar conseguir foto y texto cruzando con Wikipedia REST por título construido y, como fallback, con Wikidata por proximidad geográfica (consulta SPARQL pidiendo items con P18 imagen en un radio pequeño alrededor de las coordenadas del POI)"],
         ["Contexto", "En sesión 06, la prueba 3 demostró que Overpass devuelve POIs útiles para los 5 municipios de la muestra con cobertura significativamente mayor que Wikidata, especialmente en pueblos pequeños: Pedraza pasó de 3 POIs (Wikidata sesión 05) a 15 POIs con nombre (Overpass sesión 06). Trujillo de 21 a 37. Tags ricos (historic=castle, tourism=viewpoint, etc.) que permiten filtrar y priorizar fácilmente. Coordenadas garantizadas, lo que resuelve el problema conocido de las pedanías filtrando por distancia al centro del pueblo"],
         ["Alternativas consideradas", "(a) Mantener Wikidata como fuente principal (decisión 11): descartada porque deja sin POIs a Pedraza y a casi cualquier pueblo de menos de 1000 habitantes. (b) Overpass puro sin Wikidata: descartada porque Overpass no da fotos ni texto narrativo, y la vista 3 los necesita. (c) Las dos en paralelo y fusionar: descartada por complejidad y por duplicación de peticiones"],
         ["Razón", "Overpass cubre mejor el caso de uso real del proyecto (carreteras secundarias por pueblos pequeños), mientras que Wikidata + Wikipedia mantienen la calidad visual donde existe contenido. La cascada Overpass → Wikipedia → Wikidata cubre 100% de la muestra"],
-        ["Consecuencias", "(1) Sub-tarea pendiente menor de fase 1: validar la consulta Wikidata por proximidad geográfica como fuente de imagen para POIs sin artículo en Wikipedia. (2) En fase 2, el POIModule implementará la cascada en el orden Overpass → Wikipedia REST → Wikidata image → tipo de POI con icono. (3) Filtrado por distancia al centro del pueblo para resolver el problema de las pedanías. (4) Priorización por tags Overpass: castle > cathedral > monastery > church > viewpoint > historic monument. (5) Caché agresiva de los inventarios de Overpass (horas o días). (6) Decisión 11 queda como SUPERSEDED por trazabilidad"]
+        ["Parámetros operativos consolidados tras sesión 07", "(1) Inventario: Overpass en radio 1500 m alrededor del centro del municipio con los tags ya validados. (2) Priorización de POIs por tipo antes de cruzar con Wikidata: castle > cathedral > monastery > church > chapel > fort > city_gate > monument > memorial > ruins > archaeological_site > attraction > viewpoint > peak. (3) Enriquecimiento primario: Wikipedia REST por título construido desde el label de Overpass. (4) Enriquecimiento secundario (fallback): Wikidata SPARQL por proximidad geográfica con SERVICE wikibase:around en radio 100 m desde las coordenadas del POI, GROUP_CONCAT sobre instance, y FILTER NOT EXISTS contra Q2074737 para excluir el propio municipio. (5) Criterio de aceptación del match Wikidata: similitud Jaccard sobre palabras significativas >= 0.5. Stopwords del dominio: de, del, la, el, los, las, y, a, en, san, santa, santo, nuestra, señora, virgen, iglesia, ermita, castillo, torre, convento, monasterio, catedral, capilla. La distancia sola NO sirve como criterio de aceptación porque en cascos históricos hay decenas de edificios en 50 m. (6) Timeout por consulta Wikidata: 10 s con un reintento único para sobrevivir a picos ocasionales de latencia del endpoint público. (7) Fallback último si no hay match útil: icono por tipo de POI"],
+        ["Cobertura esperada en producción", "~85% en pueblos medios patrimoniales (Chinchón 7/8 validado), ~40% en pueblos grandes patrimoniales (Trujillo 3/8 validado, mejorable con normalización más agresiva de labels en futuro), ~15% en pueblos muy pequeños (Pedraza 1/8 validado: el corpus de Wikidata es estructuralmente limitado para estos casos y el fallback de icono por tipo cubre el resto). El sistema nunca muestra el POI sin representación visual: siempre hay al menos un icono según tipo"],
+        ["Consecuencias", "(1) En fase 2, el POIModule implementa la cascada con los parámetros consolidados arriba. (2) Filtrado por distancia al centro del pueblo para resolver el problema de las pedanías. (3) Caché agresiva de los inventarios de Overpass (horas o días) y de los resultados de enriquecimiento Wikidata/Wikipedia. (4) Decisión 11 queda como SUPERSEDED por trazabilidad"]
       ]
     },
     {
@@ -357,6 +360,26 @@
         ["Problemas encontrados", "P08: bug 'out tags;' devolvía nodos sin coordenadas, todas las distancias salían ~4500 km contra el punto (0,0) en el Golfo de Guinea. Corregido a 'out;' con check defensivo. P09: mirror cargado requiere [timeout:180] interno + timeout=120 cliente para que las queries de POIs no den 504. P10: motorway_junction es el endpoint correcto para próxima salida, no motorway_link como se pensó al principio. P11: KeyError en la celda de resumen final por leer claves desactualizadas tras reescribir la celda de próxima salida. Aprendizaje: cuando se cambian las claves de un diccionario, hay que revisar todas las celdas que las leen. Observaciones para fase 2: refs inconsistentes (a veces número de salida, a veces km), heading actualizado obligatorio en cada cálculo del filtro, descartar ref=0, dedupar por ref"],
         ["Decisiones tomadas", "decisiones 13 (refina la 11) y 14"],
         ["Pendiente", "Sub-tarea menor de fase 1: validar la consulta Wikidata por proximidad geográfica como fuente de imagen para POIs de Overpass sin artículo en Wikipedia. No bloqueante: se puede arrancar la fase 2 antes y validarla cuando convenga. Aparte: pasar el seguimiento a un sistema content+presentation (JSON + generador) para que las próximas actualizaciones sean más rápidas"]
+      ]
+    },
+    {
+      "n": 7,
+      "titulo": "Validación de Wikidata por proximidad geográfica — cierre de fase 1",
+      "campos": [
+        ["Fecha", "8 de abril de 2026"],
+        ["Fase trabajada", "Fase 1, cierre del último fleco pendiente de la decisión 13"],
+        ["Lo que se ha hecho", "Creación de tests/fase1_wikidata_proximidad.ipynb con 5 pruebas planificadas (P1-P5) sobre los 5 municipios de la muestra del proyecto. Iteración de la query SPARQL hasta llegar a una versión v2 limpia (GROUP_CONCAT sobre instance, FILTER NOT EXISTS contra Q2074737 para excluir el propio municipio, reintentos ante 502/503/504, ordenación por distancia). Añadido el test P2-bis a mitad de sesión tras detectar que la clasificación inicial 'seguro/probable/dudoso' era demasiado permisiva con la distancia como criterio. Notebook consolidado con el badge 'Open in Colab' y las mejoras integradas"],
+        ["Inventario Overpass disponible en esta sesión", "Los mirrors Overpass volvieron a fallar: ronda 1 Medinaceli y Trujillo en 504, ronda 2 Medinaceli y Albarracín en 504. En ambas rondas Chinchón (11 POIs), Pedraza (15 POIs) y uno de los grandes (Trujillo 36 POIs en la ronda 2) salieron bien. La muestra efectiva para P2/P2-bis acabó siendo Chinchón + Trujillo + Pedraza, suficiente para cubrir los tres escenarios: pueblo medio patrimonial, pueblo grande patrimonial, pueblo muy pequeño"],
+        ["Resultados clave P1", "Query de proximidad funciona sobre los 5 municipios en los 3 radios probados (50/100/200 m). La versión v2 eliminó los duplicados por múltiples wdt:P31 y el ruido del propio municipio. Densidad de items con imagen adecuada en pueblos patrimoniales medios/grandes, limitada en pueblos pequeños tipo Pedraza (solo 2 items en 100 m). Trujillo anómalo: solo devuelve la fiesta 'Chíviri' porque las coordenadas del centro del municipio en Wikidata apuntan a un punto desde el que los monumentos están a más de 200 m"],
+        ["Resultados clave P2 (sin priorización)", "16/24 POIs con al menos un item Wikidata cercano (66.7% cobertura bruta). Pero al analizar la calidad, muchos eran falsos positivos por distancia en zonas densas: las puertas de la muralla de Trujillo emparejaban con los palacios cercanos, los miradores de Pedraza con el castillo, etc. Hallazgo importante: la distancia sola NO basta como criterio"],
+        ["Resultados clave P3", "Clasificación inicial seguro/probable/dudoso con umbrales 'sim>=0.5 AND dist<30m / sim>=0.3 OR dist<50m / resto' demasiado permisiva: 5 seguros (20.8%) + 7 probables (29.2%). Al revisar a mano los 7 probables, LOS 7 tenían sim=0.00 y eran falsos positivos que se colaron por la cláusula OR dist<50m. Aprendizaje: la similitud de label es el único criterio que separa verdaderos de falsos positivos. Los 5 seguros con sim>=0.5 eran TODOS aciertos reales sin ninguna excepción"],
+        ["Resultados clave P2-bis (con priorización por tipo + umbral estricto sim>=0.5)", "Cobertura real por tipo de pueblo: Chinchón 7/8 (87.5%), Trujillo 3/8 (37.5%), Pedraza 1/8 (12.5%). Global 11/24 (45.8%) con CERO falsos positivos. La priorización por tipo antes de cruzar con Wikidata más que duplica la tasa útil respecto a P2 sin priorizar (20.8% → 45.8%)"],
+        ["Resultados clave P4 (latencia y tamaño)", "39 consultas medidas. Mediana 264 ms (comportamiento normal). Rango normal 131-1000 ms. Outlier de 16333 ms bajo carga del endpoint público. Tamaño mediana 1902 bytes, máximo 8482 bytes. Coste estimado para el refresco completo del módulo POI en fase 2: ~2.6 s de consultas SPARQL puras más ~13 s de pausas entre consultas (=~15 s total ejecutándose cada 15-30 min en carretera, invisible para el usuario)"],
+        ["Veredicto final", "Cascada Overpass → Wikipedia → Wikidata por proximidad APTA para la decisión 13. Parámetros consolidados en la propia decisión 13 actualizada tras esta sesión (priorización por tipo, umbral sim>=0.5, radio 100 m, timeout 10 s con reintento único, stopwords del dominio, fallback a icono por tipo). Fase 1 queda COMPLETADA al 100%"],
+        ["Límites descubiertos (no bloqueantes)", "(1) Pueblos muy pequeños tipo Pedraza: Wikidata estructuralmente no tiene el contenido. El fallback de icono por tipo cubre estos casos sin drama. (2) En pueblos grandes como Trujillo hay muchos matches 'cerca pero con nombre distinto' (Palacio de Juan Pizarro vs Casa-Museo Pizarro). Mejorable en fase 2 con normalización de labels más agresiva o búsqueda parcial. No bloqueante. (3) Medinaceli y Albarracín no se pudieron cruzar con Overpass hoy por los 504 del mirror, pero sus datos de P1 muestran buena densidad y no comprometen el veredicto porque los 3 pueblos que sí se cruzaron cubren los tres escenarios posibles"],
+        ["Problemas encontrados", "P12 (Wikidata query v1 devolvía duplicados por múltiples wdt:P31), P13 (el propio municipio aparecía como primer match a 0 m en queries de proximidad), P14 (clasificación inicial seguro/probable/dudoso era demasiado permisiva por usar OR con distancia). Los tres resueltos durante la sesión"],
+        ["Decisiones tomadas", "Ninguna nueva. Se actualiza la decisión 13 con los parámetros operativos consolidados tras la validación"],
+        ["Pendiente", "Arrancar fase 2 (módulos de datos). Ningún fleco de fase 1. Implementación del sistema content+presentation del seguimiento ya completada durante la sesión"]
       ]
     }
   ],
@@ -489,13 +512,45 @@
         ["Aprendizaje", "cuando se cambian las claves de un diccionario en una celda de notebook, hay que revisar todas las celdas que las leen. En código de proyecto real esto se mitiga con tipos o con tests, pero en notebooks exploratorios el ojo es la única defensa"],
         ["Estado", "cerrado"]
       ]
+    },
+    {
+      "id": "P12",
+      "titulo": "Query Wikidata de proximidad v1 devolvía items duplicados por múltiples wdt:P31",
+      "campos": [
+        ["Fecha de aparición", "sesión 07"],
+        ["Síntoma", "en la prueba 1 de proximidad, el Palacio Ducal de Medinaceli aparecía 3 veces en los resultados (una por cada wdt:P31: palacio, museo, monumento). Las murallas de Albarracín aparecían también triplicadas. Contaminaba el conteo y la selección del mejor match"],
+        ["Causa", "la query SELECT devolvía una fila por cada combinación item/instance cuando el item tiene varios wdt:P31. Es el comportamiento estándar de SPARQL, pero para nuestro caso de uso queremos una fila por item"],
+        ["Resolución", "rehacer la query con GROUP_CONCAT(DISTINCT ?instanceLabel; separator=' | ') AS ?instances y GROUP BY sobre los demás campos. Resultado: un item por fila, con todas sus instances concatenadas en una sola columna. Elimina los duplicados limpiamente"],
+        ["Aprendizaje", "cuando una query SPARQL puede devolver un item con múltiples valores en una propiedad OPTIONAL, usar GROUP_CONCAT + GROUP BY es la forma canónica de colapsar"],
+        ["Estado", "cerrado"]
+      ]
+    },
+    {
+      "id": "P13",
+      "titulo": "El propio municipio aparecía como primer match a 0 m en queries de proximidad sobre su centro",
+      "campos": [
+        ["Fecha de aparición", "sesión 07"],
+        ["Síntoma", "en la prueba 1, cada consulta sobre el centro de un municipio devolvía ese mismo municipio como primer item a 0 m (Medinaceli sobre Medinaceli, Albarracín sobre Albarracín, etc.). Contaminaba la lista y daba la falsa impresión de match a 0 m cuando en realidad era el contenedor administrativo"],
+        ["Causa", "los items de municipio en Wikidata tienen P625 (coordenadas) y P18 (imagen de la localidad). Geográficamente están exactamente en su propio centro, por eso salían primero en cualquier búsqueda por proximidad al centro"],
+        ["Resolución", "añadir FILTER NOT EXISTS { ?item wdt:P31 wd:Q2074737 } a la query para excluir items que sean instancia de 'municipio de España'. Nota residual: algunos pueblos tienen un segundo item en Wikidata distinto al del término municipal (por ejemplo 'capital de municipio'), que puede seguir apareciendo. No afecta a P2 porque en P2 las consultas se lanzan desde las coordenadas de los POIs individuales, no del centro del pueblo"],
+        ["Aprendizaje", "las consultas geoespaciales a Wikidata siempre devuelven TODO lo que tiene coordenadas en el radio, incluidos contenedores administrativos. Hay que filtrar explícitamente por tipo cuando se busca 'lugares' en el sentido turístico"],
+        ["Estado", "cerrado"]
+      ]
+    },
+    {
+      "id": "P14",
+      "titulo": "Clasificación seguro/probable/dudoso inicial era demasiado permisiva por usar OR con distancia",
+      "campos": [
+        ["Fecha de aparición", "sesión 07"],
+        ["Síntoma", "en la prueba 3, 7 de 24 POIs se clasificaban como 'probable' pero al revisarlos a mano los 7 tenían similitud de label 0.00 y eran falsos positivos obvios: 'Puerta del Triunfo' emparejada con 'Alcázar de los Bejarano' a 43 m, 'Puerta de San Andrés' con 'Casa fuerte de los Escobar' a 25 m, etc."],
+        ["Causa", "la regla de clasificación decía 'probable si sim>=0.3 OR dist<50m'. La parte del OR con distancia dejaba pasar cualquier item que estuviera cerca aunque no tuviera nada que ver con el POI. En cascos históricos hay decenas de edificios distintos en 50 m, así que el filtro era inútil"],
+        ["Resolución", "abandonar la regla con OR. Criterio único y estricto: sim >= 0.5 para considerar match útil, sin importar la distancia. La distancia solo se usa como desempate cuando hay varios candidatos por encima del umbral. Validado en P2-bis: los 11 matches por encima del umbral son aciertos reales, cero falsos positivos"],
+        ["Aprendizaje meta", "cuando un criterio de clasificación se apoya en múltiples señales combinadas con OR, la señal más débil se convierte en la puerta de entrada para el ruido. Mejor usar la señal fuerte sola y descartar los casos que no la cumplen, aunque se pierdan algunos aciertos"],
+        ["Estado", "cerrado"]
+      ]
     }
   ],
   "ideas_parqueadas": [
-    {
-      "titulo": "Validar Wikidata por proximidad geográfica como fuente de imagen para POIs de Overpass",
-      "texto": "Sub-tarea menor de fase 1 que quedó pendiente al cierre de la sesión 06. Consiste en una consulta SPARQL del tipo 'dame items con P18 imagen en un radio de 100 m alrededor de estas coordenadas' para enriquecer con foto los POIs de Overpass que no tienen artículo propio en Wikipedia. Es la pieza que faltaría para cerrar al 100% la decisión 13. No es bloqueante para arrancar la fase 2."
-    },
     {
       "titulo": "Photon como fuente secundaria de POIs en la fase 1.4",
       "texto": "Aunque Photon se descartó como geocodificador administrativo en la fase 1.1, su capacidad de devolver el POI más cercano podría ser útil cuando un pueblo no tenga POIs en Overpass ni en Wikidata. Evaluar si la cascada principal se queda corta en pruebas en carretera."
@@ -519,6 +574,10 @@
     {
       "titulo": "Mejoras a la próxima salida de autovía: enriquecimiento con destinos legibles",
       "texto": "Los node[motorway_junction] llevan ref pero rara vez name. Los ways adyacentes (motorway_link) sí suelen llevar destination y destination:ref con los textos legibles ('Madrid', 'Zaragoza por A-2'). Mejora futura del POIModule: para los 1-2 junctions más próximos, hacer una segunda query a Overpass por sus motorway_link adyacentes y extraer los destinos. Coste extra: 1 query adicional cuando estamos a punto de pasar una salida. Beneficio: el cartel verde de la vista 1 puede mostrar destinos como un cartel real en lugar de solo el número de salida."
+    },
+    {
+      "titulo": "Normalización más agresiva de labels para subir la cobertura en pueblos grandes",
+      "texto": "En sesión 07, Trujillo solo consiguió 3/8 matches útiles con el umbral estricto sim>=0.5. Revisando los 5 que no cruzaron: 'Palacio de Juan Pizarro de Aragón' (Overpass) probablemente es 'Casa-Museo de Pizarro' o 'Palacio de los Pizarro' en Wikidata; 'Torre del Alfiler' podría estar como 'Torre del Reloj' o con otro nombre histórico. El Jaccard actual sobre palabras significativas no detecta estas equivalencias. Mejora futura del POIModule: añadir una segunda pasada con normalización más agresiva (sinónimos comunes del patrimonio español: casa = palacio = casa-museo, iglesia = parroquia, etc.) o intentar una búsqueda por label parcial contra Wikidata cuando el primer intento falla. Podría subir la cobertura en pueblos grandes del 37.5% al 60-70%. No bloqueante porque el fallback de icono por tipo ya cubre estos casos."
     }
   ]
 }
