@@ -37,6 +37,28 @@
     .estado.error { color: #ff5555; opacity: 1; }
     .estado.ok    { color: #66ff99; opacity: 1; }
 
+    .carretera {
+      margin-bottom: 16px;
+      min-height: 28px;
+    }
+
+    .carretera .pastilla {
+      display: inline-block;
+      background: #1e5fb8;
+      color: #fff;
+      font-weight: 700;
+      font-size: 20px;
+      padding: 6px 14px;
+      border-radius: 6px;
+      letter-spacing: 0.5px;
+    }
+
+    .carretera .sin-carretera {
+      font-size: 13px;
+      opacity: 0.4;
+      font-style: italic;
+    }
+
     .ubicacion {
       margin-bottom: 20px;
       padding: 12px 0;
@@ -87,6 +109,10 @@
 
   <div id="estado" class="estado">Esperando permiso de GPS…</div>
 
+  <div class="carretera" id="carreteraBloque">
+    <span class="sin-carretera">Sin carretera identificada</span>
+  </div>
+
   <div class="ubicacion">
     <div class="label">Ubicación</div>
     <div id="municipio" class="municipio">—</div>
@@ -106,30 +132,27 @@
   </div>
 
   <script src="js/debug.js"></script>
+  <script src="js/carreteras.js"></script>
   <script src="js/location.js"></script>
   <script>
     debug.log('Página cargada');
 
-    const $estado    = document.getElementById('estado');
-    const $municipio = document.getElementById('municipio');
-    const $admin     = document.getElementById('admin');
-    const $lat       = document.getElementById('lat');
-    const $lon       = document.getElementById('lon');
-    const $precision = document.getElementById('precision');
-    const $velocidad = document.getElementById('velocidad');
-    const $rumbo     = document.getElementById('rumbo');
-    const $hora      = document.getElementById('hora');
+    const $estado           = document.getElementById('estado');
+    const $carreteraBloque  = document.getElementById('carreteraBloque');
+    const $municipio        = document.getElementById('municipio');
+    const $admin            = document.getElementById('admin');
+    const $lat              = document.getElementById('lat');
+    const $lon              = document.getElementById('lon');
+    const $precision        = document.getElementById('precision');
+    const $velocidad        = document.getElementById('velocidad');
+    const $rumbo            = document.getElementById('rumbo');
+    const $hora             = document.getElementById('hora');
 
-    // Umbral mínimo de desplazamiento para considerar que "te has movido"
-    // y volver a consultar la ubicación administrativa. 50 m es pequeño
-    // para desarrollo; en fase 4 lo subiremos a ~500 m para producción.
     const UMBRAL_DESPLAZAMIENTO_M = 50;
 
-    // Última posición para la que ya disparamos actualización de ubicación
     let ultimaPosicionUbicacion = null;
-
-    // Última ubicación mostrada, para evitar repintar si no cambió
     let ultimaUbicacionMostrada = null;
+    let ultimaCarreteraMostrada = null;
 
     function distanciaMetros(lat1, lon1, lat2, lon2) {
       const R = 6371000;
@@ -148,7 +171,6 @@
     }
 
     function formatearAdmin(info) {
-      // Si provincia y CCAA son iguales (uniprovinciales), mostramos una sola.
       if (!info.ccaa && !info.provincia) return '—';
       if (info.provincia && info.ccaa && info.provincia !== info.ccaa) {
         return `${info.provincia} · ${info.ccaa}`;
@@ -156,11 +178,17 @@
       return info.provincia || info.ccaa;
     }
 
+    function pintarCarretera(info) {
+      if (info && info.codigo) {
+        $carreteraBloque.innerHTML = `<span class="pastilla">${info.codigo}</span>`;
+      } else {
+        $carreteraBloque.innerHTML = `<span class="sin-carretera">Sin carretera identificada</span>`;
+      }
+    }
+
     async function actualizarUbicacionAdministrativa(lat, lon) {
       try {
         const info = await LocationModule.obtenerUbicacion(lat, lon);
-
-        // ¿Ha cambiado respecto a lo que ya mostramos?
         const clave = `${info.municipio}|${info.provincia}|${info.ccaa}`;
         if (clave === ultimaUbicacionMostrada) return;
         ultimaUbicacionMostrada = clave;
@@ -169,8 +197,27 @@
         $admin.textContent = formatearAdmin(info);
         debug.log(`Ubicación [${info.fuente}]: ${info.municipio} · ${formatearAdmin(info)}`);
       } catch (err) {
-        debug.error(`LocationModule: ${err.message}`);
-        // No tocamos $municipio/$admin: se queda la última info válida
+        debug.error(`LocationModule.ubicacion: ${err.message}`);
+      }
+    }
+
+    async function actualizarCarretera(lat, lon) {
+      try {
+        const info = await LocationModule.obtenerCarretera(lat, lon);
+        const clave = `${info.codigo}|${info.textoCrudo}`;
+        if (clave === ultimaCarreteraMostrada) return;
+        ultimaCarreteraMostrada = clave;
+
+        pintarCarretera(info);
+        if (info.codigo) {
+          debug.log(`Carretera [${info.fuente}]: ${info.codigo} (crudo: "${info.textoCrudo}")`);
+        } else if (info.textoCrudo) {
+          debug.log(`Carretera [${info.fuente}]: sin código (crudo: "${info.textoCrudo}")`);
+        } else {
+          debug.log(`Carretera [${info.fuente}]: sin vía en Nominatim`);
+        }
+      } catch (err) {
+        debug.error(`LocationModule.carretera: ${err.message}`);
       }
     }
 
@@ -189,7 +236,6 @@
 
       mostrarEstado('GPS activo', 'ok');
 
-      // ¿Te has movido lo suficiente para volver a consultar ubicación?
       let hayQueActualizar = false;
       if (!ultimaPosicionUbicacion) {
         hayQueActualizar = true;
@@ -208,6 +254,7 @@
         debug.log(`Posición: ${c.latitude.toFixed(5)}, ${c.longitude.toFixed(5)} (±${c.accuracy?.toFixed(0)}m)`);
         ultimaPosicionUbicacion = { lat: c.latitude, lon: c.longitude };
         actualizarUbicacionAdministrativa(c.latitude, c.longitude);
+        actualizarCarretera(c.latitude, c.longitude);
       }
     }
 
