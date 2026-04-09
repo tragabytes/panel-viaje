@@ -8,17 +8,26 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     html, body {
-      height: 100%;
+      min-height: 100%;
       background: #0f1117;
       color: #fff;
       font-family: -apple-system, system-ui, sans-serif;
-      overflow: hidden;
     }
 
     body {
       display: flex;
       flex-direction: column;
       padding: 16px;
+    }
+
+    /* Cuando el panel de debug está activo, reservamos espacio al final
+       del body para que el último bloque no quede tapado. El propio
+       debug.js añade y quita estas clases según su estado. */
+    body.debug-activo {
+      padding-bottom: calc(30vh + 32px);
+    }
+    body.debug-activo.debug-colapsado {
+      padding-bottom: 50px;
     }
 
     h1 {
@@ -90,7 +99,7 @@
       opacity: 0.6;
     }
 
-    /* ---- Bloque meteo (paso 1 WeatherModule) ---- */
+    /* ---- Bloque meteo (paso 2 WeatherModule) ---- */
     .meteo {
       margin-bottom: 20px;
       padding: 12px 0;
@@ -118,6 +127,14 @@
     }
 
     .meteo .sub.error { color: #ff5555; opacity: 1; }
+
+    .meteo .prevision {
+      margin-top: 6px;
+      padding-top: 6px;
+      border-top: 1px dashed rgba(255,255,255,0.08);
+      font-size: 13px;
+      opacity: 0.75;
+    }
     /* ---- Fin bloque meteo ---- */
 
     .coordenadas {
@@ -160,6 +177,7 @@
     <div id="meteoCode" class="sub">—</div>
     <div id="meteoViento" class="sub">—</div>
     <div id="meteoHumedad" class="sub">—</div>
+    <div id="meteoPrevision" class="prevision">—</div>
   </div>
 
   <div class="coordenadas">
@@ -189,6 +207,7 @@
     const $meteoCode        = document.getElementById('meteoCode');
     const $meteoViento      = document.getElementById('meteoViento');
     const $meteoHumedad     = document.getElementById('meteoHumedad');
+    const $meteoPrevision   = document.getElementById('meteoPrevision');
     const $lat              = document.getElementById('lat');
     const $lon              = document.getElementById('lon');
     const $precision        = document.getElementById('precision');
@@ -287,9 +306,35 @@
       }
     }
 
-    // Paso 1 WeatherModule: sin caché, sin previsión, solo current crudo.
-    // Se lanza cada vez que el filtro de 50 m dispara una actualización,
-    // igual que ubicación y carretera. El caché llega en el paso 3.
+    // Construye una línea textual resumen de la previsión horaria.
+    // Ejemplo: "Próx. 6h: 20°C → 17°C · lluvia máx 20%"
+    // El objetivo en el paso 2 es solo validar que los datos llegan, no
+    // hacer una UI bonita. La gráfica visual es trabajo de fase 3.
+    function construirResumenPrevision(horas) {
+      if (!horas || horas.length === 0) return 'Sin previsión';
+      const n = horas.length;
+      const tempInicio = Math.round(horas[0].temperatura);
+      const tempFin = Math.round(horas[n - 1].temperatura);
+      const unidad = horas[0].temperaturaUnidad || '°C';
+
+      // Máximo de probabilidad de lluvia en el tramo
+      let maxLluvia = 0;
+      for (let i = 0; i < n; i++) {
+        const p = horas[i].precipProbabilidad;
+        if (typeof p === 'number' && p > maxLluvia) maxLluvia = p;
+      }
+
+      const partes = [`Próx. ${n}h: ${tempInicio}${unidad} → ${tempFin}${unidad}`];
+      if (maxLluvia > 0) {
+        partes.push(`lluvia máx ${maxLluvia}%`);
+      } else {
+        partes.push('sin lluvia prevista');
+      }
+      return partes.join(' · ');
+    }
+
+    // Paso 2 WeatherModule: current + previsión horaria de 6 horas.
+    // Sin caché todavía (llega en el paso 3). Dedupe por hora|weatherCode.
     async function actualizarMeteo(lat, lon) {
       try {
         const meteo = await Weather.obtenerTiempoActual(lat, lon);
@@ -308,14 +353,17 @@
         $meteoHumedad.className = 'sub';
         $meteoHumedad.textContent =
           `Humedad ${meteo.humedad}${meteo.humedadUnidad}`;
+        $meteoPrevision.textContent = construirResumenPrevision(meteo.previsionHoraria);
 
-        debug.log(`Meteo pintada: ${Math.round(meteo.temperatura)}° WMO ${meteo.weatherCode}`);
+        const nHoras = meteo.previsionHoraria ? meteo.previsionHoraria.length : 0;
+        debug.log(`Meteo pintada: ${Math.round(meteo.temperatura)}° WMO ${meteo.weatherCode} + ${nHoras}h previsión`);
       } catch (err) {
         $meteoTemp.textContent = 'Error meteo';
         $meteoCode.className = 'sub error';
         $meteoCode.textContent = err.message || 'fallo';
         $meteoViento.textContent = '—';
         $meteoHumedad.textContent = '—';
+        $meteoPrevision.textContent = '—';
         debug.error(`Weather: ${err.message}`);
       }
     }
