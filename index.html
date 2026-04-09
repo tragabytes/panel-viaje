@@ -120,18 +120,54 @@
     const $rumbo     = document.getElementById('rumbo');
     const $hora      = document.getElementById('hora');
 
+    // Umbral mínimo de desplazamiento para considerar que "te has movido"
+    // y volver a consultar la ubicación administrativa. 50 m es pequeño
+    // para desarrollo; en fase 4 lo subiremos a ~500 m para producción.
+    const UMBRAL_DESPLAZAMIENTO_M = 50;
+
+    // Última posición para la que ya disparamos actualización de ubicación
+    let ultimaPosicionUbicacion = null;
+
+    // Última ubicación mostrada, para evitar repintar si no cambió
+    let ultimaUbicacionMostrada = null;
+
+    function distanciaMetros(lat1, lon1, lat2, lon2) {
+      const R = 6371000;
+      const toRad = (g) => g * Math.PI / 180;
+      const dLat = toRad(lat2 - lat1);
+      const dLon = toRad(lon2 - lon1);
+      const a = Math.sin(dLat / 2) ** 2 +
+                Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+                Math.sin(dLon / 2) ** 2;
+      return 2 * R * Math.asin(Math.sqrt(a));
+    }
+
     function mostrarEstado(texto, clase) {
       $estado.textContent = texto;
       $estado.className = 'estado ' + (clase || '');
     }
 
+    function formatearAdmin(info) {
+      // Si provincia y CCAA son iguales (uniprovinciales), mostramos una sola.
+      if (!info.ccaa && !info.provincia) return '—';
+      if (info.provincia && info.ccaa && info.provincia !== info.ccaa) {
+        return `${info.provincia} · ${info.ccaa}`;
+      }
+      return info.provincia || info.ccaa;
+    }
+
     async function actualizarUbicacionAdministrativa(lat, lon) {
       try {
         const info = await LocationModule.obtenerUbicacion(lat, lon);
+
+        // ¿Ha cambiado respecto a lo que ya mostramos?
+        const clave = `${info.municipio}|${info.provincia}|${info.ccaa}`;
+        if (clave === ultimaUbicacionMostrada) return;
+        ultimaUbicacionMostrada = clave;
+
         $municipio.textContent = info.municipio || '(municipio desconocido)';
-        const partes = [info.provincia, info.ccaa].filter(Boolean);
-        $admin.textContent = partes.join(' · ') || '—';
-        debug.log(`Ubicación [${info.fuente}]: ${info.municipio} · ${info.provincia}`);
+        $admin.textContent = formatearAdmin(info);
+        debug.log(`Ubicación [${info.fuente}]: ${info.municipio} · ${formatearAdmin(info)}`);
       } catch (err) {
         debug.error(`LocationModule: ${err.message}`);
         // No tocamos $municipio/$admin: se queda la última info válida
@@ -152,9 +188,27 @@
       $hora.textContent = new Date().toTimeString().slice(0, 8);
 
       mostrarEstado('GPS activo', 'ok');
-      debug.log(`Posición: ${c.latitude.toFixed(5)}, ${c.longitude.toFixed(5)} (±${c.accuracy?.toFixed(0)}m)`);
 
-      actualizarUbicacionAdministrativa(c.latitude, c.longitude);
+      // ¿Te has movido lo suficiente para volver a consultar ubicación?
+      let hayQueActualizar = false;
+      if (!ultimaPosicionUbicacion) {
+        hayQueActualizar = true;
+      } else {
+        const dist = distanciaMetros(
+          c.latitude, c.longitude,
+          ultimaPosicionUbicacion.lat, ultimaPosicionUbicacion.lon
+        );
+        if (dist >= UMBRAL_DESPLAZAMIENTO_M) {
+          hayQueActualizar = true;
+          debug.log(`Movimiento detectado: ${dist.toFixed(0)}m`);
+        }
+      }
+
+      if (hayQueActualizar) {
+        debug.log(`Posición: ${c.latitude.toFixed(5)}, ${c.longitude.toFixed(5)} (±${c.accuracy?.toFixed(0)}m)`);
+        ultimaPosicionUbicacion = { lat: c.latitude, lon: c.longitude };
+        actualizarUbicacionAdministrativa(c.latitude, c.longitude);
+      }
     }
 
     function alFallarPosicion(err) {
