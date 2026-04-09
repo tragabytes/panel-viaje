@@ -51,14 +51,20 @@ const LocationModule = (() => {
     ultimaPeticionTs = Date.now();
   }
 
-  // Normaliza la respuesta cruda de Nominatim al formato que usamos
+  // Normaliza la respuesta cruda de Nominatim al formato que usamos.
+  // Ojo con uniprovinciales (Madrid, Asturias, Cantabria, Navarra, La Rioja,
+  // Murcia, Baleares): Nominatim no devuelve `province` porque la CCAA y la
+  // provincia son administrativamente lo mismo. En esos casos, usamos la CCAA
+  // como provincia.
   function normalizar(datos) {
     const addr = datos.address || {};
     const municipio =
       addr.city || addr.town || addr.village ||
       addr.hamlet || addr.municipality || null;
-    const provincia = addr.province || addr.county || null;
     const ccaa = addr.state || null;
+    // Provincia: primero la explícita; si no, la CCAA (uniprovinciales).
+    // NO usamos addr.county porque devuelve cosas como "Área metropolitana".
+    const provincia = addr.province || ccaa || null;
     return { municipio, provincia, ccaa };
   }
 
@@ -100,7 +106,6 @@ const LocationModule = (() => {
     if (cacheUltima) {
       const dist = distanciaMetros(lat, lon, cacheUltima.lat, cacheUltima.lon);
       if (dist < RADIO_CACHE_M) {
-        debug.log(`Caché reusada (dist ${dist.toFixed(0)}m)`);
         return { ...cacheUltima.resultado, fuente: 'cache' };
       }
     }
