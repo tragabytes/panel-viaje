@@ -1,13 +1,15 @@
 // js/weather.js
-// WeatherModule — primera iteración (paso 1)
+// WeatherModule — segunda iteración (paso 2)
 //
-// Objetivo del paso 1: pedir el tiempo actual a Open-Meteo y devolver los
-// campos crudos, sin caché, sin traducción de weather_code, sin previsión
-// por horas. El caché llega en el paso 3, la previsión en el paso 2 y la
-// traducción de códigos WMO en el paso 4.
+// Cambios sobre el paso 1: la petición incluye ahora 6 horas de previsión
+// horaria (forecast_hours=6), con los mismos campos meteorológicos que
+// current más precipitation_probability. El objeto devuelto añade un
+// campo `previsionHoraria` con un array de objetos por hora.
+//
+// Sigue sin haber caché: el caché llega en el paso 3. Sigue sin haber
+// traducción de weather_code a texto humano: eso llega en el paso 4.
 //
 // Expone el objeto global Weather con la función obtenerTiempoActual(lat, lon).
-// Llama a debug.log para registrar entrada, salida, latencia y errores.
 
 (function () {
   'use strict';
@@ -15,8 +17,8 @@
   // Endpoint validado en la ficha Open-Meteo de fase 1 (sesión 04).
   var URL_BASE = 'https://api.open-meteo.com/v1/forecast';
 
-  // Campos current validados en la ficha de fase 1. Todos llegan en una
-  // sola petición, tamaño típico 608 bytes.
+  // Campos current validados en la ficha de fase 1. 602 bytes medidos en
+  // la prueba del paso 1 (sesión 09).
   var CAMPOS_CURRENT = [
     'temperature_2m',
     'apparent_temperature',
@@ -27,9 +29,24 @@
     'wind_direction_10m'
   ].join(',');
 
-  // Timeout por intento. La ficha usaba 30 s pero en un coche con datos
-  // compartidos eso es demasiado. 10 s es suficiente según las latencias
-  // medidas (mediana 821 ms, máx 1869 ms) dejando margen de sobra.
+  // Campos hourly. Mismos que current + precipitation_probability (solo
+  // existe en hourly, no en current). No incluimos is_day en hourly porque
+  // no aporta nada útil a una línea de previsión textual.
+  var CAMPOS_HOURLY = [
+    'temperature_2m',
+    'apparent_temperature',
+    'relative_humidity_2m',
+    'weather_code',
+    'wind_speed_10m',
+    'wind_direction_10m',
+    'precipitation_probability'
+  ].join(',');
+
+  // Número de horas de previsión a pedir. 6 cubre cualquier trayecto
+  // razonable del panel (viaje típico 2-3 h). Ampliar a 12 sería trivial.
+  var HORAS_PREVISION = 6;
+
+  // Timeout por intento. 10 s es el umbral razonable para conexión móvil.
   var TIMEOUT_MS = 10000;
 
   // Reintento único. Los 504 transitorios documentados en la ficha se
@@ -41,11 +58,13 @@
       '?latitude=' + encodeURIComponent(lat.toFixed(5)) +
       '&longitude=' + encodeURIComponent(lon.toFixed(5)) +
       '&current=' + CAMPOS_CURRENT +
+      '&hourly=' + CAMPOS_HOURLY +
+      '&forecast_hours=' + HORAS_PREVISION +
       '&timezone=auto';
   }
 
   // fetch con timeout usando AbortController. Si no responde en TIMEOUT_MS,
-  // se cancela y se propaga un error marcado como timeout para diferenciarlo.
+  // se cancela y se propaga un error marcado como timeout.
   function fetchConTimeout(url) {
     var controller = new AbortController();
     var id = setTimeout(function () { controller.abort(); }, TIMEOUT_MS);
@@ -103,17 +122,41 @@
     return unIntento();
   }
 
-  // Normaliza la respuesta cruda de Open-Meteo al formato que devolvemos
-  // al llamador. Mantiene los campos numéricos tal cual y añade las
-  // unidades textuales que trae la propia API, por si luego el pintado
-  // quiere usarlas.
+  // Convierte el hourly de Open-Meteo (columnas paralelas) en un array de
+  // objetos, uno por hora, más cómodo de usar en el pintado.
+  function transformarHourly(hourly, unidades) {
+    if (!hourly || !Array.isArray(hourly.time)) return [];
+    var horas = [];
+    for (var i = 0; i < hourly.time.length; i++) {
+      horas.push({
+        hora: hourly.time[i],
+        temperatura: hourly.temperature_2m ? hourly.temperature_2m[i] : null,
+        temperaturaUnidad: unidades.temperature_2m || '°C',
+        sensacion: hourly.apparent_temperature ? hourly.apparent_temperature[i] : null,
+        sensacionUnidad: unidades.apparent_temperature || '°C',
+        humedad: hourly.relative_humidity_2m ? hourly.relative_humidity_2m[i] : null,
+        humedadUnidad: unidades.relative_humidity_2m || '%',
+        weatherCode: hourly.weather_code ? hourly.weather_code[i] : null,
+        vientoVelocidad: hourly.wind_speed_10m ? hourly.wind_speed_10m[i] : null,
+        vientoUnidad: unidades.wind_speed_10m || 'km/h',
+        vientoDireccion: hourly.wind_direction_10m ? hourly.wind_direction_10m[i] : null,
+        precipProbabilidad: hourly.precipitation_probability ? hourly.precipitation_probability[i] : null
+      });
+    }
+    return horas;
+  }
+
+  // Normaliza la respuesta cruda de Open-Meteo. Campos de current + array
+  // previsionHoraria con las próximas N horas.
   function normalizar(json) {
     if (!json || !json.current) {
       throw new Error('respuesta sin campo current');
     }
     var c = json.current;
     var u = json.current_units || {};
+    var uHourly = json.hourly_units || {};
     return {
+      // Tiempo actual (igual que en paso 1)
       temperatura: c.temperature_2m,
       temperaturaUnidad: u.temperature_2m || '°C',
       sensacion: c.apparent_temperature,
@@ -126,7 +169,9 @@
       vientoUnidad: u.wind_speed_10m || 'km/h',
       vientoDireccion: c.wind_direction_10m,
       hora: c.time,
-      zonaHoraria: json.timezone
+      zonaHoraria: json.timezone,
+      // Previsión horaria (nuevo en paso 2)
+      previsionHoraria: transformarHourly(json.hourly, uHourly)
     };
   }
 

@@ -9,15 +9,73 @@
 //
 // Los mensajes se muestran en un panel fijo abajo del todo,
 // con scroll automático. Guarda los últimos 50.
+//
+// Añadidos en sesión 09:
+//   - El panel añade la clase 'debug-activo' al <body> al crearse, para
+//     que el CSS del index reserve hueco al final con padding-bottom.
+//   - max-height bajado de 40vh a 30vh para pantallas pequeñas.
+//   - Barra superior con título "debug" y botón de colapsar/expandir.
+//     El estado colapsado se persiste en localStorage bajo la clave
+//     'debug-colapsado'. Mientras está colapsado, el body lleva además
+//     la clase 'debug-colapsado' para que el padding-bottom se reduzca.
+//   - Los mensajes se siguen acumulando aunque el panel esté colapsado;
+//     al expandirlo se ven los últimos 50 como siempre.
 
 const debug = (() => {
   const activo = new URLSearchParams(window.location.search).get('debug') === '1';
-  let panel = null;
   const maxMensajes = 50;
   const mensajes = [];
+  const CLAVE_COLAPSADO = 'debug-colapsado';
+
+  let panel = null;
+  let cuerpo = null;   // el área scrollable con los logs
+  let barra = null;    // la tira superior con título y botón
+  let botonColapsar = null;
+  let colapsado = false;
+
+  function leerEstadoColapsado() {
+    try {
+      return localStorage.getItem(CLAVE_COLAPSADO) === '1';
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function guardarEstadoColapsado(valor) {
+    try {
+      localStorage.setItem(CLAVE_COLAPSADO, valor ? '1' : '0');
+    } catch (e) {
+      // silencioso: si no hay localStorage, seguimos funcionando sin persistencia
+    }
+  }
+
+  function aplicarEstadoVisual() {
+    if (!panel || !cuerpo || !botonColapsar) return;
+    if (colapsado) {
+      cuerpo.style.display = 'none';
+      botonColapsar.textContent = '+';
+      botonColapsar.setAttribute('aria-label', 'Expandir panel de debug');
+      document.body.classList.add('debug-colapsado');
+    } else {
+      cuerpo.style.display = 'block';
+      botonColapsar.textContent = '–';
+      botonColapsar.setAttribute('aria-label', 'Colapsar panel de debug');
+      document.body.classList.remove('debug-colapsado');
+      // scroll al final al expandir, por si han entrado mensajes mientras estaba colapsado
+      cuerpo.scrollTop = cuerpo.scrollHeight;
+    }
+  }
+
+  function alternarColapsado() {
+    colapsado = !colapsado;
+    guardarEstadoColapsado(colapsado);
+    aplicarEstadoVisual();
+  }
 
   function crearPanel() {
     if (panel) return;
+
+    // Contenedor principal: fijo abajo, ancho completo
     panel = document.createElement('div');
     panel.id = 'debug-panel';
     panel.style.cssText = `
@@ -25,30 +83,111 @@ const debug = (() => {
       bottom: 0;
       left: 0;
       right: 0;
-      max-height: 40vh;
-      overflow-y: auto;
-      background: rgba(0, 0, 0, 0.85);
+      max-height: 30vh;
+      background: rgba(0, 0, 0, 0.88);
       color: #fff;
       font-family: monospace;
       font-size: 11px;
       line-height: 1.4;
-      padding: 8px 10px;
       border-top: 1px solid #444;
       z-index: 9999;
+      display: flex;
+      flex-direction: column;
     `;
+
+    // Barra superior: siempre visible, con título y botón de colapsar
+    barra = document.createElement('div');
+    barra.style.cssText = `
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 10px;
+      background: rgba(255, 255, 255, 0.06);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      flex-shrink: 0;
+    `;
+
+    const titulo = document.createElement('span');
+    titulo.textContent = 'debug';
+    titulo.style.cssText = `
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      opacity: 0.6;
+    `;
+
+    botonColapsar = document.createElement('button');
+    botonColapsar.type = 'button';
+    botonColapsar.style.cssText = `
+      width: 32px;
+      height: 24px;
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 16px;
+      font-weight: 700;
+      line-height: 1;
+      cursor: pointer;
+      padding: 0;
+    `;
+    botonColapsar.addEventListener('click', alternarColapsado);
+
+    barra.appendChild(titulo);
+    barra.appendChild(botonColapsar);
+    panel.appendChild(barra);
+
+    // Cuerpo: área scrollable con los logs
+    cuerpo = document.createElement('div');
+    cuerpo.id = 'debug-cuerpo';
+    cuerpo.style.cssText = `
+      overflow-y: auto;
+      padding: 8px 10px;
+      flex: 1 1 auto;
+    `;
+    panel.appendChild(cuerpo);
+
     document.body.appendChild(panel);
+    document.body.classList.add('debug-activo');
+
+    // Aplicar estado inicial leído de localStorage
+    colapsado = leerEstadoColapsado();
+    aplicarEstadoVisual();
   }
 
   function escribir(texto, color) {
     if (!activo) return;
-    if (!panel) crearPanel();
+    if (!panel) {
+      // Crear el panel cuando el body ya exista. Si llamamos a debug antes
+      // de que el DOM esté listo, diferimos la creación.
+      if (document.body) {
+        crearPanel();
+      } else {
+        document.addEventListener('DOMContentLoaded', () => {
+          crearPanel();
+          // tras crear, pinta los mensajes acumulados
+          repintar();
+        });
+      }
+    }
     const hora = new Date().toTimeString().slice(0, 8);
     mensajes.push({ hora, texto, color });
     if (mensajes.length > maxMensajes) mensajes.shift();
-    panel.innerHTML = mensajes
+    if (panel && cuerpo) {
+      repintar();
+    }
+  }
+
+  function repintar() {
+    if (!cuerpo) return;
+    cuerpo.innerHTML = mensajes
       .map(m => `<div style="color:${m.color}">[${m.hora}] ${m.texto}</div>`)
       .join('');
-    panel.scrollTop = panel.scrollHeight;
+    // scroll automático al final solo si no está colapsado
+    if (!colapsado) {
+      cuerpo.scrollTop = cuerpo.scrollHeight;
+    }
   }
 
   return {
