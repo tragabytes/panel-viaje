@@ -1,24 +1,24 @@
 // js/weather.js
-// WeatherModule — segunda iteración (paso 2)
+// WeatherModule — tercera iteración (paso 3)
 //
-// Cambios sobre el paso 1: la petición incluye ahora 6 horas de previsión
-// horaria (forecast_hours=6), con los mismos campos meteorológicos que
-// current más precipitation_probability. El objeto devuelto añade un
-// campo `previsionHoraria` con un array de objetos por hora.
+// Cambios sobre el paso 2: añadido caché en memoria con dos criterios
+// combinados (proximidad geográfica + TTL temporal) y rate limiter interno.
 //
-// Sigue sin haber caché: el caché llega en el paso 3. Sigue sin haber
-// traducción de weather_code a texto humano: eso llega en el paso 4.
+// Criterios de reutilización del caché: la petición se reutiliza si la nueva
+// coordenada está a menos de 1 km de la cacheada Y el caché tiene menos de
+// 15 minutos. Si falla cualquiera de los dos, se pide de nuevo.
+//
+// Sigue sin haber traducción de weather_code a texto humano: eso llega en
+// el paso 4.
 //
 // Expone el objeto global Weather con la función obtenerTiempoActual(lat, lon).
 
 (function () {
   'use strict';
 
-  // Endpoint validado en la ficha Open-Meteo de fase 1 (sesión 04).
+  // --- Configuración de API ---
   var URL_BASE = 'https://api.open-meteo.com/v1/forecast';
 
-  // Campos current validados en la ficha de fase 1. 602 bytes medidos en
-  // la prueba del paso 1 (sesión 09).
   var CAMPOS_CURRENT = [
     'temperature_2m',
     'apparent_temperature',
@@ -29,9 +29,6 @@
     'wind_direction_10m'
   ].join(',');
 
-  // Campos hourly. Mismos que current + precipitation_probability (solo
-  // existe en hourly, no en current). No incluimos is_day en hourly porque
-  // no aporta nada útil a una línea de previsión textual.
   var CAMPOS_HOURLY = [
     'temperature_2m',
     'apparent_temperature',
@@ -42,16 +39,41 @@
     'precipitation_probability'
   ].join(',');
 
-  // Número de horas de previsión a pedir. 6 cubre cualquier trayecto
-  // razonable del panel (viaje típico 2-3 h). Ampliar a 12 sería trivial.
   var HORAS_PREVISION = 6;
-
-  // Timeout por intento. 10 s es el umbral razonable para conexión móvil.
   var TIMEOUT_MS = 10000;
-
-  // Reintento único. Los 504 transitorios documentados en la ficha se
-  // resuelven casi siempre al primer reintento.
   var MAX_INTENTOS = 2;
+
+  // --- Configuración del caché ---
+  // Radio dentro del cual se considera válido reutilizar el caché.
+  // 1 km es permisivo porque los modelos meteorológicos trabajan con celdas
+  // de rejilla de 2 km o más. El dato no varía punto a punto.
+  var RADIO_CACHE_M = 1000;
+
+  // Tiempo de vida máximo del caché. Open-Meteo actualiza el bloque current
+  // cada 15 minutos, no tiene sentido pedir más a menudo.
+  var TTL_CACHE_MS = 15 * 60 * 1000;
+
+  // Mínimo entre peticiones reales. No hay límite oficial en Open-Meteo
+  // pero mantenemos buena ciudadanía.
+  var RATE_LIMIT_MS = 2000;
+
+  // --- Estado interno ---
+  // Un solo slot de caché: {lat, lon, timestamp, datos}
+  var cacheActual = null;
+  // Timestamp de la última petición real, para el rate limiter
+  var ultimaPeticion = 0;
+
+  // --- Utilidades ---
+  function distanciaMetros(lat1, lon1, lat2, lon2) {
+    var R = 6371000;
+    var toRad = function (g) { return g * Math.PI / 180; };
+    var dLat = toRad(lat2 - lat1);
+    var dLon = toRad(lon2 - lon1);
+    var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    return 2 * R * Math.asin(Math.sqrt(a));
+  }
 
   function construirUrl(lat, lon) {
     return URL_BASE +
@@ -63,8 +85,7 @@
       '&timezone=auto';
   }
 
-  // fetch con timeout usando AbortController. Si no responde en TIMEOUT_MS,
-  // se cancela y se propaga un error marcado como timeout.
+  // --- Red ---
   function fetchConTimeout(url) {
     var controller = new AbortController();
     var id = setTimeout(function () { controller.abort(); }, TIMEOUT_MS);
@@ -84,7 +105,6 @@
       });
   }
 
-  // Intenta pedir la URL hasta MAX_INTENTOS veces. Cada error se loguea.
   function pedirConReintento(url) {
     var intento = 0;
     function unIntento() {
@@ -122,8 +142,7 @@
     return unIntento();
   }
 
-  // Convierte el hourly de Open-Meteo (columnas paralelas) en un array de
-  // objetos, uno por hora, más cómodo de usar en el pintado.
+  // --- Normalización ---
   function transformarHourly(hourly, unidades) {
     if (!hourly || !Array.isArray(hourly.time)) return [];
     var horas = [];
@@ -146,8 +165,6 @@
     return horas;
   }
 
-  // Normaliza la respuesta cruda de Open-Meteo. Campos de current + array
-  // previsionHoraria con las próximas N horas.
   function normalizar(json) {
     if (!json || !json.current) {
       throw new Error('respuesta sin campo current');
@@ -156,7 +173,6 @@
     var u = json.current_units || {};
     var uHourly = json.hourly_units || {};
     return {
-      // Tiempo actual (igual que en paso 1)
       temperatura: c.temperature_2m,
       temperaturaUnidad: u.temperature_2m || '°C',
       sensacion: c.apparent_temperature,
@@ -170,24 +186,101 @@
       vientoDireccion: c.wind_direction_10m,
       hora: c.time,
       zonaHoraria: json.timezone,
-      // Previsión horaria (nuevo en paso 2)
-      previsionHoraria: transformarHourly(json.hourly, uHourly)
+      previsionHoraria: transformarHourly(json.hourly, uHourly),
+      deCache: false  // se sobreescribe a true cuando se devuelve desde caché
     };
   }
 
-  // Función pública. Recibe lat/lon del GPS y devuelve una promesa con
-  // el objeto normalizado, o rechaza con error si no se pudo obtener.
+  // --- Lógica de caché ---
+  // Devuelve los datos cacheados si cumplen los dos criterios, o null.
+  function intentarCache(lat, lon) {
+    if (!cacheActual) return null;
+
+    var edadMs = Date.now() - cacheActual.timestamp;
+    if (edadMs > TTL_CACHE_MS) {
+      debug.warn('Weather caché expirada (edad ' + Math.round(edadMs / 60000) + 'min)');
+      cacheActual = null;
+      return null;
+    }
+
+    var dist = distanciaMetros(lat, lon, cacheActual.lat, cacheActual.lon);
+    if (dist > RADIO_CACHE_M) {
+      debug.log('Weather caché fuera de radio (' + Math.round(dist) + 'm > ' + RADIO_CACHE_M + 'm)');
+      return null;
+    }
+
+    debug.warn('Weather caché reusada (dist ' + Math.round(dist) + 'm, edad ' + Math.round(edadMs / 60000) + 'min)');
+    // Clonamos el objeto cacheado y marcamos deCache=true en la copia,
+    // para no mutar el original.
+    var copia = {};
+    for (var k in cacheActual.datos) {
+      if (Object.prototype.hasOwnProperty.call(cacheActual.datos, k)) {
+        copia[k] = cacheActual.datos[k];
+      }
+    }
+    copia.deCache = true;
+    return copia;
+  }
+
+  function guardarCache(lat, lon, datos) {
+    cacheActual = {
+      lat: lat,
+      lon: lon,
+      timestamp: Date.now(),
+      datos: datos
+    };
+  }
+
+  // --- Rate limiter ---
+  // Devuelve una promesa que se resuelve cuando haya pasado el tiempo mínimo
+  // desde la última petición real. Si ya ha pasado suficiente, es instantáneo.
+  function esperarRateLimit() {
+    var ahora = Date.now();
+    var transcurrido = ahora - ultimaPeticion;
+    if (transcurrido >= RATE_LIMIT_MS) {
+      return Promise.resolve();
+    }
+    var espera = RATE_LIMIT_MS - transcurrido;
+    debug.log('Weather rate limit: esperando ' + espera + 'ms');
+    return new Promise(function (resolve) {
+      setTimeout(resolve, espera);
+    });
+  }
+
+  // --- Función pública ---
   function obtenerTiempoActual(lat, lon) {
     if (typeof lat !== 'number' || typeof lon !== 'number') {
       return Promise.reject(new Error('lat/lon no son números'));
     }
+
+    // Intentar caché primero
+    var desdeCache = intentarCache(lat, lon);
+    if (desdeCache) {
+      return Promise.resolve(desdeCache);
+    }
+
+    // Sin caché válido: petición real con rate limit
     var url = construirUrl(lat, lon);
     debug.log('Weather pidiendo ' + lat.toFixed(4) + ',' + lon.toFixed(4));
-    return pedirConReintento(url).then(normalizar);
+    return esperarRateLimit()
+      .then(function () {
+        ultimaPeticion = Date.now();
+        return pedirConReintento(url);
+      })
+      .then(normalizar)
+      .then(function (datos) {
+        guardarCache(lat, lon, datos);
+        return datos;
+      });
   }
 
   // Exposición global
   window.Weather = {
-    obtenerTiempoActual: obtenerTiempoActual
+    obtenerTiempoActual: obtenerTiempoActual,
+    // Método auxiliar para pruebas: limpia el caché manualmente.
+    limpiarCache: function () {
+      cacheActual = null;
+      debug.log('Weather caché limpiado manualmente');
+    }
   };
 })();
