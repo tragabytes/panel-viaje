@@ -90,6 +90,36 @@
       opacity: 0.6;
     }
 
+    /* ---- Bloque meteo (paso 1 WeatherModule) ---- */
+    .meteo {
+      margin-bottom: 20px;
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .meteo .label {
+      font-size: 11px;
+      opacity: 0.5;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 6px;
+    }
+
+    .meteo .temp {
+      font-size: 26px;
+      font-weight: 400;
+      margin-bottom: 4px;
+    }
+
+    .meteo .sub {
+      font-size: 13px;
+      opacity: 0.6;
+      line-height: 1.6;
+    }
+
+    .meteo .sub.error { color: #ff5555; opacity: 1; }
+    /* ---- Fin bloque meteo ---- */
+
     .coordenadas {
       font-size: 16px;
       opacity: 0.6;
@@ -124,6 +154,14 @@
     <div id="admin" class="admin">—</div>
   </div>
 
+  <div class="meteo" id="meteoBloque">
+    <div class="label">Meteo</div>
+    <div id="meteoTemp" class="temp">—</div>
+    <div id="meteoCode" class="sub">—</div>
+    <div id="meteoViento" class="sub">—</div>
+    <div id="meteoHumedad" class="sub">—</div>
+  </div>
+
   <div class="coordenadas">
     <div>Latitud: <b id="lat">—</b></div>
     <div>Longitud: <b id="lon">—</b></div>
@@ -139,6 +177,7 @@
   <script src="js/debug.js"></script>
   <script src="js/carreteras.js"></script>
   <script src="js/location.js"></script>
+  <script src="js/weather.js"></script>
   <script>
     debug.log('Página cargada');
 
@@ -146,6 +185,10 @@
     const $carreteraBloque  = document.getElementById('carreteraBloque');
     const $municipio        = document.getElementById('municipio');
     const $admin            = document.getElementById('admin');
+    const $meteoTemp        = document.getElementById('meteoTemp');
+    const $meteoCode        = document.getElementById('meteoCode');
+    const $meteoViento      = document.getElementById('meteoViento');
+    const $meteoHumedad     = document.getElementById('meteoHumedad');
     const $lat              = document.getElementById('lat');
     const $lon              = document.getElementById('lon');
     const $precision        = document.getElementById('precision');
@@ -158,6 +201,7 @@
     let ultimaPosicionUbicacion = null;
     let ultimaUbicacionMostrada = null;
     let ultimaCarreteraMostrada = null;
+    let ultimaMeteoMostrada     = null;
 
     // Helper: escapa texto para meter en innerHTML sin riesgo de que Nominatim
     // devuelva algo con caracteres especiales que rompan el HTML.
@@ -243,6 +287,39 @@
       }
     }
 
+    // Paso 1 WeatherModule: sin caché, sin previsión, solo current crudo.
+    // Se lanza cada vez que el filtro de 50 m dispara una actualización,
+    // igual que ubicación y carretera. El caché llega en el paso 3.
+    async function actualizarMeteo(lat, lon) {
+      try {
+        const meteo = await Weather.obtenerTiempoActual(lat, lon);
+        const clave = `${meteo.hora}|${meteo.weatherCode}`;
+        if (clave === ultimaMeteoMostrada) return;
+        ultimaMeteoMostrada = clave;
+
+        $meteoTemp.textContent =
+          `${Math.round(meteo.temperatura)}${meteo.temperaturaUnidad} · sensación ${Math.round(meteo.sensacion)}${meteo.sensacionUnidad}`;
+        $meteoCode.className = 'sub';
+        $meteoCode.textContent =
+          `WMO ${meteo.weatherCode} · ${meteo.esDia ? 'día' : 'noche'}`;
+        $meteoViento.className = 'sub';
+        $meteoViento.textContent =
+          `Viento ${Math.round(meteo.vientoVelocidad)} ${meteo.vientoUnidad} · ${meteo.vientoDireccion}°`;
+        $meteoHumedad.className = 'sub';
+        $meteoHumedad.textContent =
+          `Humedad ${meteo.humedad}${meteo.humedadUnidad}`;
+
+        debug.log(`Meteo pintada: ${Math.round(meteo.temperatura)}° WMO ${meteo.weatherCode}`);
+      } catch (err) {
+        $meteoTemp.textContent = 'Error meteo';
+        $meteoCode.className = 'sub error';
+        $meteoCode.textContent = err.message || 'fallo';
+        $meteoViento.textContent = '—';
+        $meteoHumedad.textContent = '—';
+        debug.error(`Weather: ${err.message}`);
+      }
+    }
+
     function alRecibirPosicion(pos) {
       const c = pos.coords;
       $lat.textContent = c.latitude.toFixed(6);
@@ -277,6 +354,7 @@
         ultimaPosicionUbicacion = { lat: c.latitude, lon: c.longitude };
         actualizarUbicacionAdministrativa(c.latitude, c.longitude);
         actualizarCarretera(c.latitude, c.longitude);
+        actualizarMeteo(c.latitude, c.longitude);
       }
     }
 
