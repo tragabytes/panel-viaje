@@ -99,7 +99,7 @@
       opacity: 0.6;
     }
 
-    /* ---- Bloque meteo (paso 2 WeatherModule) ---- */
+    /* ---- Bloque meteo ---- */
     .meteo {
       margin-bottom: 20px;
       padding: 12px 0;
@@ -254,10 +254,6 @@
       return info.provincia || info.ccaa;
     }
 
-    // Tres estados posibles para el bloque de carretera:
-    //  1. Hay código oficial        → pastilla azul grande
-    //  2. Hay texto pero no código  → texto discreto en gris
-    //  3. No hay nada               → "Sin vía identificada" en itálica
     function pintarCarretera(info) {
       if (info && info.codigo) {
         $carreteraBloque.innerHTML =
@@ -306,10 +302,6 @@
       }
     }
 
-    // Construye una línea textual resumen de la previsión horaria.
-    // Ejemplo: "Próx. 6h: 20°C → 17°C · lluvia máx 20%"
-    // El objetivo en el paso 2 es solo validar que los datos llegan, no
-    // hacer una UI bonita. La gráfica visual es trabajo de fase 3.
     function construirResumenPrevision(horas) {
       if (!horas || horas.length === 0) return 'Sin previsión';
       const n = horas.length;
@@ -317,7 +309,6 @@
       const tempFin = Math.round(horas[n - 1].temperatura);
       const unidad = horas[0].temperaturaUnidad || '°C';
 
-      // Máximo de probabilidad de lluvia en el tramo
       let maxLluvia = 0;
       for (let i = 0; i < n; i++) {
         const p = horas[i].precipProbabilidad;
@@ -333,13 +324,21 @@
       return partes.join(' · ');
     }
 
-    // Paso 2 WeatherModule: current + previsión horaria de 6 horas.
-    // Sin caché todavía (llega en el paso 3). Dedupe por hora|weatherCode.
+    // Paso 3 WeatherModule: el módulo gestiona su propio caché por proximidad
+    // + TTL. Aquí solo aprovechamos el campo meteo.deCache para loguear
+    // cuando el dedupe corta el repintado pero el caché estaba activo.
     async function actualizarMeteo(lat, lon) {
       try {
         const meteo = await Weather.obtenerTiempoActual(lat, lon);
         const clave = `${meteo.hora}|${meteo.weatherCode}`;
-        if (clave === ultimaMeteoMostrada) return;
+        if (clave === ultimaMeteoMostrada) {
+          // Mismo dato que ya teníamos pintado: no repintamos.
+          // Solo dejamos traza si venía del caché, por transparencia.
+          if (meteo.deCache) {
+            // no hace falta log extra: el módulo ya ha logueado "caché reusada"
+          }
+          return;
+        }
         ultimaMeteoMostrada = clave;
 
         $meteoTemp.textContent =
@@ -356,7 +355,8 @@
         $meteoPrevision.textContent = construirResumenPrevision(meteo.previsionHoraria);
 
         const nHoras = meteo.previsionHoraria ? meteo.previsionHoraria.length : 0;
-        debug.log(`Meteo pintada: ${Math.round(meteo.temperatura)}° WMO ${meteo.weatherCode} + ${nHoras}h previsión`);
+        const etiqueta = meteo.deCache ? ' [cache]' : '';
+        debug.log(`Meteo pintada${etiqueta}: ${Math.round(meteo.temperatura)}° WMO ${meteo.weatherCode} + ${nHoras}h previsión`);
       } catch (err) {
         $meteoTemp.textContent = 'Error meteo';
         $meteoCode.className = 'sub error';
