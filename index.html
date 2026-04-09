@@ -120,6 +120,23 @@
       margin-bottom: 4px;
     }
 
+    .meteo .descripcion {
+      font-size: 16px;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .meteo .descripcion .icono {
+      font-size: 22px;
+      line-height: 1;
+    }
+
+    .meteo .descripcion .texto {
+      opacity: 0.85;
+    }
+
     .meteo .sub {
       font-size: 13px;
       opacity: 0.6;
@@ -134,6 +151,9 @@
       border-top: 1px dashed rgba(255,255,255,0.08);
       font-size: 13px;
       opacity: 0.75;
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
     /* ---- Fin bloque meteo ---- */
 
@@ -174,7 +194,10 @@
   <div class="meteo" id="meteoBloque">
     <div class="label">Meteo</div>
     <div id="meteoTemp" class="temp">—</div>
-    <div id="meteoCode" class="sub">—</div>
+    <div id="meteoDescripcion" class="descripcion">
+      <span class="icono">—</span>
+      <span class="texto">—</span>
+    </div>
     <div id="meteoViento" class="sub">—</div>
     <div id="meteoHumedad" class="sub">—</div>
     <div id="meteoPrevision" class="prevision">—</div>
@@ -195,6 +218,7 @@
   <script src="js/debug.js"></script>
   <script src="js/carreteras.js"></script>
   <script src="js/location.js"></script>
+  <script src="js/meteo_codigos.js"></script>
   <script src="js/weather.js"></script>
   <script>
     debug.log('Página cargada');
@@ -204,7 +228,7 @@
     const $municipio        = document.getElementById('municipio');
     const $admin            = document.getElementById('admin');
     const $meteoTemp        = document.getElementById('meteoTemp');
-    const $meteoCode        = document.getElementById('meteoCode');
+    const $meteoDescripcion = document.getElementById('meteoDescripcion');
     const $meteoViento      = document.getElementById('meteoViento');
     const $meteoHumedad     = document.getElementById('meteoHumedad');
     const $meteoPrevision   = document.getElementById('meteoPrevision');
@@ -222,8 +246,6 @@
     let ultimaCarreteraMostrada = null;
     let ultimaMeteoMostrada     = null;
 
-    // Helper: escapa texto para meter en innerHTML sin riesgo de que Nominatim
-    // devuelva algo con caracteres especiales que rompan el HTML.
     function escapar(texto) {
       const div = document.createElement('div');
       div.textContent = texto;
@@ -302,8 +324,12 @@
       }
     }
 
+    // Construye el resumen de previsión horaria con icono de la categoría
+    // más severa del tramo y texto de min→max de temperatura + lluvia.
     function construirResumenPrevision(horas) {
-      if (!horas || horas.length === 0) return 'Sin previsión';
+      if (!horas || horas.length === 0) {
+        return { icono: '❓', texto: 'Sin previsión' };
+      }
       const n = horas.length;
       const tempInicio = Math.round(horas[0].temperatura);
       const tempFin = Math.round(horas[n - 1].temperatura);
@@ -315,52 +341,50 @@
         if (typeof p === 'number' && p > maxLluvia) maxLluvia = p;
       }
 
+      const categoria = MeteoCodigos.categoriaMasSevera(horas);
+      const icono = MeteoCodigos.iconoDeCategoria(categoria);
+
       const partes = [`Próx. ${n}h: ${tempInicio}${unidad} → ${tempFin}${unidad}`];
       if (maxLluvia > 0) {
         partes.push(`lluvia máx ${maxLluvia}%`);
       } else {
         partes.push('sin lluvia prevista');
       }
-      return partes.join(' · ');
+      return { icono: icono, texto: partes.join(' · ') };
     }
 
-    // Paso 3 WeatherModule: el módulo gestiona su propio caché por proximidad
-    // + TTL. Aquí solo aprovechamos el campo meteo.deCache para loguear
-    // cuando el dedupe corta el repintado pero el caché estaba activo.
     async function actualizarMeteo(lat, lon) {
       try {
         const meteo = await Weather.obtenerTiempoActual(lat, lon);
         const clave = `${meteo.hora}|${meteo.weatherCode}`;
-        if (clave === ultimaMeteoMostrada) {
-          // Mismo dato que ya teníamos pintado: no repintamos.
-          // Solo dejamos traza si venía del caché, por transparencia.
-          if (meteo.deCache) {
-            // no hace falta log extra: el módulo ya ha logueado "caché reusada"
-          }
-          return;
-        }
+        if (clave === ultimaMeteoMostrada) return;
         ultimaMeteoMostrada = clave;
 
         $meteoTemp.textContent =
           `${Math.round(meteo.temperatura)}${meteo.temperaturaUnidad} · sensación ${Math.round(meteo.sensacion)}${meteo.sensacionUnidad}`;
-        $meteoCode.className = 'sub';
-        $meteoCode.textContent =
-          `WMO ${meteo.weatherCode} · ${meteo.esDia ? 'día' : 'noche'}`;
+
+        // Descripción con icono y texto
+        $meteoDescripcion.innerHTML =
+          `<span class="icono">${meteo.icono}</span><span class="texto">${escapar(meteo.descripcion)}</span>`;
+
         $meteoViento.className = 'sub';
         $meteoViento.textContent =
           `Viento ${Math.round(meteo.vientoVelocidad)} ${meteo.vientoUnidad} · ${meteo.vientoDireccion}°`;
         $meteoHumedad.className = 'sub';
         $meteoHumedad.textContent =
           `Humedad ${meteo.humedad}${meteo.humedadUnidad}`;
-        $meteoPrevision.textContent = construirResumenPrevision(meteo.previsionHoraria);
+
+        const resumen = construirResumenPrevision(meteo.previsionHoraria);
+        $meteoPrevision.innerHTML =
+          `<span>${resumen.icono}</span><span>${escapar(resumen.texto)}</span>`;
 
         const nHoras = meteo.previsionHoraria ? meteo.previsionHoraria.length : 0;
         const etiqueta = meteo.deCache ? ' [cache]' : '';
-        debug.log(`Meteo pintada${etiqueta}: ${Math.round(meteo.temperatura)}° WMO ${meteo.weatherCode} + ${nHoras}h previsión`);
+        debug.log(`Meteo pintada${etiqueta}: ${Math.round(meteo.temperatura)}° ${meteo.categoria} (${meteo.descripcion}) + ${nHoras}h previsión`);
       } catch (err) {
         $meteoTemp.textContent = 'Error meteo';
-        $meteoCode.className = 'sub error';
-        $meteoCode.textContent = err.message || 'fallo';
+        $meteoDescripcion.innerHTML =
+          `<span class="icono">⚠️</span><span class="texto">${escapar(err.message || 'fallo')}</span>`;
         $meteoViento.textContent = '—';
         $meteoHumedad.textContent = '—';
         $meteoPrevision.textContent = '—';
