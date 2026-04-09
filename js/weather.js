@@ -1,17 +1,18 @@
 // js/weather.js
-// WeatherModule — tercera iteración (paso 3)
+// WeatherModule — cuarta iteración (paso 4)
 //
-// Cambios sobre el paso 2: añadido caché en memoria con dos criterios
-// combinados (proximidad geográfica + TTL temporal) y rate limiter interno.
+// Cambios sobre el paso 3: los datos devueltos ahora incluyen los campos
+// traducidos (descripcion, categoria, icono) tanto para current como para
+// cada hora del array previsionHoraria. La traducción usa MeteoCodigos.
 //
-// Criterios de reutilización del caché: la petición se reutiliza si la nueva
-// coordenada está a menos de 1 km de la cacheada Y el caché tiene menos de
-// 15 minutos. Si falla cualquiera de los dos, se pide de nuevo.
+// Dependencia: requiere que js/meteo_codigos.js esté cargado antes que este
+// archivo en el index.html.
 //
-// Sigue sin haber traducción de weather_code a texto humano: eso llega en
-// el paso 4.
+// Mantiene del paso 3: caché por proximidad (1 km) + TTL (15 min), rate
+// limiter interno (2 s), reintento único con timeout de 10 s.
 //
-// Expone el objeto global Weather con la función obtenerTiempoActual(lat, lon).
+// Expone el objeto global Weather con obtenerTiempoActual(lat, lon) y
+// limpiarCache() para pruebas.
 
 (function () {
   'use strict';
@@ -44,23 +45,12 @@
   var MAX_INTENTOS = 2;
 
   // --- Configuración del caché ---
-  // Radio dentro del cual se considera válido reutilizar el caché.
-  // 1 km es permisivo porque los modelos meteorológicos trabajan con celdas
-  // de rejilla de 2 km o más. El dato no varía punto a punto.
   var RADIO_CACHE_M = 1000;
-
-  // Tiempo de vida máximo del caché. Open-Meteo actualiza el bloque current
-  // cada 15 minutos, no tiene sentido pedir más a menudo.
   var TTL_CACHE_MS = 15 * 60 * 1000;
-
-  // Mínimo entre peticiones reales. No hay límite oficial en Open-Meteo
-  // pero mantenemos buena ciudadanía.
   var RATE_LIMIT_MS = 2000;
 
   // --- Estado interno ---
-  // Un solo slot de caché: {lat, lon, timestamp, datos}
   var cacheActual = null;
-  // Timestamp de la última petición real, para el rate limiter
   var ultimaPeticion = 0;
 
   // --- Utilidades ---
@@ -142,11 +132,19 @@
     return unIntento();
   }
 
-  // --- Normalización ---
-  function transformarHourly(hourly, unidades) {
+  // --- Normalización + traducción ---
+  function transformarHourly(hourly, unidades, esDiaRef) {
     if (!hourly || !Array.isArray(hourly.time)) return [];
     var horas = [];
     for (var i = 0; i < hourly.time.length; i++) {
+      var wc = hourly.weather_code ? hourly.weather_code[i] : null;
+      // Para la previsión horaria no tenemos is_day por hora (no lo pedimos).
+      // Aproximamos con el is_day actual, que es razonable para 6 horas.
+      // Si en el futuro queremos precisión día/noche por hora, basta con
+      // añadir 'is_day' a CAMPOS_HOURLY.
+      var traduccion = (wc != null && window.MeteoCodigos)
+        ? MeteoCodigos.traducir(wc, esDiaRef)
+        : { texto: '—', categoria: 'desconocido', icono: '❓' };
       horas.push({
         hora: hourly.time[i],
         temperatura: hourly.temperature_2m ? hourly.temperature_2m[i] : null,
@@ -155,11 +153,15 @@
         sensacionUnidad: unidades.apparent_temperature || '°C',
         humedad: hourly.relative_humidity_2m ? hourly.relative_humidity_2m[i] : null,
         humedadUnidad: unidades.relative_humidity_2m || '%',
-        weatherCode: hourly.weather_code ? hourly.weather_code[i] : null,
+        weatherCode: wc,
         vientoVelocidad: hourly.wind_speed_10m ? hourly.wind_speed_10m[i] : null,
         vientoUnidad: unidades.wind_speed_10m || 'km/h',
         vientoDireccion: hourly.wind_direction_10m ? hourly.wind_direction_10m[i] : null,
-        precipProbabilidad: hourly.precipitation_probability ? hourly.precipitation_probability[i] : null
+        precipProbabilidad: hourly.precipitation_probability ? hourly.precipitation_probability[i] : null,
+        // Campos traducidos
+        descripcion: traduccion.texto,
+        categoria: traduccion.categoria,
+        icono: traduccion.icono
       });
     }
     return horas;
@@ -172,6 +174,13 @@
     var c = json.current;
     var u = json.current_units || {};
     var uHourly = json.hourly_units || {};
+    var esDia = c.is_day === 1;
+
+    // Traducción del current
+    var traduccionCurrent = window.MeteoCodigos
+      ? MeteoCodigos.traducir(c.weather_code, esDia)
+      : { texto: '—', categoria: 'desconocido', icono: '❓' };
+
     return {
       temperatura: c.temperature_2m,
       temperaturaUnidad: u.temperature_2m || '°C',
@@ -180,19 +189,22 @@
       humedad: c.relative_humidity_2m,
       humedadUnidad: u.relative_humidity_2m || '%',
       weatherCode: c.weather_code,
-      esDia: c.is_day === 1,
+      esDia: esDia,
       vientoVelocidad: c.wind_speed_10m,
       vientoUnidad: u.wind_speed_10m || 'km/h',
       vientoDireccion: c.wind_direction_10m,
       hora: c.time,
       zonaHoraria: json.timezone,
-      previsionHoraria: transformarHourly(json.hourly, uHourly),
-      deCache: false  // se sobreescribe a true cuando se devuelve desde caché
+      previsionHoraria: transformarHourly(json.hourly, uHourly, esDia),
+      // Campos traducidos del current
+      descripcion: traduccionCurrent.texto,
+      categoria: traduccionCurrent.categoria,
+      icono: traduccionCurrent.icono,
+      deCache: false
     };
   }
 
   // --- Lógica de caché ---
-  // Devuelve los datos cacheados si cumplen los dos criterios, o null.
   function intentarCache(lat, lon) {
     if (!cacheActual) return null;
 
@@ -210,8 +222,6 @@
     }
 
     debug.warn('Weather caché reusada (dist ' + Math.round(dist) + 'm, edad ' + Math.round(edadMs / 60000) + 'min)');
-    // Clonamos el objeto cacheado y marcamos deCache=true en la copia,
-    // para no mutar el original.
     var copia = {};
     for (var k in cacheActual.datos) {
       if (Object.prototype.hasOwnProperty.call(cacheActual.datos, k)) {
@@ -232,8 +242,6 @@
   }
 
   // --- Rate limiter ---
-  // Devuelve una promesa que se resuelve cuando haya pasado el tiempo mínimo
-  // desde la última petición real. Si ya ha pasado suficiente, es instantáneo.
   function esperarRateLimit() {
     var ahora = Date.now();
     var transcurrido = ahora - ultimaPeticion;
@@ -253,13 +261,11 @@
       return Promise.reject(new Error('lat/lon no son números'));
     }
 
-    // Intentar caché primero
     var desdeCache = intentarCache(lat, lon);
     if (desdeCache) {
       return Promise.resolve(desdeCache);
     }
 
-    // Sin caché válido: petición real con rate limit
     var url = construirUrl(lat, lon);
     debug.log('Weather pidiendo ' + lat.toFixed(4) + ',' + lon.toFixed(4));
     return esperarRateLimit()
@@ -274,10 +280,8 @@
       });
   }
 
-  // Exposición global
   window.Weather = {
     obtenerTiempoActual: obtenerTiempoActual,
-    // Método auxiliar para pruebas: limpia el caché manualmente.
     limpiarCache: function () {
       cacheActual = null;
       debug.log('Weather caché limpiado manualmente');
