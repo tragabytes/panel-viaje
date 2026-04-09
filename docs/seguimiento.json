@@ -7,16 +7,16 @@
     "nota_pie": "Actualizar al final de cada sesión de trabajo"
   },
   "estado_actual": {
-    "fase_actual": "Fase 1 — Análisis e investigación de APIs (COMPLETADA al 100%)",
-    "ultima_actualizacion": "Sesión 07 — validación de Wikidata por proximidad geográfica como fuente de imagen para POIs de Overpass. Cierra el último fleco de la decisión 13 y de la fase 1",
-    "siguiente_hito": "Arrancar fase 2 (módulos de datos) empezando por LocationModule o WeatherModule según preferencia",
-    "bloqueos": "Ninguno"
+    "fase_actual": "Fase 2 — Módulos de datos (en curso). LocationModule primera iteración construido y probado en casa, pendiente de validación en carretera",
+    "ultima_actualizacion": "Sesión 08 — arranque de fase 2. LocationModule construido en 3 pasos incrementales (GPS crudo, zoom 14 administrativo, zoom 17 vía actual). Probado en el móvil del panel. Pendiente salir a carretera para ver pastillas de código oficial en acción",
+    "siguiente_hito": "Prueba en carretera del LocationModule: validar pastillas de código (A-6, M-50, etc.), cambios de carretera al cruzar entre vías, latencias con datos móviles reales, comportamiento del caché con desplazamiento real. Después: arrancar WeatherModule",
+    "bloqueos": "Ninguno. La prueba en carretera no es un bloqueo, es el siguiente paso natural antes de añadir más módulos encima"
   },
   "fases": [
     { "id": "0",   "nombre": "Preparación del entorno local",         "estado": "Omitida",          "notas": "No necesaria: el ciclo es editar y subir directo a GitHub Pages" },
     { "id": "0.5", "nombre": "Configuración de GitHub",               "estado": "Completada",       "notas": "Repo, docs, Pages y prueba en móvil viejo OK" },
     { "id": "1",   "nombre": "Análisis e investigación de APIs",      "estado": "Completada",       "notas": "1.1, 1.2, 1.3, 1.4 y 1.5 cerrados. Fleco de Wikidata por proximidad cerrado en sesión 07" },
-    { "id": "2",   "nombre": "Módulos de datos",                      "estado": "Pendiente",        "notas": "" },
+    { "id": "2",   "nombre": "Módulos de datos",                      "estado": "En curso",         "notas": "LocationModule primera iteración (zoom 14 + zoom 17) construido en sesión 08, pendiente prueba en carretera antes de seguir con WeatherModule" },
     { "id": "3",   "nombre": "UI estática",                           "estado": "Pendiente",        "notas": "" },
     { "id": "4",   "nombre": "Ensamblaje y lógica",                   "estado": "Pendiente",        "notas": "" },
     { "id": "5",   "nombre": "Pruebas en carretera",                  "estado": "Pendiente",        "notas": "" },
@@ -37,7 +37,7 @@
       ["Velocidad detectada en parado moviendo mano", "0.8 km/h"],
       ["Rumbo detectado", "Sí (163° observado)"]
     ],
-    "conclusion": "El móvil objetivo es perfectamente apto. Aunque físicamente sea antiguo, el navegador está actualizado a la última versión de Chrome, lo que significa que podemos usar CSS y JavaScript modernos sin preocupación. El GPS es de buena calidad (15 m de precisión en interior es excelente) y expone velocidad y rumbo en cuanto detecta movimiento."
+    "conclusion": "El móvil objetivo es perfectamente apto. Aunque lo venimos llamando 'móvil viejo', en sesión 08 el usuario aclaró que no es tan viejo como sonaba: la pantalla se ve nítida, el renderizado es limpio y las animaciones modernas son perfectamente viables. El navegador está actualizado a la última versión de Chrome, lo que significa que podemos usar CSS y JavaScript modernos sin preocupación. El GPS es de buena calidad (15 m de precisión en interior es excelente) y expone velocidad y rumbo en cuanto detecta movimiento."
   },
   "fichas_api": [
     {
@@ -289,6 +289,30 @@
         ["Razón", "La opción C reduce el coste de red en dos órdenes de magnitud, mantiene la información actualizada a la velocidad del GPS, y es resiliente a fallos transitorios de Overpass mientras quede caché por delante"],
         ["Consecuencias", "(1) El módulo de próxima salida en fase 2 implementa una caché en memoria con la lista de junctions del segmento actual. (2) El filtrado local usa los mismos parámetros validados en sesión 06: distancia mínima 300 m, tolerancia angular 45° entre rumbo del coche y rumbo al junction. (3) IMPORTANTE: en cada cálculo el filtro debe usar el heading actual del GPS, NO un heading cacheado, para que el filtro siga siendo preciso cuando la autovía gira. (4) El módulo solo se activa cuando la vía detectada por Nominatim es autovía. Para nacionales y secundarias se apaga y se vacía la caché. (5) Observaciones a tener en cuenta: descartar junctions con ref=0 o sin ref, dedupar por ref para nudos modelados con varios nodos, idealmente enriquecer con destinos legibles desde los motorway_link adyacentes (mejora futura). (6) Las refs de salida son inconsistentes en autovías españolas (a veces número de salida, a veces kilómetro, a veces mezcladas en la misma autovía): el panel mostrará ref tal cual sin intentar interpretar"]
       ]
+    },
+    {
+      "id": 15,
+      "titulo": "Flujo de desarrollo para fase 2: archivos entregados en chat + subida por web + panel de debug en pantalla",
+      "campos": [
+        ["Fecha", "9 de abril de 2026, sesión 08"],
+        ["Decisión", "para toda la fase 2, el flujo de trabajo es: (1) Claude entrega archivos completos en el chat con la ruta exacta del repo. (2) El usuario los sube por la interfaz web de GitHub. (3) GitHub Pages despliega en 1-2 minutos. (4) El usuario prueba directamente en el móvil del panel sobre la URL real. (5) Se itera en pasos pequeños, cada paso prueba una cosa concreta. (6) Toda página incluye un panel de debug visible en la propia pantalla, activable con el parámetro ?debug=1 en la URL, que muestra los últimos 50 mensajes de log con timestamps. Sin ese parámetro el panel queda limpio"],
+        ["Alternativas consideradas", "(a) Notebooks de Google Colab como en fase 1: descartada porque el código de fase 2 es JavaScript que se ejecuta en el navegador del móvil, no Python en un servidor. Colab no tiene GPS ni es el entorno real. Los notebooks siguen siendo útiles para validar APIs nuevas si aparecen, pero no para construir módulos. (b) Claude Code (herramienta de línea de comandos que opera directamente sobre archivos locales): descartada porque requiere Node.js, terminal y git en local, rompiendo las decisiones 05 y 06 del plan. El usuario no sabe usar terminal ni git. (c) Entorno local con servidor de desarrollo: descartada por la misma razón (decisión 06)"],
+        ["Razón", "Esta opción es la única que encaja con el perfil del usuario y con las decisiones fundacionales del proyecto. Los dos añadidos (panel de debug en pantalla y pasos pequeños) mitigan el único inconveniente real, que es el ciclo de iteración algo más lento. El panel de debug evita la necesidad de conectar el móvil por USB al PC para ver la consola de Chrome remota (técnica de desarrollador que el usuario no conoce). Los pasos pequeños (cada entrega prueba una sola cosa) reducen drásticamente la probabilidad de tener que rehacer una iteración entera"],
+        ["Consecuencias", "(1) Cada entrega de código vive en el chat con ruta exacta del repo. (2) Todos los ficheros de páginas cargan primero js/debug.js antes que nada. (3) El panel de debug se activa con ?debug=1 y muestra los últimos 50 mensajes con colores (blanco info, amarillo warn, rojo error). (4) Cada módulo usa debug.log para registrar entrada, salida, latencias, cachés reusadas y errores. (5) No se usa console.log del navegador como canal primario de debug; queda como canal secundario para desarrolladores si alguna vez se conecta el móvil por USB"]
+      ]
+    },
+    {
+      "id": 16,
+      "titulo": "Política de tres estados para el bloque de vía actual (pastilla de código, texto discreto o placeholder)",
+      "campos": [
+        ["Fecha", "9 de abril de 2026, sesión 08"],
+        ["Decisión", "el bloque de vía actual del panel tiene tres estados visuales excluyentes. (1) Si Nominatim devuelve un código de carretera oficial (A-2, M-30, N-VI, etc.) reconocible por el patrón letras-guion-número o por la tabla de mapeo de la decisión 09, se muestra como pastilla azul grande estilo cartel de tráfico. (2) Si Nominatim devuelve texto de vía pero no es código oficial (calle de ciudad, camino rural, avenida, etc.), se muestra como texto discreto en gris claro, tamaño mediano, sin fondo ni pastilla. (3) Si Nominatim no devuelve nada en address.road (típicamente en campo, dentro de un edificio grande, o zona mal mapeada), se muestra el placeholder 'Sin vía identificada' en gris itálica pequeña"],
+        ["Contexto", "Durante la sesión 08 se validó en casa que Nominatim a zoom 17 devuelve 'Calle Concha Espina' cuando estás en una calle de ciudad, no un código. La primera iteración filtraba esa salida y mostraba solo 'Sin vía identificada', que era silenciar información útil. La segunda opción (siempre mostrarla, incluso en reposo) es la que se eligió por simplicidad sobre una variante intermedia que condicionaba la visibilidad a la velocidad del GPS"],
+        ["Alternativas consideradas", "(A) Solo pastillas con código, calles nunca se muestran: descartada por silenciar información útil. (B) Siempre mostrar la calle cuando exista: elegida. (C) Mostrar la calle solo si velocidad > 10 km/h: descartada por meter una regla más sin ganancia clara (en modo real el panel estará en el coche; el ruido visual en casa no preocupa)"],
+        ["Razón", "La opción B es la más simple y la más honesta con los datos de Nominatim. El contraste visual entre una pastilla azul grande con código y un texto gris discreto con nombre de calle es suficientemente distinto como para que el usuario distinga de un vistazo si circula por una carretera con identificador oficial o por una vía urbana/rural sin código. No necesitamos esconder calles para que la distinción funcione"],
+        ["Parámetros operativos", "(1) El prefijo de la calle (Calle, Avenida, Camino, Plaza, etc.) se mantiene tal cual viene de Nominatim, sin limpiar. Da contexto útil (Camino de X vs Avenida de X significan cosas distintas) y evitar inventarse una lista de prefijos a eliminar. (2) El texto se escapa con un helper antes de meterlo en innerHTML por seguridad, por si Nominatim devuelve caracteres especiales. (3) La detección de código oficial vive en js/carreteras.js (módulo Carreteras.extraerCodigo) con tres intentos en cascada: código directo por regex, nombre descriptivo en tabla de mapeo, código embebido dentro del texto tras split por separadores"],
+        ["Consecuencias", "(1) js/carreteras.js contiene la tabla de mapeo de la decisión 09 (autovías radiales, autopistas, transversales con nombre, radiales de pago de Madrid) y el regex de código oficial. (2) Si en pruebas reales en carretera aparecen códigos que no cuadran con el regex, se amplía el regex o se añade el nombre a la tabla. (3) El placeholder 'Sin vía identificada' sustituye al anterior 'Sin carretera identificada' porque ahora el bloque cubre tanto carreteras como calles"]
+      ]
     }
   ],
   "sesiones": [
@@ -380,6 +404,21 @@
         ["Problemas encontrados", "P12 (Wikidata query v1 devolvía duplicados por múltiples wdt:P31), P13 (el propio municipio aparecía como primer match a 0 m en queries de proximidad), P14 (clasificación inicial seguro/probable/dudoso era demasiado permisiva por usar OR con distancia). Los tres resueltos durante la sesión"],
         ["Decisiones tomadas", "Ninguna nueva. Se actualiza la decisión 13 con los parámetros operativos consolidados tras la validación"],
         ["Pendiente", "Arrancar fase 2 (módulos de datos). Ningún fleco de fase 1. Implementación del sistema content+presentation del seguimiento ya completada durante la sesión"]
+      ]
+    },
+    {
+      "n": 8,
+      "titulo": "Arranque de fase 2 — LocationModule primera iteración (GPS + zoom 14 + zoom 17)",
+      "campos": [
+        ["Fecha", "9 de abril de 2026"],
+        ["Fase trabajada", "Fase 2 — Módulos de datos. Primer módulo: LocationModule en tres pasos incrementales"],
+        ["Lo que se ha hecho", "Discusión inicial sobre el flujo de desarrollo de la fase 2 (tres opciones: archivos en chat + web GitHub, notebooks Colab, Claude Code). Elegida la primera con dos añadidos (panel de debug en pantalla con ?debug=1, pasos pequeños que prueban una cosa cada uno). Consolidada como decisión 15. Después, construcción del LocationModule en tres pasos: PASO 1 index.html mínimo que pide permiso de GPS y muestra lat/lon, precisión, velocidad y rumbo, más js/debug.js con el panel de debug. PASO 2 añadido js/location.js con la función obtenerUbicacion que llama a Nominatim a zoom 14 y devuelve municipio + provincia + CCAA, con caché por proximidad (radio 200 m) y rate limiter de 1100 ms. PASO 3 añadido js/carreteras.js con la tabla de mapeo de la decisión 09 y la función extraerCodigo, más la función obtenerCarretera en location.js que llama a Nominatim a zoom 17 con caché independiente (radio 80 m) y normaliza a código oficial cuando lo hay"],
+        ["Estructura final del repo tras la sesión", "/ (raíz) con index.html y README.md. /js/ con debug.js + carreteras.js + location.js. /docs/ con los documentos del proyecto. Carpetas /css/, /assets/, /tests/, /data/ aún no existen porque nada las necesita todavía"],
+        ["Resultados de las pruebas en casa (Las Rozas, interior)", "(1) GPS: precisión entre 8 y 19 m en interior, velocidad y rumbo expuestos correctamente en cuanto hay el más mínimo movimiento. Consistente con los 15.9 m medidos en sesión 02. (2) Nominatim zoom 14: 'Las Rozas de Madrid' + 'Comunidad de Madrid' correctos. Latencias observadas 121-230 ms (ficha decía 191 ms de media, en línea). (3) Nominatim zoom 17 en el salón: devuelve 'Calle Concha Espina' correcta en latencias 171-454 ms. Sin código oficial porque es calle urbana, lo cual es correcto. (4) Filtro de desplazamiento de 50 m a nivel de app + caché por proximidad del módulo: en reposo el panel no dispara peticiones nuevas. Cuando el móvil se mueve 70-71 m, dispara una consulta. (5) El panel de debug en pantalla funciona perfectamente, permite diagnosticar sin conectar cables"],
+        ["Iteraciones y correcciones durante la sesión", "Tres iteraciones notables. (a) Primera versión mostraba 'Las Rozas de Madrid · null' porque Nominatim no devuelve el campo province en Comunidad de Madrid (P15). Resuelto con fallback a CCAA en el normalizador. (b) Primera versión del caché cortaba las llamadas a Nominatim correctamente pero repintaba el DOM una vez por segundo y escribía en el debug continuamente. Resuelto añadiendo filtro de desplazamiento de 50 m en index.html antes de siquiera consultar el módulo, y dedupe por clave de ubicación para no repintar si el dato es idéntico (P16). (c) Primera versión del bloque de vía solo mostraba pastillas con código y silenciaba las calles. Cambiado tras feedback del usuario a un esquema de tres estados: pastilla con código, texto discreto si hay vía sin código, placeholder 'Sin vía identificada' si no hay nada (decisión 16). (d) Un falso positivo: el usuario reportó que tras pegar el nuevo index el panel no cargaba. Resultó ser que el contenido se había pegado mal. Diagnóstico rápido con F12 en el PC hubiera dado la pista directa. Aprendizaje: cuando el panel de debug negro no aparece, casi seguro es que el JS se paró antes de ejecutar la primera línea, y F12 en el PC es el siguiente paso"],
+        ["Decisiones tomadas", "Decisión 15 (flujo de desarrollo fase 2 + panel de debug). Decisión 16 (política de tres estados del bloque de vía)"],
+        ["Problemas encontrados", "P15 (Nominatim no devuelve province en uniprovinciales), P16 (filtro de desplazamiento a nivel app faltaba y había repintado continuo aunque el caché del módulo cortaba las llamadas). Ambos resueltos durante la sesión"],
+        ["Pendiente", "Prueba en carretera del LocationModule: el usuario la hará en un próximo trayecto. Objetivos de esa prueba: (1) ver pastillas azules con códigos A-6, M-50, etc. en movimiento real. (2) comprobar que los cambios de carretera al cruzar de una vía a otra se detectan en tiempo razonable. (3) medir latencias de Nominatim con conexión móvil compartida (distinto a wifi de casa). (4) verificar que el caché por proximidad se comporta bien a velocidad de autovía (los 200 m del caché de ubicación y los 80 m del de carretera se queman rápido a 120 km/h: unos 6 s y 2.4 s respectivamente, lo cual significa peticiones casi continuas en autovía, habrá que revisar si hay que subir esos umbrales). (5) verificar consumo aproximado de datos y batería en un trayecto de 30-60 min. Tras la prueba y los ajustes que hagan falta, arrancar WeatherModule"]
       ]
     }
   ],
@@ -546,6 +585,30 @@
         ["Causa", "la regla de clasificación decía 'probable si sim>=0.3 OR dist<50m'. La parte del OR con distancia dejaba pasar cualquier item que estuviera cerca aunque no tuviera nada que ver con el POI. En cascos históricos hay decenas de edificios distintos en 50 m, así que el filtro era inútil"],
         ["Resolución", "abandonar la regla con OR. Criterio único y estricto: sim >= 0.5 para considerar match útil, sin importar la distancia. La distancia solo se usa como desempate cuando hay varios candidatos por encima del umbral. Validado en P2-bis: los 11 matches por encima del umbral son aciertos reales, cero falsos positivos"],
         ["Aprendizaje meta", "cuando un criterio de clasificación se apoya en múltiples señales combinadas con OR, la señal más débil se convierte en la puerta de entrada para el ruido. Mejor usar la señal fuerte sola y descartar los casos que no la cumplen, aunque se pierdan algunos aciertos"],
+        ["Estado", "cerrado"]
+      ]
+    },
+    {
+      "id": "P15",
+      "titulo": "Nominatim no devuelve address.province en comunidades uniprovinciales",
+      "campos": [
+        ["Fecha de aparición", "sesión 08"],
+        ["Síntoma", "en la primera iteración del LocationModule, probando en Las Rozas, el panel mostraba 'Las Rozas de Madrid' arriba pero la línea de abajo quedaba en blanco. En el debug se leía literalmente 'Ubicación [nominatim]: Las Rozas de Madrid · null'"],
+        ["Causa", "Nominatim no expone el campo address.province en las comunidades uniprovinciales (Madrid, Asturias, Cantabria, Navarra, La Rioja, Murcia, Baleares) porque administrativamente la comunidad autónoma y la provincia son la misma entidad. El normalizador del módulo pedía addr.province || addr.county como fallback, pero addr.county en Madrid devuelve cosas como 'Área metropolitana de Madrid' que tampoco queremos. Resultado: provincia quedaba null"],
+        ["Resolución", "cambiar la cadena de fallbacks en el normalizador a: provincia = addr.province || ccaa. Es decir, si Nominatim no devuelve provincia explícita, usamos la CCAA como provincia. Además, en la capa de pintado en index.html se añade formatearAdmin() que detecta cuando provincia y CCAA son iguales y muestra una sola línea en lugar de duplicar ('Comunidad de Madrid' en vez de 'Comunidad de Madrid · Comunidad de Madrid')"],
+        ["Aprendizaje", "las peculiaridades administrativas de Nominatim en España están poco documentadas en la propia API pero se ven rápido con pruebas reales. Este caso concreto (uniprovinciales) estaba anticipado en la ficha de Nominatim de sesión 03 pero no con este nivel de detalle sobre cómo se manifiesta en la respuesta. Queda documentado aquí para futuras referencias"],
+        ["Estado", "cerrado"]
+      ]
+    },
+    {
+      "id": "P16",
+      "titulo": "Filtro de desplazamiento a nivel de app faltaba: el caché del módulo cortaba Nominatim pero el DOM se repintaba cada segundo",
+      "campos": [
+        ["Fecha de aparición", "sesión 08"],
+        ["Síntoma", "tras la primera versión del paso 2 (zoom 14), el usuario reportó que el panel de debug mostraba una línea por segundo: 'Posición... / Caché reusada (dist 5m) / Ubicación [cache]: Las Rozas...' repetida sin parar. El caché del módulo sí estaba cortando las llamadas a Nominatim (ninguna petición real se disparaba), pero cada actualización del GPS seguía llegando a la función de pintado, que repintaba el DOM y escribía en el debug"],
+        ["Causa", "faltaba un filtro de desplazamiento a nivel de index.html antes de llamar al módulo. El flujo era: GPS actualiza cada ~1s → index.html llama a LocationModule.obtenerUbicacion → el módulo devuelve el caché → index.html repinta y loguea. El filtrado estaba solo en el módulo (no llamar a Nominatim), pero no en la app (no procesar si no te has movido lo suficiente). Esto malgasta CPU y batería aunque no malgaste red"],
+        ["Resolución", "tres cambios. (1) Añadido UMBRAL_DESPLAZAMIENTO_M = 50 en index.html: solo se invoca el módulo si la posición actual está al menos a 50 m de la última posición por la que ya se consultó. (2) Añadido ultimaUbicacionMostrada como clave string (municipio|provincia|ccaa) y ultimaCarreteraMostrada como clave (codigo|textoCrudo): si la nueva respuesta del módulo es idéntica a la última pintada, no se repinta el DOM ni se escribe en el debug. (3) Eliminado el debug.log('Caché reusada') del propio módulo location.js, porque con el filtro de la app esos logs ya no tienen sentido y solo aportaban ruido"],
+        ["Aprendizaje", "hay dos niveles de filtrado distintos y ambos son necesarios por razones diferentes. El caché del módulo protege contra el gasto de red (no llamar a Nominatim si es innecesario). El filtro de desplazamiento de la app protege contra el gasto de CPU y batería (no repintar el DOM ni ejecutar lógica si la posición es esencialmente la misma). Uno no sustituye al otro. En fase 4 el umbral del filtro de app subirá a ~500 m para producción según el plan; durante desarrollo lo dejamos en 50 m para que las pruebas sean más rápidas de observar"],
         ["Estado", "cerrado"]
       ]
     }
