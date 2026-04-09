@@ -1,33 +1,41 @@
 // location.js — LocationModule: geocodificación inversa con Nominatim
 //
 // Qué hace:
-//   Dada una posición GPS (lat, lon), devuelve municipio, provincia y CCAA
-//   consultando Nominatim (OpenStreetMap) a zoom 14.
+//   - obtenerUbicacion(lat, lon): municipio, provincia, CCAA (zoom 14)
+//   - obtenerCarretera(lat, lon): código de carretera si estás en una (zoom 17)
 //
 // Respeta las reglas de Nominatim:
-//   - Máximo 1 petición por segundo (usamos 1100 ms por seguridad)
-//   - Parámetro email como identificación del cliente
-//   - Caché por proximidad: si la nueva posición está a <200 m de la
-//     última consultada, reutilizamos la respuesta anterior sin llamar.
+//   - Máximo 1 petición por segundo (usamos 1100 ms por seguridad), global
+//     para todas las llamadas (las dos funciones comparten el mismo reloj).
+//   - Parámetro email como identificación del cliente.
+//   - Caché por proximidad independiente para cada función:
+//       · Ubicación: 200 m (un municipio cubre un área grande)
+//       · Carretera: 80 m (un tramo cambia rápido, radio menor)
 //
 // API pública:
 //   LocationModule.obtenerUbicacion(lat, lon)
-//     → devuelve una Promise que resuelve con un objeto:
-//       { municipio, provincia, ccaa, fuente }
-//     fuente puede ser "nominatim" (petición nueva) o "cache" (reutilizada).
-//     Si Nominatim falla, la Promise se rechaza con el error.
+//     → Promise<{ municipio, provincia, ccaa, fuente }>
+//
+//   LocationModule.obtenerCarretera(lat, lon)
+//     → Promise<{ codigo, textoCrudo, fuente }>
+//       codigo: "A-2", "M-30"... o null si no estás en carretera identificable
+//       textoCrudo: lo que Nominatim devolvió en address.road, para debug
 
 const LocationModule = (() => {
   const EMAIL = 'panel-viaje@tragabytes.github.io';
   const ENDPOINT = 'https://nominatim.openstreetmap.org/reverse';
-  const INTERVALO_MIN_MS = 1100;   // 1 req/s con margen
-  const RADIO_CACHE_M = 200;       // si te mueves menos, reusamos caché
+  const INTERVALO_MIN_MS = 1100;
   const TIMEOUT_MS = 10000;
 
-  let ultimaPeticionTs = 0;
-  let cacheUltima = null;  // { lat, lon, resultado }
+  const RADIO_CACHE_UBICACION_M = 200;
+  const RADIO_CACHE_CARRETERA_M = 80;
 
-  // Distancia Haversine en metros
+  let ultimaPeticionTs = 0;
+  let cacheUbicacion = null;
+  let cacheCarretera = null;
+
+  // --- Utilidades ---
+
   function distanciaMetros(lat1, lon1, lat2, lon2) {
     const R = 6371000;
     const toRad = (g) => g * Math.PI / 180;
@@ -39,43 +47,25 @@ const LocationModule = (() => {
     return 2 * R * Math.asin(Math.sqrt(a));
   }
 
-  // Espera hasta que haya pasado INTERVALO_MIN_MS desde la última petición
   async function respetarLimite() {
     const ahora = Date.now();
     const transcurrido = ahora - ultimaPeticionTs;
     if (transcurrido < INTERVALO_MIN_MS) {
       const esperaMs = INTERVALO_MIN_MS - transcurrido;
-      debug.log(`Esperando ${esperaMs}ms por límite Nominatim`);
       await new Promise(r => setTimeout(r, esperaMs));
     }
     ultimaPeticionTs = Date.now();
   }
 
-  // Normaliza la respuesta cruda de Nominatim al formato que usamos.
-  // Ojo con uniprovinciales (Madrid, Asturias, Cantabria, Navarra, La Rioja,
-  // Murcia, Baleares): Nominatim no devuelve `province` porque la CCAA y la
-  // provincia son administrativamente lo mismo. En esos casos, usamos la CCAA
-  // como provincia.
-  function normalizar(datos) {
-    const addr = datos.address || {};
-    const municipio =
-      addr.city || addr.town || addr.village ||
-      addr.hamlet || addr.municipality || null;
-    const ccaa = addr.state || null;
-    // Provincia: primero la explícita; si no, la CCAA (uniprovinciales).
-    // NO usamos addr.county porque devuelve cosas como "Área metropolitana".
-    const provincia = addr.province || ccaa || null;
-    return { municipio, provincia, ccaa };
-  }
-
-  async function llamarNominatim(lat, lon) {
+  async function llamarNominatim(lat, lon, zoom) {
     const url = new URL(ENDPOINT);
     url.searchParams.set('lat', lat);
     url.searchParams.set('lon', lon);
     url.searchParams.set('format', 'json');
     url.searchParams.set('accept-language', 'es');
-    url.searchParams.set('zoom', '14');
+    url.searchParams.set('zoom', String(zoom));
     url.searchParams.set('addressdetails', '1');
+    url.searchParams.set('extratags', '1');
     url.searchParams.set('email', EMAIL);
 
     const controller = new AbortController();
@@ -84,38 +74,77 @@ const LocationModule = (() => {
     const t0 = performance.now();
     try {
       const resp = await fetch(url.toString(), { signal: controller.signal });
-      if (!resp.ok) {
-        throw new Error(`Nominatim HTTP ${resp.status}`);
-      }
+      if (!resp.ok) throw new Error(`Nominatim HTTP ${resp.status}`);
       const datos = await resp.json();
       const dt = Math.round(performance.now() - t0);
-      debug.log(`Nominatim OK en ${dt}ms`);
-      return normalizar(datos);
+      debug.log(`Nominatim z${zoom} OK en ${dt}ms`);
+      return datos;
     } catch (err) {
-      if (err.name === 'AbortError') {
-        throw new Error('Nominatim timeout');
-      }
+      if (err.name === 'AbortError') throw new Error('Nominatim timeout');
       throw err;
     } finally {
       clearTimeout(timeoutId);
     }
   }
 
+  // --- Normalizadores ---
+
+  function normalizarUbicacion(datos) {
+    const addr = datos.address || {};
+    const municipio =
+      addr.city || addr.town || addr.village ||
+      addr.hamlet || addr.municipality || null;
+    const ccaa = addr.state || null;
+    // Uniprovinciales (Madrid, Asturias, etc.): no hay province, usamos CCAA.
+    const provincia = addr.province || ccaa || null;
+    return { municipio, provincia, ccaa };
+  }
+
+  function normalizarCarretera(datos) {
+    const addr = datos.address || {};
+    // El campo road es el más habitual. A veces la info también viene en
+    // highway o en extratags.ref, así que los consideramos como fallback.
+    const textoCrudo = addr.road || addr.highway || null;
+    const refExtra = datos.extratags && datos.extratags.ref;
+
+    // Intentamos primero con refExtra (que suele ser el código oficial),
+    // luego con el texto de road.
+    let codigo = null;
+    if (refExtra) codigo = Carreteras.extraerCodigo(refExtra);
+    if (!codigo && textoCrudo) codigo = Carreteras.extraerCodigo(textoCrudo);
+
+    return { codigo, textoCrudo: textoCrudo || refExtra || null };
+  }
+
+  // --- API pública ---
+
   async function obtenerUbicacion(lat, lon) {
-    // ¿Podemos servir desde caché?
-    if (cacheUltima) {
-      const dist = distanciaMetros(lat, lon, cacheUltima.lat, cacheUltima.lon);
-      if (dist < RADIO_CACHE_M) {
-        return { ...cacheUltima.resultado, fuente: 'cache' };
+    if (cacheUbicacion) {
+      const dist = distanciaMetros(lat, lon, cacheUbicacion.lat, cacheUbicacion.lon);
+      if (dist < RADIO_CACHE_UBICACION_M) {
+        return { ...cacheUbicacion.resultado, fuente: 'cache' };
       }
     }
-
-    // Nueva petición
     await respetarLimite();
-    const resultado = await llamarNominatim(lat, lon);
-    cacheUltima = { lat, lon, resultado };
+    const datos = await llamarNominatim(lat, lon, 14);
+    const resultado = normalizarUbicacion(datos);
+    cacheUbicacion = { lat, lon, resultado };
     return { ...resultado, fuente: 'nominatim' };
   }
 
-  return { obtenerUbicacion };
+  async function obtenerCarretera(lat, lon) {
+    if (cacheCarretera) {
+      const dist = distanciaMetros(lat, lon, cacheCarretera.lat, cacheCarretera.lon);
+      if (dist < RADIO_CACHE_CARRETERA_M) {
+        return { ...cacheCarretera.resultado, fuente: 'cache' };
+      }
+    }
+    await respetarLimite();
+    const datos = await llamarNominatim(lat, lon, 17);
+    const resultado = normalizarCarretera(datos);
+    cacheCarretera = { lat, lon, resultado };
+    return { ...resultado, fuente: 'nominatim' };
+  }
+
+  return { obtenerUbicacion, obtenerCarretera };
 })();
