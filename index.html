@@ -142,4 +142,171 @@
   <script>
     debug.log('Página cargada');
 
-    cons
+    const $estado           = document.getElementById('estado');
+    const $carreteraBloque  = document.getElementById('carreteraBloque');
+    const $municipio        = document.getElementById('municipio');
+    const $admin            = document.getElementById('admin');
+    const $lat              = document.getElementById('lat');
+    const $lon              = document.getElementById('lon');
+    const $precision        = document.getElementById('precision');
+    const $velocidad        = document.getElementById('velocidad');
+    const $rumbo            = document.getElementById('rumbo');
+    const $hora             = document.getElementById('hora');
+
+    const UMBRAL_DESPLAZAMIENTO_M = 50;
+
+    let ultimaPosicionUbicacion = null;
+    let ultimaUbicacionMostrada = null;
+    let ultimaCarreteraMostrada = null;
+
+    // Helper: escapa texto para meter en innerHTML sin riesgo de que Nominatim
+    // devuelva algo con caracteres especiales que rompan el HTML.
+    function escapar(texto) {
+      const div = document.createElement('div');
+      div.textContent = texto;
+      return div.innerHTML;
+    }
+
+    function distanciaMetros(lat1, lon1, lat2, lon2) {
+      const R = 6371000;
+      const toRad = (g) => g * Math.PI / 180;
+      const dLat = toRad(lat2 - lat1);
+      const dLon = toRad(lon2 - lon1);
+      const a = Math.sin(dLat / 2) ** 2 +
+                Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+                Math.sin(dLon / 2) ** 2;
+      return 2 * R * Math.asin(Math.sqrt(a));
+    }
+
+    function mostrarEstado(texto, clase) {
+      $estado.textContent = texto;
+      $estado.className = 'estado ' + (clase || '');
+    }
+
+    function formatearAdmin(info) {
+      if (!info.ccaa && !info.provincia) return '—';
+      if (info.provincia && info.ccaa && info.provincia !== info.ccaa) {
+        return `${info.provincia} · ${info.ccaa}`;
+      }
+      return info.provincia || info.ccaa;
+    }
+
+    // Tres estados posibles para el bloque de carretera:
+    //  1. Hay código oficial        → pastilla azul grande
+    //  2. Hay texto pero no código  → texto discreto en gris
+    //  3. No hay nada               → "Sin vía identificada" en itálica
+    function pintarCarretera(info) {
+      if (info && info.codigo) {
+        $carreteraBloque.innerHTML =
+          `<span class="pastilla">${escapar(info.codigo)}</span>`;
+      } else if (info && info.textoCrudo) {
+        $carreteraBloque.innerHTML =
+          `<span class="calle">${escapar(info.textoCrudo)}</span>`;
+      } else {
+        $carreteraBloque.innerHTML =
+          `<span class="sin-carretera">Sin vía identificada</span>`;
+      }
+    }
+
+    async function actualizarUbicacionAdministrativa(lat, lon) {
+      try {
+        const info = await LocationModule.obtenerUbicacion(lat, lon);
+        const clave = `${info.municipio}|${info.provincia}|${info.ccaa}`;
+        if (clave === ultimaUbicacionMostrada) return;
+        ultimaUbicacionMostrada = clave;
+
+        $municipio.textContent = info.municipio || '(municipio desconocido)';
+        $admin.textContent = formatearAdmin(info);
+        debug.log(`Ubicación [${info.fuente}]: ${info.municipio} · ${formatearAdmin(info)}`);
+      } catch (err) {
+        debug.error(`LocationModule.ubicacion: ${err.message}`);
+      }
+    }
+
+    async function actualizarCarretera(lat, lon) {
+      try {
+        const info = await LocationModule.obtenerCarretera(lat, lon);
+        const clave = `${info.codigo}|${info.textoCrudo}`;
+        if (clave === ultimaCarreteraMostrada) return;
+        ultimaCarreteraMostrada = clave;
+
+        pintarCarretera(info);
+        if (info.codigo) {
+          debug.log(`Carretera [${info.fuente}]: ${info.codigo} (crudo: "${info.textoCrudo}")`);
+        } else if (info.textoCrudo) {
+          debug.log(`Vía [${info.fuente}]: "${info.textoCrudo}"`);
+        } else {
+          debug.log(`Carretera [${info.fuente}]: sin vía en Nominatim`);
+        }
+      } catch (err) {
+        debug.error(`LocationModule.carretera: ${err.message}`);
+      }
+    }
+
+    function alRecibirPosicion(pos) {
+      const c = pos.coords;
+      $lat.textContent = c.latitude.toFixed(6);
+      $lon.textContent = c.longitude.toFixed(6);
+      $precision.textContent = c.accuracy != null ? `${c.accuracy.toFixed(1)} m` : '—';
+      $velocidad.textContent = c.speed != null
+        ? `${(c.speed * 3.6).toFixed(1)} km/h`
+        : 'no disponible';
+      $rumbo.textContent = c.heading != null && !isNaN(c.heading)
+        ? `${c.heading.toFixed(0)}°`
+        : 'no disponible';
+      $hora.textContent = new Date().toTimeString().slice(0, 8);
+
+      mostrarEstado('GPS activo', 'ok');
+
+      let hayQueActualizar = false;
+      if (!ultimaPosicionUbicacion) {
+        hayQueActualizar = true;
+      } else {
+        const dist = distanciaMetros(
+          c.latitude, c.longitude,
+          ultimaPosicionUbicacion.lat, ultimaPosicionUbicacion.lon
+        );
+        if (dist >= UMBRAL_DESPLAZAMIENTO_M) {
+          hayQueActualizar = true;
+          debug.log(`Movimiento detectado: ${dist.toFixed(0)}m`);
+        }
+      }
+
+      if (hayQueActualizar) {
+        debug.log(`Posición: ${c.latitude.toFixed(5)}, ${c.longitude.toFixed(5)} (±${c.accuracy?.toFixed(0)}m)`);
+        ultimaPosicionUbicacion = { lat: c.latitude, lon: c.longitude };
+        actualizarUbicacionAdministrativa(c.latitude, c.longitude);
+        actualizarCarretera(c.latitude, c.longitude);
+      }
+    }
+
+    function alFallarPosicion(err) {
+      const motivos = {
+        1: 'Permiso denegado',
+        2: 'Posición no disponible',
+        3: 'Tiempo de espera agotado',
+      };
+      const motivo = motivos[err.code] || 'Error desconocido';
+      mostrarEstado(`Error de GPS: ${motivo}`, 'error');
+      debug.error(`GPS error ${err.code}: ${err.message}`);
+    }
+
+    if (!('geolocation' in navigator)) {
+      mostrarEstado('Este navegador no soporta GPS', 'error');
+      debug.error('navigator.geolocation no disponible');
+    } else {
+      debug.log('Solicitando permiso de GPS…');
+      navigator.geolocation.watchPosition(
+        alRecibirPosicion,
+        alFallarPosicion,
+        {
+          enableHighAccuracy: true,
+          maximumAge: 0,
+          timeout: 30000,
+        }
+      );
+    }
+  </script>
+
+</body>
+</html>
