@@ -43,10 +43,21 @@
 //
 //   MotorwayExitModule.reset()
 //     Vacía caché y estado. Útil para tests con el simulador.
+//
+// NOTA CRÍTICA SOBRE EL SCOPE GLOBAL (P18-bis, sesión 10):
+//   En scripts clásicos de navegador todos los <script> comparten el mismo
+//   ámbito global. Por eso NO podemos declarar `const __global__ = ...` a
+//   nivel top-level: si otro archivo (p.ej. roadref.js) ya lo declaró, la
+//   segunda declaración lanza SyntaxError y aborta la carga entera del
+//   archivo, dejando window.MotorwayExitModule en undefined sin avisar.
+//   Solución: envolvemos TODO el archivo en una IIFE exterior para que
+//   __global__ viva en un ámbito local. Así ningún identificador interno
+//   choca con otros módulos pase lo que pase.
 
-const __global__ = (typeof window !== 'undefined') ? window : globalThis;
+(function () {
+  const __global__ = (typeof window !== 'undefined') ? window : globalThis;
 
-__global__.MotorwayExitModule = (() => {
+  __global__.MotorwayExitModule = (() => {
 
   // --- Constantes configurables ---
 
@@ -415,6 +426,7 @@ __global__.MotorwayExitModule = (() => {
 })();
 
 // Compat Node para tests locales
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = __global__.MotorwayExitModule;
-}
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = __global__.MotorwayExitModule;
+  }
+})();
