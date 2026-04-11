@@ -17,8 +17,9 @@
 //     → Promise<{ municipio, provincia, ccaa, fuente }>
 //
 //   LocationModule.obtenerCarretera(lat, lon)
-//     → Promise<{ codigo, textoCrudo, fuente }>
-//       codigo: "A-2", "M-30"... o null si no estás en carretera identificable
+//     → Promise<{ codigo, tipo, textoCrudo, fuente }>
+//       codigo: "A-2", "M-505"... o null si no estás en carretera identificable
+//       tipo: 'estatal' | 'autonomica' | null   (para color de pastilla)
 //       textoCrudo: lo que Nominatim devolvió en address.road, para debug
 
 const LocationModule = (() => {
@@ -66,6 +67,7 @@ const LocationModule = (() => {
     url.searchParams.set('zoom', String(zoom));
     url.searchParams.set('addressdetails', '1');
     url.searchParams.set('extratags', '1');
+    url.searchParams.set('namedetails', '1');
     url.searchParams.set('email', EMAIL);
 
     const controller = new AbortController();
@@ -102,18 +104,20 @@ const LocationModule = (() => {
 
   function normalizarCarretera(datos) {
     const addr = datos.address || {};
-    // El campo road es el más habitual. A veces la info también viene en
-    // highway o en extratags.ref, así que los consideramos como fallback.
+    // El campo road es el más habitual. extratags.ref es donde más a menudo
+    // está el código limpio cuando OSM lo expone. Pasamos los dos a
+    // extraerCodigo, que decide cuál usar.
     const textoCrudo = addr.road || addr.highway || null;
-    const refExtra = datos.extratags && datos.extratags.ref;
+    const refExtra = (datos.extratags && datos.extratags.ref) || null;
 
-    // Intentamos primero con refExtra (que suele ser el código oficial),
-    // luego con el texto de road.
-    let codigo = null;
-    if (refExtra) codigo = Carreteras.extraerCodigo(refExtra);
-    if (!codigo && textoCrudo) codigo = Carreteras.extraerCodigo(textoCrudo);
+    // extraerCodigo devuelve { codigo, tipo } o null.
+    const resultado = Carreteras.extraerCodigo({ ref: refExtra, road: textoCrudo });
 
-    return { codigo, textoCrudo: textoCrudo || refExtra || null };
+    return {
+      codigo: resultado ? resultado.codigo : null,
+      tipo:   resultado ? resultado.tipo   : null,  // 'estatal' | 'autonomica' | null
+      textoCrudo: textoCrudo || refExtra || null
+    };
   }
 
   // --- API pública ---
