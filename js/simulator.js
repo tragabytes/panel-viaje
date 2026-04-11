@@ -115,7 +115,12 @@
 
   // --- Resolver la ruta desde el catálogo ---
   function cargarRuta() {
-    if (!window.Rutas || typeof Rutas.obtener !== 'function') {
+    // Nota: accedemos a Rutas directamente, NO window.Rutas, porque rutas.js
+    // declara `const Rutas = ...` en el scope del script. Los const/let de
+    // nivel superior de un <script> no se adjuntan al objeto global, pero sí
+    // son visibles entre scripts del mismo documento. Error descubierto en
+    // sesión 9.7 tras el primer deploy del simulador.
+    if (typeof Rutas === 'undefined' || typeof Rutas.obtener !== 'function') {
       debug.error('[SIM] Rutas no disponible: falta js/rutas.js');
       return null;
     }
