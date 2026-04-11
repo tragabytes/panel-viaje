@@ -228,6 +228,7 @@
   <script src="js/location.js"></script>
   <script src="js/meteo_codigos.js"></script>
   <script src="js/weather.js"></script>
+  <script src="js/motorwayexit.js"></script>
   <script src="js/rutas.js"></script>
   <script src="js/simulator.js"></script>
   <script>
@@ -261,6 +262,10 @@
     let ultimaUbicacionMostrada = null;
     let ultimaCarreteraMostrada = null;
     let ultimaMeteoMostrada     = null;
+    // Código de vía actual (A-6, M-505...) o null. Se actualiza en los tres
+    // caminos de actualizarCarretera() y lo consume MotorwayExitModule en
+    // cada tick de GPS para saber en qué vía buscar próximas salidas.
+    let roadRefActual           = null;
     // Si el último pintado del bloque meteo fue un estado de error, lo
     // guardamos aquí para forzar el repintado en cuanto llegue cualquier
     // dato válido, aunque la clave de dedupe coincida con el último válido
@@ -338,6 +343,7 @@
           const clave = `${info.codigo}|${info.tipo}|${info.textoCrudo}`;
           if (clave === ultimaCarreteraMostrada) return;
           ultimaCarreteraMostrada = clave;
+          roadRefActual = info.codigo;
           pintarCarretera(info);
           debug.log(`Carretera [${info.fuente}]: ${info.codigo} (${info.tipo}, crudo: "${info.textoCrudo}")`);
           return;
@@ -363,6 +369,7 @@
               const clave = `${infoRescatada.codigo}|${infoRescatada.tipo}|${infoRescatada.textoCrudo}`;
               if (clave === ultimaCarreteraMostrada) return;
               ultimaCarreteraMostrada = clave;
+              roadRefActual = infoRescatada.codigo;
               pintarCarretera(infoRescatada);
               debug.log(`Carretera [overpass]: ${infoRescatada.codigo} (${infoRescatada.tipo}, rescatada · crudo Nominatim: "${info.textoCrudo}")`);
               return;
@@ -376,6 +383,7 @@
         const clave = `${info.codigo}|${info.tipo}|${info.textoCrudo}`;
         if (clave === ultimaCarreteraMostrada) return;
         ultimaCarreteraMostrada = clave;
+        roadRefActual = null;
         pintarCarretera(info);
         if (info.textoCrudo) {
           debug.log(`Vía [${info.fuente}]: "${info.textoCrudo}" (sin código ni en Nominatim ni en Overpass)`);
@@ -462,6 +470,40 @@
       }
     }
 
+    // Estado del último log de próximas salidas, para evitar spammear
+    // el panel de debug con el mismo resultado en cada tick de GPS.
+    let ultimoLogSalidas = null;
+
+    function actualizarProximasSalidas(lat, lon, rumbo, velocidadKmh) {
+      if (!window.MotorwayExitModule) return;
+      try {
+        const r = MotorwayExitModule.actualizar({
+          lat, lon, rumbo, velocidadKmh, roadRef: roadRefActual,
+        });
+        // Dedupe del log: solo logueamos cuando cambia algo material
+        // (estado, ref de proxima, ref de siguiente, o la distancia de
+        // próxima varía más de 0.5 km). Así no se llena el debug con
+        // una línea por cada tick de GPS.
+        const proxRef = r.proxima ? r.proxima.ref : null;
+        const proxKm  = r.proxima ? Math.round(r.proxima.distanciaKm * 2) / 2 : null;
+        const sigRef  = r.siguiente ? r.siguiente.ref : null;
+        const clave = `${r.estado}|${proxRef}|${proxKm}|${sigRef}`;
+        if (clave !== ultimoLogSalidas) {
+          ultimoLogSalidas = clave;
+          if (r.estado === 'ok') {
+            const sigTxt = r.siguiente
+              ? `, luego ${r.siguiente.ref} a ${r.siguiente.distanciaKm}km`
+              : '';
+            debug.log(`MotorwayExit: próxima ${r.proxima.ref} a ${r.proxima.distanciaKm}km${sigTxt}`);
+          } else {
+            debug.log(`MotorwayExit: ${r.estado}${roadRefActual ? ' (vía ' + roadRefActual + ')' : ''}`);
+          }
+        }
+      } catch (err) {
+        debug.error(`MotorwayExit: ${err.message}`);
+      }
+    }
+
     function alRecibirPosicion(pos) {
       const c = pos.coords;
       $lat.textContent = c.latitude.toFixed(6);
@@ -498,6 +540,15 @@
         actualizarCarretera(c.latitude, c.longitude);
         actualizarMeteo(c.latitude, c.longitude);
       }
+
+      // MotorwayExit se evalúa en CADA tick, no solo cada 50 m. Es barato
+      // (filtro local sobre decenas de junctions) y necesita rumbo y
+      // distancia frescos para dar una próxima salida precisa. La consulta
+      // a Overpass solo se dispara al entrar en vía nueva o refrescar a 35km,
+      // gobernado por el propio módulo.
+      const velocidadKmh = (c.speed != null && !isNaN(c.speed)) ? c.speed * 3.6 : null;
+      const rumboGrados  = (c.heading != null && !isNaN(c.heading)) ? c.heading : null;
+      actualizarProximasSalidas(c.latitude, c.longitude, rumboGrados, velocidadKmh);
     }
 
     function alFallarPosicion(err) {
