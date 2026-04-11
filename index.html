@@ -473,8 +473,20 @@
     // Estado del último log de próximas salidas, para evitar spammear
     // el panel de debug con el mismo resultado en cada tick de GPS.
     let ultimoLogSalidas = null;
+    // Flag: ¿ya hemos logueado la disponibilidad del módulo? Evita spam
+    // si el módulo falta, y da una señal clara en el primer tick.
+    let motorwayExitChequeado = false;
 
     function actualizarProximasSalidas(lat, lon, rumbo, velocidadKmh) {
+      if (!motorwayExitChequeado) {
+        motorwayExitChequeado = true;
+        if (window.MotorwayExitModule) {
+          debug.log('MotorwayExit: módulo cargado, primer tick recibido');
+        } else {
+          debug.error('MotorwayExit: window.MotorwayExitModule NO DISPONIBLE — módulo no cargado o falló al inicializar');
+          return;
+        }
+      }
       if (!window.MotorwayExitModule) return;
       try {
         const r = MotorwayExitModule.actualizar({
