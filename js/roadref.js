@@ -32,7 +32,17 @@
 // API pública:
 //   RoadRef.consultar(lat, lon) → Promise<string|null>
 
-const RoadRef = (() => {
+// Exponemos directamente en window, igual que wakelock.js y simulator.js,
+// porque index.html hace `if (window.RoadRef)` como guard defensivo antes
+// de llamarlo. Un `const RoadRef = ...` a nivel top-level NO se engancha
+// a window en scripts clásicos, y ese fue exactamente el bug de RoadRef
+// en la primera iteración de sesión 9.8 (misma pisada que pasó con
+// `const Rutas` en sesión 9.7).
+//
+// En Node (tests), `window` no existe, así que usamos un shim.
+const __global__ = (typeof window !== 'undefined') ? window : globalThis;
+
+__global__.RoadRef = (() => {
   const MIRRORS = [
     'https://overpass-api.de/api/interpreter',
     'https://overpass.kumi.systems/api/interpreter',
@@ -171,5 +181,5 @@ const RoadRef = (() => {
 
 // Compat Node para tests locales
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = RoadRef;
+  module.exports = __global__.RoadRef;
 }
