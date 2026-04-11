@@ -224,6 +224,7 @@
   <script src="js/debug.js"></script>
   <script src="js/wakelock.js"></script>
   <script src="js/carreteras.js"></script>
+  <script src="js/roadref.js"></script>
   <script src="js/location.js"></script>
   <script src="js/meteo_codigos.js"></script>
   <script src="js/weather.js"></script>
@@ -330,15 +331,54 @@
     async function actualizarCarretera(lat, lon) {
       try {
         const info = await LocationModule.obtenerCarretera(lat, lon);
+
+        // Caso A: Nominatim ya dio código (estatal conocida o ref directa).
+        // Se pinta y fin.
+        if (info.codigo) {
+          const clave = `${info.codigo}|${info.tipo}|${info.textoCrudo}`;
+          if (clave === ultimaCarreteraMostrada) return;
+          ultimaCarreteraMostrada = clave;
+          pintarCarretera(info);
+          debug.log(`Carretera [${info.fuente}]: ${info.codigo} (${info.tipo}, crudo: "${info.textoCrudo}")`);
+          return;
+        }
+
+        // Caso B: Nominatim dio nombre de vía pero sin código reconocible.
+        // Éste es el caso típico de las autonómicas con nombre popular
+        // (M-505 = "Carretera de El Escorial", CL-601 con nombre histórico,
+        // etc.). Nominatim no expone consistentemente extratags.ref, así
+        // que preguntamos a Overpass directamente qué ref tiene el way en
+        // este punto. Decisión 22, sesión 9.8.
+        if (info.textoCrudo && window.RoadRef) {
+          const refOverpass = await RoadRef.consultar(lat, lon);
+          if (refOverpass) {
+            const rescatado = Carreteras.extraerCodigo(refOverpass);
+            if (rescatado && rescatado.codigo) {
+              const infoRescatada = {
+                codigo: rescatado.codigo,
+                tipo: rescatado.tipo,
+                textoCrudo: info.textoCrudo,
+                fuente: 'overpass',
+              };
+              const clave = `${infoRescatada.codigo}|${infoRescatada.tipo}|${infoRescatada.textoCrudo}`;
+              if (clave === ultimaCarreteraMostrada) return;
+              ultimaCarreteraMostrada = clave;
+              pintarCarretera(infoRescatada);
+              debug.log(`Carretera [overpass]: ${infoRescatada.codigo} (${infoRescatada.tipo}, rescatada · crudo Nominatim: "${info.textoCrudo}")`);
+              return;
+            }
+          }
+          // Overpass tampoco lo supo. Caemos al texto discreto.
+        }
+
+        // Caso C: ni Nominatim ni Overpass han dado código.
+        // Pintamos textoCrudo en modo discreto o "sin vía".
         const clave = `${info.codigo}|${info.tipo}|${info.textoCrudo}`;
         if (clave === ultimaCarreteraMostrada) return;
         ultimaCarreteraMostrada = clave;
-
         pintarCarretera(info);
-        if (info.codigo) {
-          debug.log(`Carretera [${info.fuente}]: ${info.codigo} (${info.tipo}, crudo: "${info.textoCrudo}")`);
-        } else if (info.textoCrudo) {
-          debug.log(`Vía [${info.fuente}]: "${info.textoCrudo}"`);
+        if (info.textoCrudo) {
+          debug.log(`Vía [${info.fuente}]: "${info.textoCrudo}" (sin código ni en Nominatim ni en Overpass)`);
         } else {
           debug.log(`Carretera [${info.fuente}]: sin vía en Nominatim`);
         }
