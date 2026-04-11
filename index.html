@@ -62,6 +62,12 @@
       letter-spacing: 0.5px;
     }
 
+    /* Variante granate para carreteras autonómicas y locales (M-505, CL-601,
+       CV-50, GI-632, A-92 andaluza, etc.). Decisión 19, sesión 9.6. */
+    .carretera .pastilla.autonomica {
+      background: #7a1f2b;
+    }
+
     .carretera .calle {
       font-size: 15px;
       opacity: 0.7;
@@ -216,12 +222,21 @@
   </div>
 
   <script src="js/debug.js"></script>
+  <script src="js/wakelock.js"></script>
   <script src="js/carreteras.js"></script>
   <script src="js/location.js"></script>
   <script src="js/meteo_codigos.js"></script>
   <script src="js/weather.js"></script>
+  <script src="js/rutas.js"></script>
+  <script src="js/simulator.js"></script>
   <script>
     debug.log('Página cargada');
+
+    // Pedir wake lock para que la pantalla no se apague durante el viaje.
+    // El módulo se reactiva solo cuando la pestaña vuelve del segundo plano.
+    if (window.WakeLock) {
+      WakeLock.activar();
+    }
 
     const $estado           = document.getElementById('estado');
     const $carreteraBloque  = document.getElementById('carreteraBloque');
@@ -245,6 +260,11 @@
     let ultimaUbicacionMostrada = null;
     let ultimaCarreteraMostrada = null;
     let ultimaMeteoMostrada     = null;
+    // Si el último pintado del bloque meteo fue un estado de error, lo
+    // guardamos aquí para forzar el repintado en cuanto llegue cualquier
+    // dato válido, aunque la clave de dedupe coincida con el último válido
+    // anterior. Resuelve el "meteo fantasma" detectado en sesión 9.6.
+    let meteoEnError            = false;
 
     function escapar(texto) {
       const div = document.createElement('div');
@@ -278,8 +298,11 @@
 
     function pintarCarretera(info) {
       if (info && info.codigo) {
+        // Pastilla azul (estatal) o granate (autonómica). Si por algún motivo
+        // tipo viniera vacío, defaulteamos a azul para no romper el aspecto.
+        const claseExtra = info.tipo === 'autonomica' ? ' autonomica' : '';
         $carreteraBloque.innerHTML =
-          `<span class="pastilla">${escapar(info.codigo)}</span>`;
+          `<span class="pastilla${claseExtra}">${escapar(info.codigo)}</span>`;
       } else if (info && info.textoCrudo) {
         $carreteraBloque.innerHTML =
           `<span class="calle">${escapar(info.textoCrudo)}</span>`;
@@ -307,13 +330,13 @@
     async function actualizarCarretera(lat, lon) {
       try {
         const info = await LocationModule.obtenerCarretera(lat, lon);
-        const clave = `${info.codigo}|${info.textoCrudo}`;
+        const clave = `${info.codigo}|${info.tipo}|${info.textoCrudo}`;
         if (clave === ultimaCarreteraMostrada) return;
         ultimaCarreteraMostrada = clave;
 
         pintarCarretera(info);
         if (info.codigo) {
-          debug.log(`Carretera [${info.fuente}]: ${info.codigo} (crudo: "${info.textoCrudo}")`);
+          debug.log(`Carretera [${info.fuente}]: ${info.codigo} (${info.tipo}, crudo: "${info.textoCrudo}")`);
         } else if (info.textoCrudo) {
           debug.log(`Vía [${info.fuente}]: "${info.textoCrudo}"`);
         } else {
@@ -357,7 +380,10 @@
       try {
         const meteo = await Weather.obtenerTiempoActual(lat, lon);
         const clave = `${meteo.hora}|${meteo.weatherCode}`;
-        if (clave === ultimaMeteoMostrada) return;
+        // Dedupe normal: si la clave coincide y NO venimos de error, salimos.
+        // Si venimos de error, forzamos el repintado aunque coincida la clave,
+        // porque la pantalla está mostrando "Error meteo" y hay que limpiarlo.
+        if (clave === ultimaMeteoMostrada && !meteoEnError) return;
         ultimaMeteoMostrada = clave;
 
         $meteoTemp.textContent =
@@ -380,7 +406,10 @@
 
         const nHoras = meteo.previsionHoraria ? meteo.previsionHoraria.length : 0;
         const etiqueta = meteo.deCache ? ' [cache]' : '';
-        debug.log(`Meteo pintada${etiqueta}: ${Math.round(meteo.temperatura)}° ${meteo.categoria} (${meteo.descripcion}) + ${nHoras}h previsión`);
+        const recuperado = meteoEnError ? ' (recuperado de error)' : '';
+        debug.log(`Meteo pintada${etiqueta}${recuperado}: ${Math.round(meteo.temperatura)}° ${meteo.categoria} (${meteo.descripcion}) + ${nHoras}h previsión`);
+
+        meteoEnError = false;
       } catch (err) {
         $meteoTemp.textContent = 'Error meteo';
         $meteoDescripcion.innerHTML =
@@ -388,6 +417,7 @@
         $meteoViento.textContent = '—';
         $meteoHumedad.textContent = '—';
         $meteoPrevision.textContent = '—';
+        meteoEnError = true;
         debug.error(`Weather: ${err.message}`);
       }
     }
@@ -441,7 +471,14 @@
       debug.error(`GPS error ${err.code}: ${err.message}`);
     }
 
-    if (!('geolocation' in navigator)) {
+    // Arranque: elegir entre GPS real y simulador.
+    // Si ?sim=<ruta> está en la URL, el simulador toma el mando y el GPS
+    // ni siquiera se pide. Útil para pruebas desde casa sin conducir.
+    if (window.Simulator && Simulator.estaActivo()) {
+      mostrarEstado(`Simulación: ${Simulator.nombreRuta()}`, 'ok');
+      debug.log(`Modo simulación activo: ${Simulator.nombreRuta()}`);
+      Simulator.iniciar(alRecibirPosicion);
+    } else if (!('geolocation' in navigator)) {
       mostrarEstado('Este navegador no soporta GPS', 'error');
       debug.error('navigator.geolocation no disponible');
     } else {
