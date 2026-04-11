@@ -23,14 +23,16 @@
 
 const debug = (() => {
   const activo = new URLSearchParams(window.location.search).get('debug') === '1';
-  const maxMensajes = 50;
+  const maxMensajes = 500;           // historial ampliado en sesión 9.6 (antes 50)
+  const maxVisibles = 50;            // cuántos se pintan en pantalla a la vez
   const mensajes = [];
   const CLAVE_COLAPSADO = 'debug-colapsado';
 
   let panel = null;
   let cuerpo = null;   // el área scrollable con los logs
-  let barra = null;    // la tira superior con título y botón
+  let barra = null;    // la tira superior con título y botones
   let botonColapsar = null;
+  let botonCopiar = null;
   let colapsado = false;
 
   function leerEstadoColapsado() {
@@ -70,6 +72,70 @@ const debug = (() => {
     colapsado = !colapsado;
     guardarEstadoColapsado(colapsado);
     aplicarEstadoVisual();
+  }
+
+  // Vuelca TODO el historial a texto plano y lo copia al portapapeles.
+  // Añade una cabecera con la URL, fecha y número total de mensajes.
+  function copiarAlPortapapeles() {
+    const cabecera = [
+      '=== Panel de viaje — log de debug ===',
+      `URL: ${window.location.href}`,
+      `Fecha: ${new Date().toISOString()}`,
+      `Mensajes: ${mensajes.length} (máx ${maxMensajes})`,
+      '======================================',
+      ''
+    ].join('\n');
+    const cuerpoTexto = mensajes
+      .map(m => `[${m.hora}] ${m.texto}`)
+      .join('\n');
+    const todo = cabecera + cuerpoTexto;
+
+    const textoOriginal = botonCopiar ? botonCopiar.textContent : 'copiar';
+    const marcarExito = () => {
+      if (!botonCopiar) return;
+      botonCopiar.textContent = 'copiado ✓';
+      botonCopiar.style.background = 'rgba(100, 200, 100, 0.3)';
+      setTimeout(() => {
+        botonCopiar.textContent = textoOriginal;
+        botonCopiar.style.background = 'rgba(255, 255, 255, 0.12)';
+      }, 1500);
+    };
+    const marcarError = () => {
+      if (!botonCopiar) return;
+      botonCopiar.textContent = 'error';
+      botonCopiar.style.background = 'rgba(200, 80, 80, 0.4)';
+      setTimeout(() => {
+        botonCopiar.textContent = textoOriginal;
+        botonCopiar.style.background = 'rgba(255, 255, 255, 0.12)';
+      }, 1500);
+    };
+
+    // API moderna (requiere HTTPS, que ya tenemos)
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(todo)
+        .then(marcarExito)
+        .catch(() => {
+          intentarFallbackCopia(todo) ? marcarExito() : marcarError();
+        });
+    } else {
+      intentarFallbackCopia(todo) ? marcarExito() : marcarError();
+    }
+  }
+
+  function intentarFallbackCopia(texto) {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = texto;
+      ta.style.position = 'fixed';
+      ta.style.top = '-1000px';
+      document.body.appendChild(ta);
+      ta.select();
+      const ok = document.execCommand('copy');
+      document.body.removeChild(ta);
+      return ok;
+    } catch (e) {
+      return false;
+    }
   }
 
   function crearPanel() {
@@ -116,6 +182,32 @@ const debug = (() => {
       opacity: 0.6;
     `;
 
+    // Contenedor de botones a la derecha
+    const botonesDer = document.createElement('div');
+    botonesDer.style.cssText = `
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    `;
+
+    // Botón de copiar todo el log al portapapeles
+    botonCopiar = document.createElement('button');
+    botonCopiar.type = 'button';
+    botonCopiar.textContent = 'copiar';
+    botonCopiar.style.cssText = `
+      height: 24px;
+      padding: 0 10px;
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 11px;
+      line-height: 1;
+      cursor: pointer;
+    `;
+    botonCopiar.addEventListener('click', copiarAlPortapapeles);
+
     botonColapsar = document.createElement('button');
     botonColapsar.type = 'button';
     botonColapsar.style.cssText = `
@@ -134,8 +226,11 @@ const debug = (() => {
     `;
     botonColapsar.addEventListener('click', alternarColapsado);
 
+    botonesDer.appendChild(botonCopiar);
+    botonesDer.appendChild(botonColapsar);
+
     barra.appendChild(titulo);
-    barra.appendChild(botonColapsar);
+    barra.appendChild(botonesDer);
     panel.appendChild(barra);
 
     // Cuerpo: área scrollable con los logs
@@ -181,7 +276,11 @@ const debug = (() => {
 
   function repintar() {
     if (!cuerpo) return;
-    cuerpo.innerHTML = mensajes
+    // Mostrar solo los últimos `maxVisibles` en pantalla (para no ralentizar
+    // el scroll del móvil). El historial completo (hasta `maxMensajes`) se
+    // conserva en memoria y se vuelca entero al pulsar "copiar".
+    const visibles = mensajes.slice(-maxVisibles);
+    cuerpo.innerHTML = visibles
       .map(m => `<div style="color:${m.color}">[${m.hora}] ${m.texto}</div>`)
       .join('');
     // scroll automático al final solo si no está colapsado
