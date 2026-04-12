@@ -78,6 +78,11 @@
   const VELOCIDAD_MIN_KMH = 50;
   const HISTERESIS_VELOCIDAD_MS = 30000;
 
+  // Tiempo máximo que toleramos sin roadRef antes de vaciar la caché.
+  // Cubre fallos transitorios de mirrors (1-2 ticks, ~3-6 s). Si el ref
+  // lleva más de 30 s ausente, asumimos cambio real de vía o parada.
+  const GRACIA_ROADREF_MS = 30000;
+
   // --- Estado interno ---
 
   // Caché de junctions para la vía actual.
@@ -90,6 +95,11 @@
   let enMovimiento = false;
   let tsUltimoCruceVelocidad = 0;
   let ultimaVelocidadSobreUmbral = false;
+
+  // Último roadRef conocido válido + su timestamp. Permite sobrevivir
+  // fallos transitorios de RoadRef sin vaciar caché ni relanzar Overpass.
+  let ultimoRoadRefConocido = null;
+  let tsUltimoRoadRefConocido = 0;
 
   // --- Utilidades geodésicas ---
 
@@ -138,7 +148,7 @@
     return (
       `[out:json][timeout:15];` +
       `node(around:${radioMetros},${lat},${lon})[highway=motorway_junction]["ref"](if:t["ref"]!="0");` +
-      `out tags;`
+      `out body;`
     );
     // Nota: filtrar por ref de la vía padre requiere una query más
     // compleja (buscar ways con esa ref y luego sus junctions). Por ahora
@@ -315,13 +325,29 @@
 
     actualizarMovimiento(velocidadKmh, ahoraMs);
 
-    // Sin código de vía: nada que consultar. Vaciamos caché si hubiera.
-    if (!roadRef) {
-      if (cache) {
-        if (typeof debug !== 'undefined') debug.log('MotorwayExit: sin roadRef, caché vaciada');
-        cache = null;
+    // Sin código de vía: puede ser un fallo transitorio de RoadRef (mirror caído
+    // 1-2 ticks). Si tenemos un ref reciente, lo usamos como fallback durante
+    // GRACIA_ROADREF_MS para no vaciar caché ni relanzar Overpass innecesariamente.
+    // Solo vaciamos si el ref lleva más de 30 s ausente (cambio real de vía o parada).
+    let refEfectiva = roadRef;
+    if (!refEfectiva) {
+      const edadUltimoRef = ahoraMs - tsUltimoRoadRefConocido;
+      if (ultimoRoadRefConocido && edadUltimoRef < GRACIA_ROADREF_MS) {
+        if (typeof debug !== 'undefined') {
+          debug.log(`MotorwayExit: sin roadRef, fallback a ${ultimoRoadRefConocido} (${Math.round(edadUltimoRef / 1000)}s)`);
+        }
+        refEfectiva = ultimoRoadRefConocido;
+      } else {
+        if (cache) {
+          if (typeof debug !== 'undefined') debug.log('MotorwayExit: sin roadRef, caché vaciada');
+          cache = null;
+        }
+        ultimoRoadRefConocido = null;
+        return { activo: false, proxima: null, siguiente: null, estado: 'inactivo' };
       }
-      return { activo: false, proxima: null, siguiente: null, estado: 'inactivo' };
+    } else {
+      ultimoRoadRefConocido = roadRef;
+      tsUltimoRoadRefConocido = ahoraMs;
     }
 
     // No en movimiento sostenido: no activamos. Pero NO vaciamos la caché
@@ -332,16 +358,16 @@
     }
 
     // Cambio de vía: vaciamos y relanzamos.
-    if (cache && cache.ref !== roadRef) {
+    if (cache && cache.ref !== refEfectiva) {
       if (typeof debug !== 'undefined') {
-        debug.log(`MotorwayExit: cambio de vía ${cache.ref} → ${roadRef}, caché vaciada`);
+        debug.log(`MotorwayExit: cambio de vía ${cache.ref} → ${refEfectiva}, caché vaciada`);
       }
       cache = null;
     }
 
     // Sin caché: primera consulta para esta vía.
     if (!cache) {
-      lanzarConsultaAsincrona(lat, lon, roadRef);
+      lanzarConsultaAsincrona(lat, lon, refEfectiva);
       return { activo: false, proxima: null, siguiente: null, estado: 'cargando' };
     }
 
@@ -362,7 +388,7 @@
       if (typeof debug !== 'undefined') {
         debug.log(`MotorwayExit: refresco por distancia (centro a ${distCentroKm.toFixed(1)}km)`);
       }
-      lanzarConsultaAsincrona(lat, lon, roadRef);
+      lanzarConsultaAsincrona(lat, lon, refEfectiva);
       // Durante el refresco seguimos usando los junctions actuales
       // (lanzarConsultaAsincrona los preserva).
     }
@@ -408,6 +434,8 @@
     enMovimiento = false;
     tsUltimoCruceVelocidad = 0;
     ultimaVelocidadSobreUmbral = false;
+    ultimoRoadRefConocido = null;
+    tsUltimoRoadRefConocido = 0;
     if (typeof debug !== 'undefined') {
       debug.log('MotorwayExit: reset');
     }

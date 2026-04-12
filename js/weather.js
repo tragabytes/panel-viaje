@@ -52,6 +52,7 @@
   // --- Estado interno ---
   var cacheActual = null;
   var ultimaPeticion = 0;
+  var peticionEnCurso = null;
 
   // --- Utilidades ---
   function distanciaMetros(lat1, lon1, lat2, lon2) {
@@ -266,9 +267,14 @@
       return Promise.resolve(desdeCache);
     }
 
+    if (peticionEnCurso) {
+      debug.log('Weather petición ya en vuelo, reutilizando');
+      return peticionEnCurso;
+    }
+
     var url = construirUrl(lat, lon);
     debug.log('Weather pidiendo ' + lat.toFixed(4) + ',' + lon.toFixed(4));
-    return esperarRateLimit()
+    peticionEnCurso = esperarRateLimit()
       .then(function () {
         ultimaPeticion = Date.now();
         return pedirConReintento(url);
@@ -276,8 +282,14 @@
       .then(normalizar)
       .then(function (datos) {
         guardarCache(lat, lon, datos);
+        peticionEnCurso = null;
         return datos;
+      })
+      .catch(function (err) {
+        peticionEnCurso = null;
+        throw err;
       });
+    return peticionEnCurso;
   }
 
   window.Weather = {

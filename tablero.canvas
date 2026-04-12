@@ -1,185 +1,224 @@
 {
-  "nodes": [
-    {
-      "id": "canvas-errors",
-      "type": "text",
-      "text": "## Errors\n✓ None",
-      "x": -540,
-      "y": -750,
-      "width": 380,
-      "height": 200,
-      "color": "1"
-    },
-    {
-      "id": "legend",
-      "type": "text",
-      "text": "## Legend\n🔴 **Red** = To Do (ready)\n⬜ **Gray** = Blocked\n🟠 **Orange** = Doing\n🔵 **Cyan** = Ready to review\n🟢 **Green** = Done\n🟣 **Purple** = Proposed by agent",
-      "x": -540,
-      "y": -310,
-      "width": 380,
-      "height": 230,
-      "color": "0"
-    },
-    {
-      "id": "canvas-warnings",
-      "type": "text",
-      "text": "## Warnings\n✓ None",
-      "x": -540,
-      "y": -530,
-      "width": 380,
-      "height": 200,
-      "color": "3"
-    },
-    {
-      "id": "group-prueba",
-      "type": "group",
-      "x": 0,
-      "y": 0,
-      "width": 380,
-      "height": 700,
-      "label": "Prueba en carretera"
-    },
-    {
-      "id": "group-motorw",
-      "type": "group",
-      "x": 440,
-      "y": 0,
-      "width": 380,
-      "height": 700,
-      "label": "MotorwayExitModule"
-    },
-    {
-      "id": "group-poimod",
-      "type": "group",
-      "x": 880,
-      "y": 0,
-      "width": 380,
-      "height": 760,
-      "label": "POIModule"
-    },
-    {
-      "id": "9d3d196e",
-      "type": "text",
-      "text": "## PEC-01 Prueba en carretera real\nSalir a conducir con el móvil en el salpicadero y registrar: (1) pastillas azul/granate en movimiento con carreteras reales, (2) latencias de Nominatim y Overpass con datos móviles, (3) consumo de datos y batería en 30-60 min con Wake Lock activo, (4) cambios de vía entre estatales y autonómicas, (5) si el radio de caché de RoadRef (300 m) es suficiente o hay que ajustarlo. HECHA cuando: prueba realizada, mediciones registradas, docs/seguimiento.json actualizado con la sesión correspondiente, y commit del seguimiento hecho.",
-      "x": 20,
-      "y": 40,
-      "width": 280,
-      "height": 160,
-      "color": "6"
-    },
-    {
-      "id": "bacdcff7",
-      "type": "text",
-      "text": "## MO-01 Añadir ruta con salidas de autovía al simulador\nUsar el notebook obtener_rutas_osm.ipynb para extraer una ruta por la A-6 (o AP-6) que pase por al menos 3-4 salidas conocidas, y añadirla al catálogo de rutas.js. Objetivo: poder probar MotorwayExitModule desde casa sin conducir, igual que se hizo con las rutas a6 y m505.",
-      "x": 460,
-      "y": 40,
-      "width": 280,
-      "height": 160,
-      "color": "6"
-    },
-    {
-      "id": "89ae8a6c",
-      "type": "text",
-      "text": "## MO-02 Implementar MotorwayExitModule\nNuevo módulo js/motorwayexit.js. Query Overpass node[motorway_junction](around:N) con el mismo patrón ya validado en roadref.js: query minimalista, cascada de mirrors, caché por proximidad, timeout por mirror, debug.log completo. Salida: número de salida + distancia estimada.",
-      "x": 460,
-      "y": 220,
-      "width": 280,
-      "height": 160,
-      "color": "6"
-    },
-    {
-      "id": "f6b85293",
-      "type": "text",
-      "text": "## MO-03 Integrar próxima salida en el panel\nMostrar el resultado de MotorwayExitModule en vista 1 (el cartel verde de salida). Solo cuando estamos en autovía; silencioso en carreteras convencionales.",
-      "x": 460,
-      "y": 400,
-      "width": 280,
-      "height": 160,
-      "color": "6"
-    },
-    {
-      "id": "be8ef879",
-      "type": "text",
-      "text": "## PO-01 Revisar decisión 13 y definir qué falta para arrancar POIModule\nLa arquitectura base de POIModule está consolidada en la decisión 13 del seguimiento (sesiones 06-07): Overpass como inventario en radio 1500 m, priorización por tipo (castle > cathedral > ... > viewpoint), enriquecimiento Wikipedia REST + fallback Wikidata SPARQL por proximidad, umbral Jaccard >= 0.5, stopwords del dominio, timeout 10 s con reintento, fallback a icono. Esta tarjeta consiste en releer esa decisión, contrastarla con el estado actual del código, e identificar qué parámetros necesitan ajuste, qué casos no cubre, o qué ha cambiado desde sesión 07. Output: lista de decisiones pendientes antes de escribir código.",
-      "x": 900,
-      "y": 40,
-      "width": 280,
-      "height": 160,
-      "color": "6"
-    },
-    {
-      "id": "78221e08",
-      "type": "text",
-      "text": "## PO-02 Implementar POIModule (base)\nMódulo js/pois.js: pueblos cercanos en un radio dado + POI principal por pueblo desde Overpass y Wikidata. Fallback si un pueblo no tiene POIs. Caché con TTL largo (horas).",
-      "x": 900,
-      "y": 220,
-      "width": 280,
-      "height": 160,
-      "color": "6"
-    },
-    {
-      "id": "4a42b347",
-      "type": "text",
-      "text": "## PO-03 Vista Qué ver por la zona\nRejilla de pueblos con nombre, POI principal y foto (miniatura Wikipedia) en la vista 3 del panel. Deslizable horizontalmente como el resto de vistas.",
-      "x": 900,
-      "y": 400,
-      "width": 280,
-      "height": 160,
-      "color": "6"
-    },
-    {
-      "id": "360b9f70",
-      "type": "text",
-      "text": "## PO-04 Soporte de pedanías en POIModule\nLas pedanías (ejemplo: Castrillo de los Polvazares aparece como parte de Astorga en SPARQL, no como municipio independiente) no salen en la búsqueda estándar de municipios. Añadir una segunda capa de búsqueda que incluya entidades singulares de población. Identificado en sesión 05 como idea parqueada para Fase 2.",
-      "x": 900,
-      "y": 580,
-      "width": 280,
-      "height": 160,
-      "color": "6"
-    }
-  ],
-  "edges": [
-    {
-      "id": "edge-001",
-      "fromNode": "9d3d196e",
-      "fromSide": "bottom",
-      "toNode": "89ae8a6c",
-      "toSide": "top"
-    },
-    {
-      "id": "edge-002",
-      "fromNode": "bacdcff7",
-      "fromSide": "bottom",
-      "toNode": "89ae8a6c",
-      "toSide": "top"
-    },
-    {
-      "id": "edge-003",
-      "fromNode": "89ae8a6c",
-      "fromSide": "bottom",
-      "toNode": "f6b85293",
-      "toSide": "top"
-    },
-    {
-      "id": "edge-004",
-      "fromNode": "be8ef879",
-      "fromSide": "bottom",
-      "toNode": "78221e08",
-      "toSide": "top"
-    },
-    {
-      "id": "edge-005",
-      "fromNode": "78221e08",
-      "fromSide": "bottom",
-      "toNode": "4a42b347",
-      "toSide": "top"
-    },
-    {
-      "id": "edge-006",
-      "fromNode": "78221e08",
-      "fromSide": "bottom",
-      "toNode": "360b9f70",
-      "toSide": "top"
-    }
-  ]
+	"nodes": [
+		{
+			"id": "group-poimod",
+			"type": "group",
+			"x": 880,
+			"y": 0,
+			"width": 380,
+			"height": 760,
+			"label": "POIModule"
+		},
+		{
+			"id": "group-prueba",
+			"type": "group",
+			"x": 0,
+			"y": 0,
+			"width": 380,
+			"height": 700,
+			"label": "Prueba en carretera"
+		},
+		{
+			"id": "group-motorw",
+			"type": "group",
+			"x": 440,
+			"y": 0,
+			"width": 380,
+			"height": 700,
+			"label": "MotorwayExitModule"
+		},
+		{
+			"id": "group-bugspr",
+			"type": "group",
+			"x": 1320,
+			"y": 0,
+			"width": 380,
+			"height": 700,
+			"label": "Bugs prueba carretera"
+		},
+		{
+			"id": "bacdcff7",
+			"type": "text",
+			"text": "## MO-01 Añadir ruta con salidas de autovía al simulador\nUsar el notebook obtener_rutas_osm.ipynb para extraer una ruta por la A-6 (o AP-6) que pase por al menos 3-4 salidas conocidas, y añadirla al catálogo de rutas.js. Objetivo: poder probar MotorwayExitModule desde casa sin conducir, igual que se hizo con las rutas a6 y m505.",
+			"x": 460,
+			"y": 40,
+			"width": 280,
+			"height": 160,
+			"color": "6"
+		},
+		{
+			"id": "be8ef879",
+			"type": "text",
+			"text": "## PO-01 Revisar decisión 13 y definir qué falta para arrancar POIModule\nLa arquitectura base de POIModule está consolidada en la decisión 13 del seguimiento (sesiones 06-07): Overpass como inventario en radio 1500 m, priorización por tipo (castle > cathedral > ... > viewpoint), enriquecimiento Wikipedia REST + fallback Wikidata SPARQL por proximidad, umbral Jaccard >= 0.5, stopwords del dominio, timeout 10 s con reintento, fallback a icono. Esta tarjeta consiste en releer esa decisión, contrastarla con el estado actual del código, e identificar qué parámetros necesitan ajuste, qué casos no cubre, o qué ha cambiado desde sesión 07. Output: lista de decisiones pendientes antes de escribir código.",
+			"x": 900,
+			"y": 40,
+			"width": 280,
+			"height": 160,
+			"color": "6"
+		},
+		{
+			"id": "78221e08",
+			"type": "text",
+			"text": "## PO-02 Implementar POIModule (base)\nMódulo js/pois.js: pueblos cercanos en un radio dado + POI principal por pueblo desde Overpass y Wikidata. Fallback si un pueblo no tiene POIs. Caché con TTL largo (horas).",
+			"x": 900,
+			"y": 220,
+			"width": 280,
+			"height": 160,
+			"color": "6"
+		},
+		{
+			"id": "4a42b347",
+			"type": "text",
+			"text": "## PO-03 Vista Qué ver por la zona\nRejilla de pueblos con nombre, POI principal y foto (miniatura Wikipedia) en la vista 3 del panel. Deslizable horizontalmente como el resto de vistas.",
+			"x": 900,
+			"y": 400,
+			"width": 280,
+			"height": 160,
+			"color": "6"
+		},
+		{
+			"id": "3c6fb2c1",
+			"type": "text",
+			"text": "## BPC-01 BP-01 Fix out tags→out body en MotorwayExit\nconstruirQuery usa 'out tags' que no incluye lat/lon. Todos los junctions son descartados. Cambiar a 'out body'. Una línea. Validar en simulador.",
+			"x": 1340,
+			"y": 40,
+			"width": 280,
+			"height": 160,
+			"color": "5"
+		},
+		{
+			"id": "24da1a0b",
+			"type": "text",
+			"text": "## BPC-02 BP-02 Weather: guardia petición en vuelo\nSi el coche pasa el radio de 1000m mientras hay una petición en curso, se lanzan duplicadas. Añadir flag peticionEnCurso en weather.js.",
+			"x": 1340,
+			"y": 220,
+			"width": 280,
+			"height": 160,
+			"color": "5"
+		},
+		{
+			"id": "84fa0fde",
+			"type": "text",
+			"text": "## BPC-03 BP-03 MotorwayExit: no vaciar caché en fallo transitorio de RoadRef\nCuando RoadRef falla por un tick y vuelve, MotorwayExit vacía caché y relanza Overpass innecesariamente. Contribuye a 429. No vaciar si el fallo es transitorio.",
+			"x": 1340,
+			"y": 400,
+			"width": 280,
+			"height": 160,
+			"color": "5"
+		},
+		{
+			"id": "legend",
+			"type": "text",
+			"text": "## Legend\n🔴 **Red** = To Do (ready)\n⬜ **Gray** = Blocked\n🟠 **Orange** = Doing\n🔵 **Cyan** = Ready to review\n🟢 **Green** = Done\n🟣 **Purple** = Proposed by agent",
+			"x": -540,
+			"y": -310,
+			"width": 380,
+			"height": 230,
+			"color": "0"
+		},
+		{
+			"id": "canvas-warnings",
+			"type": "text",
+			"text": "## Warnings\n✓ None",
+			"x": -540,
+			"y": -530,
+			"width": 380,
+			"height": 200,
+			"color": "3"
+		},
+		{
+			"id": "89ae8a6c",
+			"type": "text",
+			"text": "## MO-02 Implementar MotorwayExitModule\nNuevo módulo js/motorwayexit.js. Query Overpass node[motorway_junction](around:N) con el mismo patrón ya validado en roadref.js: query minimalista, cascada de mirrors, caché por proximidad, timeout por mirror, debug.log completo. Salida: número de salida + distancia estimada.",
+			"x": 460,
+			"y": 220,
+			"width": 280,
+			"height": 160,
+			"color": "6"
+		},
+		{
+			"id": "f6b85293",
+			"type": "text",
+			"text": "## MO-03 Integrar próxima salida en el panel\nMostrar el resultado de MotorwayExitModule en vista 1 (el cartel verde de salida). Solo cuando estamos en autovía; silencioso en carreteras convencionales.",
+			"x": 460,
+			"y": 400,
+			"width": 280,
+			"height": 160,
+			"color": "6"
+		},
+		{
+			"id": "9d3d196e",
+			"type": "text",
+			"text": "## PEC-01 Prueba en carretera real\nSalir a conducir con el móvil en el salpicadero y registrar: (1) pastillas azul/granate en movimiento con carreteras reales, (2) latencias de Nominatim y Overpass con datos móviles, (3) consumo de datos y batería en 30-60 min con Wake Lock activo, (4) cambios de vía entre estatales y autonómicas, (5) si el radio de caché de RoadRef (300 m) es suficiente o hay que ajustarlo. HECHA cuando: prueba realizada, mediciones registradas, docs/seguimiento.json actualizado con la sesión correspondiente, y commit del seguimiento hecho.",
+			"x": 20,
+			"y": 40,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "360b9f70",
+			"type": "text",
+			"text": "## PO-04 Soporte de pedanías en POIModule\nLas pedanías (ejemplo: Castrillo de los Polvazares aparece como parte de Astorga en SPARQL, no como municipio independiente) no salen en la búsqueda estándar de municipios. Añadir una segunda capa de búsqueda que incluya entidades singulares de población. Identificado en sesión 05 como idea parqueada para Fase 2.",
+			"x": 900,
+			"y": 580,
+			"width": 280,
+			"height": 160,
+			"color": "6"
+		},
+		{
+			"id": "canvas-errors",
+			"type": "text",
+			"text": "## Errors\n✓ None",
+			"x": -540,
+			"y": -750,
+			"width": 380,
+			"height": 200,
+			"color": "1"
+		}
+	],
+	"edges": [
+		{
+			"id": "edge-001",
+			"fromNode": "9d3d196e",
+			"fromSide": "bottom",
+			"toNode": "89ae8a6c",
+			"toSide": "top"
+		},
+		{
+			"id": "edge-002",
+			"fromNode": "bacdcff7",
+			"fromSide": "bottom",
+			"toNode": "89ae8a6c",
+			"toSide": "top"
+		},
+		{
+			"id": "edge-003",
+			"fromNode": "89ae8a6c",
+			"fromSide": "bottom",
+			"toNode": "f6b85293",
+			"toSide": "top"
+		},
+		{
+			"id": "edge-004",
+			"fromNode": "be8ef879",
+			"fromSide": "bottom",
+			"toNode": "78221e08",
+			"toSide": "top"
+		},
+		{
+			"id": "edge-005",
+			"fromNode": "78221e08",
+			"fromSide": "bottom",
+			"toNode": "4a42b347",
+			"toSide": "top"
+		},
+		{
+			"id": "edge-006",
+			"fromNode": "78221e08",
+			"fromSide": "bottom",
+			"toNode": "360b9f70",
+			"toSide": "top"
+		}
+	]
 }
