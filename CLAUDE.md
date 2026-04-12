@@ -247,7 +247,64 @@ Estas reglas se aplican a todo el código que toques en este repositorio.
 
 ---
 
-## 11. Cosas que NO debes hacer
+## 11. Principios Karpathy de trabajo con código
+
+> **Origen:** estos cuatro principios proceden de las observaciones de Andrej Karpathy sobre los fallos más comunes de los LLMs al trabajar con código. Se reproducen aquí adaptados al español y al contexto de este proyecto.
+
+### 11.1. Piensa antes de codificar
+
+**No asumas. No escondas confusión. Verbaliza los dilemas.**
+
+- Antes de implementar, enuncia explícitamente las suposiciones que estás haciendo.
+- Si algo es ambiguo, presenta las interpretaciones posibles en lugar de elegir una sin avisar.
+- Si existe una solución más simple que la pedida, díselo antes de implementar la más compleja.
+- Si un nombre, un requisito o un comportamiento esperado no están claros, pregunta. Nunca adivines.
+
+Este principio es especialmente crítico aquí porque las decisiones técnicas (APIs, TTLs, radios de búsqueda, criterios de fallback) tienen consecuencias directas en datos móviles y batería. Discutirlas antes cuesta menos que revertirlas después.
+
+### 11.2. Simplicidad primero
+
+**El mínimo código que resuelve el problema. Nada especulativo.**
+
+- No añadas funcionalidades que no se han pedido.
+- No crees abstracciones para código que solo se usa en un sitio.
+- No añadas "flexibilidad" o "configurabilidad" si no se ha pedido expresamente.
+- No pongas manejo de errores para escenarios que no pueden darse en este contexto.
+- Si 50 líneas resuelven lo mismo que 200, usa 50.
+
+Test mental: ¿diría Laureano "esto está más complicado de lo que necesito"? Si la respuesta es probablemente sí, simplifica antes de mostrar el resultado.
+
+En este proyecto la simplicidad tiene coste directo: cada kilobyte extra es JavaScript que el móvil viejo tiene que parsear y ejecutar. El código más corto también es más fácil de depurar en el panel de debug conduciendo.
+
+### 11.3. Cambios quirúrgicos
+
+**Toca solo lo que debes. Limpia solo lo que tú hayas ensuciado.**
+
+- No "mejores" código adyacente que funciona, aunque te parezca mejorable.
+- No reformatees, no renombres variables, no reestructures funciones que no forman parte del cambio pedido.
+- Mantén el estilo del archivo existente aunque lo harías diferente.
+- Si ves código muerto no relacionado con el cambio pedido, menciónalo. No lo borres.
+
+Borra solo los imports, variables o funciones que TUS cambios hayan dejado sin uso. No toques el resto.
+
+Test: cada línea modificada debe poder trazarse directamente a la petición de Laureano. Si no puedes justificar una línea modificada, no la cambies.
+
+### 11.4. Ejecución orientada a objetivos
+
+**Define el criterio de éxito antes de empezar. Valida antes de dar algo por terminado.**
+
+Transforma las tareas en criterios verificables antes de ejecutarlas:
+
+- "Implementa MotorwayExitModule" → "El módulo devuelve el número de salida correcto en la ruta del simulador con al menos 3 salidas conocidas, y `debug.log` muestra entrada, caché reusada y latencia en cada tick"
+- "Arregla el bug de la pastilla" → "Las tres rutas del simulador (`a6`, `m505`, `cruce-a6-m505`) pintan la pastilla correcta sin excepciones en consola"
+
+Para tareas de varios pasos, enuncia un plan breve con los checks de verificación antes de empezar. No des nada por terminado sin haberlo ejecutado y verificado contra el criterio definido.
+
+Este principio refuerza la regla ya existente en la sección 10: *"Probar antes de dar algo por hecho. Nunca afirmes que un módulo está listo sin haberlo ejecutado."*
+
+---
+
+## 12. Cosas que NO debes hacer
 
 Lista negativa explícita. Si te descubres haciendo alguna de estas, para.
 
@@ -263,7 +320,7 @@ Lista negativa explícita. Si te descubres haciendo alguna de estas, para.
 
 ---
 
-## 12. Instrucciones para el primer arranque
+## 13. Instrucciones para el primer arranque
 
 Esta sección se aplica **solo la primera vez** que arranques en este repositorio. Después de ejecutarla, Laureano la marcará como cumplida y podrás ignorarla.
 
@@ -307,7 +364,7 @@ Cuando termines el bloque E, avisa a Laureano con un resumen claro de lo que se 
 
 ---
 
-## 13. Comportamiento general esperado en cada sesión
+## 14. Comportamiento general esperado en cada sesión
 
 Al inicio de una sesión normal (no la primera):
 
@@ -332,4 +389,4 @@ Al final de la sesión:
 
 ---
 
-*Fin del CLAUDE.md. Última actualización: primer montaje del sistema, 12 de abril de 2026.*
+*Fin del CLAUDE.md. Última actualización: 12 de abril de 2026 — añadidos principios Karpathy (sección 11).*
