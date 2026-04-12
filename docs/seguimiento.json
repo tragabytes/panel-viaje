@@ -7,10 +7,10 @@
     "nota_pie": "Actualizar al final de cada sesión de trabajo"
   },
   "estado_actual": {
-    "fase_actual": "Fase 2 — Módulos de datos (en curso). LocationModule, WeatherModule, Wake Lock, Simulator de GPS, clasificación estatal/autonómica de carreteras y fallback a Overpass para ref completos. Validados por simulador con datos OSM reales en sesiones 9.6, 9.7 y 9.8. Pendiente la prueba en carretera real antes de arrancar MotorwayExitModule y POIModule",
-    "ultima_actualizacion": "Sesión 10 — Instalación de infraestructura: Kanvas (canvas-tool.py + tablero.canvas con 8 tarjetas moradas en 3 grupos) y skills de Obsidian de kepano (.claude/skills/). Sin cambios en el código del panel. El tablero inicial refleja el siguiente hito inmediato (prueba en carretera real → MotorwayExitModule → POIModule).",
-    "siguiente_hito": "Prueba en carretera real del LocationModule + WeatherModule + fallback Overpass. Objetivos: (1) validar pastillas azul y granate con códigos oficiales en movimiento real a velocidad de coche, sobre distintos tramos de estatales y autonómicas. (2) medir cuántas llamadas reales a Overpass dispara el fallback en un viaje típico de 60 min (predicción: 5-15 llamadas efectivas, despreciables en datos móviles). (3) medir latencias Nominatim y Overpass con datos móviles compartidos (todo el desarrollo hasta ahora se ha hecho en wifi doméstica). (4) medir consumo aproximado de datos y batería en un trayecto de 30-60 min con pantalla siempre encendida gracias a Wake Lock. (5) ver el cambio de carretera en vivo cruzando entre vías de distinta naturaleza (salir/entrar de autovía a nacional, o de estatal a autonómica). (6) observar si el radio de caché de RoadRef (300 m) es adecuado o conviene subirlo para reducir llamadas a Overpass en carreteras largas. Tras esta prueba: arrancar MotorwayExitModule (Overpass, próxima salida en autovías) reusando el patrón de cascada de mirrors ya validado en el fallback de RoadRef",
-    "bloqueos": "Ninguno. La sesión 9.8 valida que los módulos de datos base funcionan de extremo a extremo con un simulador alimentado con puntos OSM reales, incluyendo casos de fallo transitorio de Overpass resueltos en caliente por la cascada de mirrors. El salto a la prueba en carretera real es puramente ejecutivo (encender el móvil en el salpicadero y arrancar)"
+    "fase_actual": "Fase 2 — Módulos de datos (en curso). LocationModule, WeatherModule, Wake Lock, Simulator de GPS, carreteras, RoadRef y MotorwayExitModule presentes. Prueba real en carretera completada en sesión 11. Tres bugs críticos detectados y corregidos. MotorwayExitModule pendiente de nueva prueba en carretera para validar que los junctions se reciben correctamente tras el fix de out body.",
+    "ultima_actualizacion": "Sesión 11 — Primera prueba real en carretera. Log analizado: bug crítico en out tags→out body en MotorwayExitModule (junctions siempre descartados por falta de lat/lon), peticiones duplicadas de Weather, y cycling de MotorwayExit por fallos transitorios de RoadRef. Los tres bugs corregidos y commiteados.",
+    "siguiente_hito": "Segunda prueba en carretera para validar que MotorwayExitModule recibe junctions correctamente con out body. Si hay junctions disponibles en la zona, deberían aparecer. Después: arrancar POIModule.",
+    "bloqueos": "Ninguno. La corrección de los tres bugs es quirúrgica y no introduce riesgos. La validación requiere prueba real en carretera sobre una autovía o vía con salidas numeradas en OSM."
   },
   "fases": [
     {
@@ -1583,6 +1583,40 @@
           "El tablero tiene 8 tarjetas en morado (propuestas). Laureano debe revisar el tablero en Obsidian y convertir a rojo las tarjetas que quiera arrancar. La primera candidata natural es PEC-01 (Prueba en carretera real), que no tiene dependencias y es el paso previo obligatorio para arrancar MotorwayExitModule."
         ]
       ]
+    },
+    {
+      "n": "11",
+      "titulo": "Primera prueba en carretera real + corrección de tres bugs",
+      "campos": [
+        [
+          "Fecha",
+          "12 de abril de 2026"
+        ],
+        [
+          "Fase trabajada",
+          "Fase 2 — Validación en carretera real y corrección de bugs."
+        ],
+        [
+          "Contexto de arranque",
+          "Primera prueba real con el panel en el salpicadero, sobre carreteras M-608 y M-626 en la zona de Miraflores de la Sierra. Laureano aportó el log de debug completo (500 líneas) al inicio de la sesión."
+        ],
+        [
+          "Lo que se hecho",
+          "(1) Análisis del log de la prueba real: se identificaron cuatro problemas. (2) BPC-01 corregido: construirQuery en motorwayexit.js usaba \"out tags;\" en lugar de \"out body;\", por lo que Overpass devolvía nodos sin coordenadas y parsearJunctions descartaba todos (0 válidos, ~153 descartados). El módulo MotorwayExitModule nunca había funcionado desde su creación en sesión 10. Fix: una línea. (3) BPC-02 corregido: weather.js no tenía guardia de petición en vuelo. Al pasar el radio de 1000m mientras había una petición pendiente, se disparaban peticiones duplicadas (hasta 3 en 6 segundos para casi la misma coordenada). Fix: añadido peticionEnCurso en el módulo Weather. (4) BPC-03 corregido: cuando RoadRef fallaba en un tick (todos los mirrors caídos), MotorwayExitModule vaciaba la caché y relanzaba una query Overpass en el tick siguiente al recuperarse. Esto ocurrió 4 veces en 3 minutos y contribuía a los HTTP 429. Fix: fallback de 30s al último roadRef conocido antes de vaciar caché. (5) Tres tarjetas Kanvas creadas (grupo Bugs prueba carretera: BPC-01, BPC-02, BPC-03) y movidas a cian tras completar los fixes. (6) Commit del código: \"fix: tres bugs detectados en prueba real en carretera (sesión 11)\"."
+        ],
+        [
+          "Problemas encontrados durante la sesión",
+          "P20 (ya resuelto, de sesión 10, encoding mojibake) no aplica. Los tres bugs nuevos se registran como P21, P22, P23 en problemas_resueltos."
+        ],
+        [
+          "Decisiones tomadas",
+          "Sin nuevas decisiones técnicas de arquitectura. Los tres fixes son correcciones directas de bugs, no elecciones de diseño."
+        ],
+        [
+          "Pendiente al cerrar la sesión",
+          "Segunda prueba en carretera para validar MotorwayExitModule con el fix de out body. BPC-01, BPC-02 y BPC-03 en cian, pendientes de verificación por Laureano en carretera real."
+        ]
+      ]
     }
   ],
   "problemas_abiertos": [],
@@ -2138,6 +2172,88 @@
         [
           "Estado",
           "cerrado (fallback Overpass validado en sesión 9.8 con las tres rutas del simulador, incluida cruce-a6-m505)"
+        ]
+      ]
+    },
+    {
+      "id": "P21",
+      "titulo": "MotorwayExitModule: out tags sin coordenadas → 0 junctions válidos siempre",
+      "campos": [
+        [
+          "Fecha de aparición",
+          "sesión 11 (primera prueba real en carretera, 12 abril 2026)"
+        ],
+        [
+          "Síntoma",
+          "MotorwayExitModule devolvía sin_datos en toda prueba real. El log mostraba: \"0 junctions válidos · 153 descartados\". El módulo nunca mostró información de salida desde su creación en sesión 10."
+        ],
+        [
+          "Causa",
+          "construirQuery terminaba con \"out tags;\" que devuelve solo id y etiquetas, sin lat/lon. parsearJunctions descartaba todos los nodos por falta de coordenadas (comprobación: typeof el.lat !== number)."
+        ],
+        [
+          "Resolución",
+          "Cambiar \"out tags;\" por \"out body;\" en construirQuery (motorwayexit.js línea 141). Una línea. Verificado con test unitario en Node."
+        ],
+        [
+          "Aprendizaje",
+          "El simulador no cubría esta ruta de fallo porque los tests unitarios de parsearJunctions usaban mocks con lat/lon ya presentes. La única forma de detectar este bug era una prueba real con respuesta de red auténtica."
+        ],
+        [
+          "Estado",
+          "cerrado (sesión 11)"
+        ]
+      ]
+    },
+    {
+      "id": "P22",
+      "titulo": "WeatherModule: peticiones duplicadas al superar el radio de caché en movimiento",
+      "campos": [
+        [
+          "Fecha de aparición",
+          "sesión 11 (primera prueba real en carretera, 12 abril 2026)"
+        ],
+        [
+          "Síntoma",
+          "A 70 km/h, al superar el radio de 1000m, se disparaban hasta 3 peticiones simultáneas para casi la misma coordenada. En el log: Weather pidiendo en 15:07:50, 15:07:53 y 15:07:56 con respuestas de 8066ms, 5588ms y 2626ms."
+        ],
+        [
+          "Causa",
+          "obtenerTiempoActual no tenía guardia de petición en vuelo. Cada tick con caché fuera de radio lanzaba una nueva petición sin esperar la anterior."
+        ],
+        [
+          "Resolución",
+          "Añadir variable peticionEnCurso en weather.js. Si hay una promesa activa, devolverla en lugar de lanzar una nueva. Se limpia en then() y catch() para no bloquear futuros intentos tras error."
+        ],
+        [
+          "Estado",
+          "cerrado (sesión 11)"
+        ]
+      ]
+    },
+    {
+      "id": "P23",
+      "titulo": "MotorwayExitModule: cycling caché/query por fallos transitorios de RoadRef",
+      "campos": [
+        [
+          "Fecha de aparición",
+          "sesión 11 (primera prueba real en carretera, 12 abril 2026)"
+        ],
+        [
+          "Síntoma",
+          "Cuando todos los mirrors de RoadRef fallaban en un tick, MotorwayExitModule vaciaba la caché. Al recuperarse RoadRef en el tick siguiente, lanzaba una nueva query Overpass. El ciclo ocurrió 4 veces en 3 minutos, contribuyendo a los HTTP 429 de overpass-api.de."
+        ],
+        [
+          "Causa",
+          "En actualizar(): si !roadRef → cache=null. En el tick siguiente con roadRef restaurado → !cache → lanzarConsultaAsincrona(). La caché se reseteaba con cada fallo puntual de mirror."
+        ],
+        [
+          "Resolución",
+          "Añadir GRACIA_ROADREF_MS=30000 y variables ultimoRoadRefConocido/tsUltimoRoadRefConocido. Si roadRef=null pero el último ref conocido tiene menos de 30s, usarlo como refEfectiva (fallback). Solo vaciar caché si lleva más de 30s ausente. Verificado con test que simula el patrón exacto del log."
+        ],
+        [
+          "Estado",
+          "cerrado (sesión 11)"
         ]
       ]
     }
