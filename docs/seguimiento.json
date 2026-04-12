@@ -8,7 +8,7 @@
   },
   "estado_actual": {
     "fase_actual": "Fase 2 — Módulos de datos (en curso). LocationModule, WeatherModule, Wake Lock, Simulator de GPS, clasificación estatal/autonómica de carreteras y fallback a Overpass para ref completos. Validados por simulador con datos OSM reales en sesiones 9.6, 9.7 y 9.8. Pendiente la prueba en carretera real antes de arrancar MotorwayExitModule y POIModule",
-    "ultima_actualizacion": "Sesión 9.8 — Fix del bug de pastilla de carretera introducido en sesión 9.6 y fallback a Overpass cuando Nominatim no expone ref. Validado en vivo con las tres rutas del simulador: (1) ?sim=a6 pinta pastilla AZUL A-6 a partir del nombre descriptivo 'Autovía del Noroeste' que devuelve Nominatim, vía la tabla de mapeo. (2) ?sim=m505 pinta pastilla GRANATE M-505 a partir de la ref que rescata Overpass cuando Nominatim solo da 'Carretera de El Escorial' o 'Carretera de Madrid a El Escorial' sin extratags.ref. (3) ?sim=cruce-a6-m505 pinta el cambio en vivo de pastilla azul a granate al saltar del tramo A-6 al tramo M-505. Durante las pruebas Overpass ha mostrado exactamente los tres modos de fallo que el seguimiento anticipaba desde sesiones 05-06 (HTTP 504 por mirror cargado, timeout, HTTP 429 rate limit) y el fallback entre mirrors (overpass-api.de → overpass.kumi.systems) ha rescatado cada una de esas caídas sin intervención. Latencias observadas en Overpass: 339 ms a 7275 ms según estado del mirror, dentro del timeout de 8 s por mirror. El mirror principal overpass-api.de está consistentemente degradado en las pruebas de esta sesión; el mirror kumi.systems ha salvado la papeleta en cada fallback. Además en sesión 9.6 se había añadido Wake Lock API para que la pantalla del panel no se apague durante el viaje (validado: cuatro ciclos libera/reactiva observados en vivo al cambiar de pestaña) y en sesión 9.7 se había construido un simulador de GPS con rutas reales extraídas de OSM vía Overpass desde un notebook Colab, que permite probar todo el flujo del panel desde casa sin conducir",
+    "ultima_actualizacion": "Sesión 10 — Instalación de infraestructura: Kanvas (canvas-tool.py + tablero.canvas con 8 tarjetas moradas en 3 grupos) y skills de Obsidian de kepano (.claude/skills/). Sin cambios en el código del panel. El tablero inicial refleja el siguiente hito inmediato (prueba en carretera real → MotorwayExitModule → POIModule).",
     "siguiente_hito": "Prueba en carretera real del LocationModule + WeatherModule + fallback Overpass. Objetivos: (1) validar pastillas azul y granate con códigos oficiales en movimiento real a velocidad de coche, sobre distintos tramos de estatales y autonómicas. (2) medir cuántas llamadas reales a Overpass dispara el fallback en un viaje típico de 60 min (predicción: 5-15 llamadas efectivas, despreciables en datos móviles). (3) medir latencias Nominatim y Overpass con datos móviles compartidos (todo el desarrollo hasta ahora se ha hecho en wifi doméstica). (4) medir consumo aproximado de datos y batería en un trayecto de 30-60 min con pantalla siempre encendida gracias a Wake Lock. (5) ver el cambio de carretera en vivo cruzando entre vías de distinta naturaleza (salir/entrar de autovía a nacional, o de estatal a autonómica). (6) observar si el radio de caché de RoadRef (300 m) es adecuado o conviene subirlo para reducir llamadas a Overpass en carreteras largas. Tras esta prueba: arrancar MotorwayExitModule (Overpass, próxima salida en autovías) reusando el patrón de cascada de mirrors ya validado en el fallback de RoadRef",
     "bloqueos": "Ninguno. La sesión 9.8 valida que los módulos de datos base funcionan de extremo a extremo con un simulador alimentado con puntos OSM reales, incluyendo casos de fallo transitorio de Overpass resueltos en caliente por la cascada de mirrors. El salto a la prueba en carretera real es puramente ejecutivo (encender el móvil en el salpicadero y arrancar)"
   },
@@ -1547,6 +1547,40 @@
         [
           "Pendiente",
           "Prueba en carretera real para medir latencias y consumo en condiciones reales, y para observar cuántas llamadas efectivas a Overpass dispara el fallback en 60 min de conducción. Después: arrancar MotorwayExitModule reutilizando el esqueleto de roadref.js"
+        ]
+      ]
+    },
+    {
+      "n": "10",
+      "titulo": "Instalación de infraestructura: Kanvas + skills Obsidian + tablero inicial",
+      "campos": [
+        [
+          "Fecha",
+          "12 de abril de 2026"
+        ],
+        [
+          "Fase trabajada",
+          "Infraestructura de proyecto (no de producto). Sin cambios en el código del panel."
+        ],
+        [
+          "Contexto de arranque",
+          "Primera sesión en este repositorio con Claude Code. El proyecto estaba en un estado funcional tras la sesión 9.8 pero sin sistema de gestión de tareas ni skills de Obsidian instalados. El CLAUDE.md incluía instrucciones explícitas de primer arranque (sección 12) que se ejecutaron en esta sesión."
+        ],
+        [
+          "Lo que se ha hecho",
+          "(1) Verificación del entorno: README.md leído, seguimiento.json consultado para conocer el estado actual del proyecto (Fase 2, sesión 9.8 como última). (2) Instalación de 5 skills de kepano (obsidian-markdown, obsidian-bases, json-canvas, obsidian-cli, defuddle) en .claude/skills/ clonando desde https://github.com/kepano/obsidian-skills. (3) Instalación de Kanvas: canvas-tool.py, RULES.md y tablero inicial (blank.canvas → tablero.canvas) clonando desde https://github.com/XMihura/Kanvas. El comando python canvas-tool.py tablero.canvas status funciona correctamente. (4) Tablero inicial creado con el comando batch: 3 grupos (Prueba en carretera, MotorwayExitModule, POIModule) y 8 tarjetas moradas (PEC-01, MO-01..03, PO-01..04) con sus dependencias. Las tarjetas se revisaron con Laureano en texto antes de cargarlas al tablero. (5) Detección y corrección de bug de encoding mojibake en tablero.canvas: canvas-tool.py escribe con la codificación del sistema (cp1252 en Windows), corrompiendo caracteres UTF-8. Se aplicó un script de reparación (encode latin-1 → decode utf-8) sobre el JSON del canvas. (6) Configuración de vault Obsidian: canvas-tool.py creó automáticamente .obsidian/ con configuración mínima; se commiteó junto al resto."
+        ],
+        [
+          "Problemas encontrados durante la sesión",
+          "P20: encoding mojibake en tablero.canvas. canvas-tool.py usa la codificación del sistema (cp1252 en Windows) al leer stdin y escribir el archivo .canvas, corrompiendo los caracteres especiales del español (ñ, vocales con tilde, etc.). Detectado al verificar el contenido del canvas tras el batch. Resuelto en la misma sesión con un script Python que aplica la corrección mojibake (encode latin-1 → decode utf-8) sobre todo el JSON del archivo."
+        ],
+        [
+          "Decisiones tomadas",
+          "Ninguna técnica de producto. Se mantuvo el criterio de commitear .obsidian/ porque es necesario para que Obsidian reconozca la carpeta como vault y active el plugin canvas."
+        ],
+        [
+          "Pendiente al cerrar la sesión",
+          "El tablero tiene 8 tarjetas en morado (propuestas). Laureano debe revisar el tablero en Obsidian y convertir a rojo las tarjetas que quiera arrancar. La primera candidata natural es PEC-01 (Prueba en carretera real), que no tiene dependencias y es el paso previo obligatorio para arrancar MotorwayExitModule."
         ]
       ]
     }
