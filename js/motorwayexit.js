@@ -83,6 +83,10 @@
   // lleva más de 30 s ausente, asumimos cambio real de vía o parada.
   const GRACIA_ROADREF_MS = 30000;
 
+  // Tiempo de espera antes de reintentar Overpass tras un error total de red.
+  // 2 minutos: suficiente para que el servidor se recupere sin martillear.
+  const REINTENTO_ERROR_MS = 120000;
+
   // --- Estado interno ---
 
   // Caché de junctions para la vía actual.
@@ -283,6 +287,7 @@
         if (!Array.isArray(cache.junctions)) {
           cache.cargando = false;
           cache.error = true;
+          cache.tsError = Date.now();
           cache.junctions = [];
         } else {
           cache.refrescando = false;
@@ -376,8 +381,16 @@
       return { activo: false, proxima: null, siguiente: null, estado: 'cargando' };
     }
 
-    // Caché presente con error de red.
+    // Caché presente con error de red. Reintentamos tras REINTENTO_ERROR_MS.
     if (cache.error) {
+      if (ahoraMs - cache.tsError >= REINTENTO_ERROR_MS) {
+        if (typeof debug !== 'undefined') {
+          debug.log('MotorwayExit: reintentando tras error de red');
+        }
+        cache = null;
+        lanzarConsultaAsincrona(lat, lon, refEfectiva);
+        return { activo: false, proxima: null, siguiente: null, estado: 'cargando' };
+      }
       return { activo: false, proxima: null, siguiente: null, estado: 'error' };
     }
 
