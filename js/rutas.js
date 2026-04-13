@@ -125,6 +125,35 @@ const Rutas = (() => {
         { lat: 40.57802, lon: -4.06101, nota: 'M-505 · +18.6 km · OSM' },
         { lat: 40.57947, lon: -4.12145, nota: 'M-505 fin · +23.7 km · El Escorial · OSM' }
       ]
+    },
+
+    // ========================================================================
+    // a6-salidas — tramo A-6 con 4 salidas numeradas (km 24, 26, 27, 29)
+    // Objetivo: probar MotorwayExitModule desde casa sin conducir.
+    // El módulo debe detectar la próxima salida y mostrar su número.
+    // Salidas cubiertas: 24 (Galapagar), 26 (Collado Villalba S), 27, 29
+    //
+    // Datos extraídos de OSM vía Overpass (sesión 12). Query: way ref=A-6 +
+    // motorway_junction nodes. Submuestreados a 10 puntos en el tramo
+    // km 11.5–21.5 (referenciados desde el inicio de los datos OSM, que
+    // arranca en la salida 19 de la A-6 / Torrelodones).
+    // Los "km" en las notas son km acumulados desde el inicio del tramo OSM,
+    // no km oficiales de la A-6 (que son ~8 km más por el origen en Madrid).
+    // ========================================================================
+    'a6-salidas': {
+      descripcion: 'A-6 tramo salidas 24-29 (Torrelodones-Collado Villalba, 10 km, datos OSM)',
+      puntos: [
+        { lat: 40.52954, lon: -3.88725, nota: 'A-6 · km 11.5 · antes salida 24 · OSM' },
+        { lat: 40.53422, lon: -3.88837, nota: 'A-6 · km 12.5 · aprox. 1 km antes salida 24 · OSM' },
+        { lat: 40.54170, lon: -3.89290, nota: 'A-6 · km 13.6 · salida 24 a 138 m · OSM' },
+        { lat: 40.55086, lon: -3.89703, nota: 'A-6 · km 14.7 · entre salidas 24 y 26 · OSM' },
+        { lat: 40.55883, lon: -3.90114, nota: 'A-6 · km 15.9 · salida 26 a 525 m · OSM' },
+        { lat: 40.56445, lon: -3.90815, nota: 'A-6 · km 16.9 · salida 27 a 83 m · OSM' },
+        { lat: 40.57058, lon: -3.92101, nota: 'A-6 · km 18.2 · entre salidas 27 y 29 · OSM' },
+        { lat: 40.57436, lon: -3.92926, nota: 'A-6 · km 19.3 · aprox. 1 km antes salida 29 · OSM' },
+        { lat: 40.57772, lon: -3.93754, nota: 'A-6 · km 20.3 · salida 29 a 80 m · OSM' },
+        { lat: 40.58007, lon: -3.94653, nota: 'A-6 · km 21.3 · pasada salida 29 · OSM' }
+      ]
     }
   };
 

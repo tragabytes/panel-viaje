@@ -44,7 +44,7 @@
 			"y": 40,
 			"width": 280,
 			"height": 160,
-			"color": "6"
+			"color": "5"
 		},
 		{
 			"id": "be8ef879",
@@ -107,26 +107,6 @@
 			"color": "5"
 		},
 		{
-			"id": "legend",
-			"type": "text",
-			"text": "## Legend\n🔴 **Red** = To Do (ready)\n⬜ **Gray** = Blocked\n🟠 **Orange** = Doing\n🔵 **Cyan** = Ready to review\n🟢 **Green** = Done\n🟣 **Purple** = Proposed by agent",
-			"x": -540,
-			"y": -310,
-			"width": 380,
-			"height": 230,
-			"color": "0"
-		},
-		{
-			"id": "canvas-warnings",
-			"type": "text",
-			"text": "## Warnings\n✓ None",
-			"x": -540,
-			"y": -530,
-			"width": 380,
-			"height": 200,
-			"color": "3"
-		},
-		{
 			"id": "89ae8a6c",
 			"type": "text",
 			"text": "## MO-02 Implementar MotorwayExitModule\nNuevo módulo js/motorwayexit.js. Query Overpass node[motorway_junction](around:N) con el mismo patrón ya validado en roadref.js: query minimalista, cascada de mirrors, caché por proximidad, timeout por mirror, debug.log completo. Salida: número de salida + distancia estimada.",
@@ -165,6 +145,36 @@
 			"width": 280,
 			"height": 160,
 			"color": "6"
+		},
+		{
+			"id": "9eb5d657",
+			"type": "text",
+			"text": "## PEC-02 PEC-02 Segunda prueba: validar MotorwayExitModule con out body\nValidar que los tres fixes de sesión 11 funcionan en carretera real. Criterio de éxito: (1) MotorwayExitModule devuelve junctions válidos (>0) en al menos una vía con salidas numeradas en OSM. (2) Weather no lanza peticiones duplicadas al pasar el radio de 1km. (3) No se observa cycling de MotorwayExit por fallos transitorios de RoadRef. Aportar log de debug tras la prueba.",
+			"x": 20,
+			"y": 220,
+			"width": 280,
+			"height": 160,
+			"color": "0"
+		},
+		{
+			"id": "legend",
+			"type": "text",
+			"text": "## Legend\n🔴 **Red** = To Do (ready)\n⬜ **Gray** = Blocked\n🟠 **Orange** = Doing\n🔵 **Cyan** = Ready to review\n🟢 **Green** = Done\n🟣 **Purple** = Proposed by agent",
+			"x": -540,
+			"y": -310,
+			"width": 380,
+			"height": 230,
+			"color": "0"
+		},
+		{
+			"id": "canvas-warnings",
+			"type": "text",
+			"text": "## Warnings\n✓ None",
+			"x": -540,
+			"y": -530,
+			"width": 380,
+			"height": 200,
+			"color": "3"
 		},
 		{
 			"id": "canvas-errors",
@@ -219,6 +229,13 @@
 			"fromSide": "bottom",
 			"toNode": "360b9f70",
 			"toSide": "top"
+		},
+		{
+			"id": "edge-007",
+			"fromNode": "84fa0fde",
+			"fromSide": "left",
+			"toNode": "9eb5d657",
+			"toSide": "right"
 		}
 	]
 }
