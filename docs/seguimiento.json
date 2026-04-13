@@ -7,10 +7,10 @@
     "nota_pie": "Actualizar al final de cada sesión de trabajo"
   },
   "estado_actual": {
-    "fase_actual": "Fase 2 — Módulos de datos (en curso). LocationModule, WeatherModule, Wake Lock, Simulator, carreteras, RoadRef y MotorwayExitModule operativos. MO-01, MO-02 y MO-03 completados (en cian). El panel muestra la próxima salida de autovía en cartel verde.",
-    "ultima_actualizacion": "Sesión 12 — MO-03 completado. Cartel verde de próxima salida integrado en el panel: número de salida grande, distancia en km, siguiente salida en gris. Visible solo cuando MotorwayExitModule.activo=true.",
-    "siguiente_hito": "Laureano valida MO-01..03 con el simulador a6-salidas y en carretera real. Después: arrancar POIModule (PO-01).",
-    "bloqueos": "Ninguno."
+    "fase_actual": "Fase 2 — Modulos de datos (en curso). LocationModule, WeatherModule, Wake Lock, Simulator, carreteras, RoadRef y MotorwayExitModule operativos. MO-01, MO-02 y MO-03 en cian pendientes de validacion en carretera. Cartel verde de proxima salida visible en simulador. Fix de reintento tras error de mirrors implementado.",
+    "ultima_actualizacion": "Sesion 12 — MO-01, MO-02 y MO-03 completados. BPC-01/02/03 confirmados en simulador. Nuevo problema P24: falsos positivos de salidas de vias cruzadas. Tarjeta MO-04 propuesta. Proxima prueba en carretera real.",
+    "siguiente_hito": "Laureano valida MO-01..03 y BPC-01..03 en carretera real. Si todo OK: aprobar MO-04 y arrancar POIModule (PO-01).",
+    "bloqueos": "Ninguno tecnico. MO-04 en purpura pendiente de aprobacion."
   },
   "fases": [
     {
@@ -1620,7 +1620,7 @@
     },
     {
       "n": "12",
-      "titulo": "MO-01 — Ruta a6-salidas para probar MotorwayExitModule",
+      "titulo": "MO-01, MO-02, MO-03 completados + prueba simulador + fix reintento mirrors",
       "campos": [
         [
           "Fecha",
@@ -1648,12 +1648,38 @@
         ],
         [
           "Pendiente al cerrar la sesión",
-          "MO-01 en cian, pendiente de revisión por Laureano. MO-02 (implementar MotorwayExitModule) desbloqueado. BPC-01..03 en cian pendientes de validación en carretera. MO-02 también completada en la misma sesión: pre-roll añadido a a6-salidas (9 puntos extra para que la histéresis se despeje antes de salida 24), tests de unidad del módulo verificados por CLI (parsearJunctions, filtro angular, distanciaMetros, rumboHacia). MO-02 en cian. MO-03 completada: cartel verde de proxima salida añadido al panel (CSS + HTML + JS). Bloque oculto por defecto, visible solo cuando MotorwayExitModule.activo=true. Muestra numero de salida (22px bold), distancia en km, y salida siguiente en gris."
+          "MO-01 (ruta a6-salidas), MO-02 (verificacion modulo + pre-roll), MO-03 (cartel verde UI) completados. Prueba con simulador: cartel aparecio correctamente (bingo). BPC-01/02/03 confirmados funcionando. Bug nuevo P24 registrado: falsos positivos de salidas de vias cruzadas (M-40 mostrando salidas 82/83 como A-6). Fix de reintento tras error total de mirrors (REINTENTO_ERROR_MS=120s) implementado y desplegado. Tarjeta MO-04 propuesta en kanvas. Todos los commits pusheados a GitHub Pages."
         ]
       ]
     }
   ],
-  "problemas_abiertos": [],
+  "problemas_abiertos": [
+    {
+      "id": "P24",
+      "campos": [
+        [
+          "Fecha de aparicion",
+          "Sesion 12 (13 abril 2026)"
+        ],
+        [
+          "Sintoma",
+          "En la segunda vuelta del simulador a6-salidas, MotorwayExitModule mostraba salidas 82 y 83 como proximas en lugar de las salidas 24-26 de la A-6. El log mostro: proxima 83 a 3.4km, luego 24 a 5.8km y proxima 82 a 2.3km, luego 83 a 3km."
+        ],
+        [
+          "Causa",
+          "La query Overpass devuelve TODOS los motorway_junction en 50 km de radio sin filtrar por carretera. Las salidas 82 y 83 son de la M-40 (u otra via proxima) y pasan el filtro de angulo porque la M-40 discurre en la misma direccion general que la A-6 en esa zona. El codigo tenia una nota explicita de esta limitacion: si vemos falsos positivos de otra autovia cruzada, endurecemos la query."
+        ],
+        [
+          "Resolucion",
+          "Pendiente. Tarjeta MO-04 propuesta: cambiar la query para obtener solo nodos junction de las ways con ref igual a roadRef (way[ref=X] → node(w)[motorway_junction]). Esto excluye junctions de vias cruzadas con distinta ref."
+        ],
+        [
+          "Estado",
+          "abierto"
+        ]
+      ]
+    }
+  ],
   "problemas_resueltos": [
     {
       "id": "P01",

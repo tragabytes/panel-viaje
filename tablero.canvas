@@ -24,7 +24,7 @@
 			"x": 440,
 			"y": 0,
 			"width": 380,
-			"height": 700,
+			"height": 760,
 			"label": "MotorwayExitModule"
 		},
 		{
@@ -185,6 +185,16 @@
 			"width": 380,
 			"height": 200,
 			"color": "1"
+		},
+		{
+			"id": "f5448431",
+			"type": "text",
+			"text": "## MO-04 MO-04 Filtrar junctions por vía en la query Overpass\nLa query actual devuelve todos los motorway_junction en 50 km sin filtrar por carretera. Resultado: salidas de vías cruzadas (M-40, AP-6, etc.) aparecen como próximas salidas cuando el filtro de ángulo no las descarta. Fix: cambiar la query para obtener solo nodos junction de las ways con ref igual a roadRef (way[ref=X] → node(w)[motorway_junction]). Detectado en prueba simulador sesión 12.",
+			"x": 460,
+			"y": 580,
+			"width": 280,
+			"height": 160,
+			"color": "6"
 		}
 	],
 	"edges": [
@@ -236,6 +246,13 @@
 			"fromSide": "left",
 			"toNode": "9eb5d657",
 			"toSide": "right"
+		},
+		{
+			"id": "edge-008",
+			"fromNode": "f6b85293",
+			"fromSide": "bottom",
+			"toNode": "f5448431",
+			"toSide": "top"
 		}
 	]
 }
