@@ -7,10 +7,10 @@
     "nota_pie": "Actualizar al final de cada sesión de trabajo"
   },
   "estado_actual": {
-    "fase_actual": "Fase 2 — Módulos de datos (en curso). LocationModule, WeatherModule, Wake Lock, Simulator de GPS, carreteras, RoadRef y MotorwayExitModule presentes. Prueba real en carretera completada en sesión 11. Tres bugs críticos detectados y corregidos. MotorwayExitModule pendiente de nueva prueba en carretera para validar que los junctions se reciben correctamente tras el fix de out body.",
-    "ultima_actualizacion": "Sesión 11 — Primera prueba real en carretera. Log analizado: bug crítico en out tags→out body en MotorwayExitModule (junctions siempre descartados por falta de lat/lon), peticiones duplicadas de Weather, y cycling de MotorwayExit por fallos transitorios de RoadRef. Los tres bugs corregidos y commiteados.",
-    "siguiente_hito": "Segunda prueba en carretera para validar que MotorwayExitModule recibe junctions correctamente con out body. Si hay junctions disponibles en la zona, deberían aparecer. Después: arrancar POIModule.",
-    "bloqueos": "Ninguno. La corrección de los tres bugs es quirúrgica y no introduce riesgos. La validación requiere prueba real en carretera sobre una autovía o vía con salidas numeradas en OSM."
+    "fase_actual": "Fase 2 — Módulos de datos (en curso). LocationModule, WeatherModule, Wake Lock, Simulator de GPS, carreteras, RoadRef y MotorwayExitModule presentes. Tres bugs de la prueba de carretera corregidos (BPC-01..03, en cian). Ruta a6-salidas añadida al simulador para probar MotorwayExitModule desde casa.",
+    "ultima_actualizacion": "Sesión 12 — MO-01 completado. Nueva ruta a6-salidas en rutas.js con 10 puntos reales de la A-6 (Torrelodones-Collado Villalba) que cubren 4 salidas numeradas (24, 26, 27, 29). Datos extraídos de Overpass. MO-01 en cian, pendiente de validación por Laureano.",
+    "siguiente_hito": "Implementar MotorwayExitModule (MO-02). La ruta a6-salidas permite probarlo desde casa sin conducir. Paralelamente: Laureano puede revisar y validar BPC-01..03 en la próxima prueba en carretera.",
+    "bloqueos": "Ninguno. MO-02 ya desbloqueado una vez MO-01 quede en verde."
   },
   "fases": [
     {
@@ -1615,6 +1615,40 @@
         [
           "Pendiente al cerrar la sesión",
           "Segunda prueba en carretera para validar MotorwayExitModule con el fix de out body. BPC-01, BPC-02 y BPC-03 en cian, pendientes de verificación por Laureano en carretera real."
+        ]
+      ]
+    },
+    {
+      "n": "12",
+      "titulo": "MO-01 — Ruta a6-salidas para probar MotorwayExitModule",
+      "campos": [
+        [
+          "Fecha",
+          "13 de abril de 2026"
+        ],
+        [
+          "Fase trabajada",
+          "Fase 2 — MotorwayExitModule (infraestructura de simulación)."
+        ],
+        [
+          "Contexto de arranque",
+          "Primera sesión de trabajo real con el tablero Kanvas operativo. MO-01 era la única tarjeta en estado Ready. Se arrancó directamente desde esa tarjeta."
+        ],
+        [
+          "Lo que se ha hecho",
+          "(1) MO-01 arrancada (rojo → naranja). (2) Consulta a Overpass API para obtener todos los motorway_junction en el área de la A-6 Madrid-Villalba (235 nodos). (3) Consulta a Overpass para obtener la geometría de la vía A-6 (ref=A-6, 484 nodos, 57 km). (4) Cruce de ambos conjuntos por proximidad (< 80 m): 18 junctions confirmados sobre la A-6. (5) Selección del tramo km 11.5–21.5 (desde el inicio del tramo OSM) que cubre 4 salidas consecutivas: 24 (138 m), 26 (525 m), 27 (83 m) y 29 (80 m). (6) Submuestreo a 10 puntos bien espaciados (~1 km entre puntos). (7) Nueva ruta 'a6-salidas' añadida a js/rutas.js con notas que indican la proximidad a cada salida. (8) Verificación de sintaxis con Node.js: OK. (9) MO-01 movida a cian. (10) Commit: \"feat: añadir ruta a6-salidas al simulador (MO-01)\"."
+        ],
+        [
+          "Problemas encontrados durante la sesión",
+          "Overpass devolvió 504 en dos peticiones consecutivas al bbox grande; resuelto usando bbox más pequeño y guardando la respuesta en archivo temporal. Problema de encoding UTF-8 en Windows al imprimir caracteres Unicode en Python; resuelto con PYTHONIOENCODING=utf-8."
+        ],
+        [
+          "Decisiones tomadas",
+          "Usar el tramo km 24–29 de la A-6 (Torrelodones/Galapagar - Collado Villalba) por ser el más rico en salidas consecutivas mapeadas en OSM. Los km en las notas son acumulados desde el inicio del segmento OSM (arranca en salida 19), no km oficiales de la A-6 (que empiezan en Madrid, ~8 km más)."
+        ],
+        [
+          "Pendiente al cerrar la sesión",
+          "MO-01 en cian, pendiente de revisión por Laureano. MO-02 (implementar MotorwayExitModule) desbloqueado. BPC-01..03 en cian pendientes de validación en carretera."
         ]
       ]
     }
