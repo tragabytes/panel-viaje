@@ -179,6 +179,52 @@
     }
 
     .detalles span { opacity: 0.6; }
+
+    /* ---- Bloque próxima salida ---- */
+    .salida {
+      margin-bottom: 16px;
+      display: none;        /* oculto por defecto; JS lo muestra */
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .salida.visible { display: flex; }
+
+    .salida-pastilla {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 10px;
+      background: #1a7a35;
+      color: #fff;
+      padding: 6px 14px;
+      border-radius: 6px;
+    }
+
+    .salida-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      opacity: 0.8;
+      text-transform: uppercase;
+    }
+
+    .salida-num {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+    }
+
+    .salida-dist {
+      font-size: 15px;
+      opacity: 0.85;
+    }
+
+    .salida-sig {
+      font-size: 13px;
+      opacity: 0.45;
+    }
+    /* ---- Fin bloque próxima salida ---- */
   </style>
 </head>
 <body>
@@ -189,6 +235,15 @@
 
   <div class="carretera" id="carreteraBloque">
     <span class="sin-carretera">Sin vía identificada</span>
+  </div>
+
+  <div id="salidaBloque" class="salida">
+    <div class="salida-pastilla">
+      <span class="salida-label">Salida</span>
+      <span id="salidaNum" class="salida-num">—</span>
+      <span id="salidaDist" class="salida-dist">—</span>
+    </div>
+    <span id="salidaSig" class="salida-sig"></span>
   </div>
 
   <div class="ubicacion">
@@ -242,6 +297,10 @@
 
     const $estado           = document.getElementById('estado');
     const $carreteraBloque  = document.getElementById('carreteraBloque');
+    const $salidaBloque     = document.getElementById('salidaBloque');
+    const $salidaNum        = document.getElementById('salidaNum');
+    const $salidaDist       = document.getElementById('salidaDist');
+    const $salidaSig        = document.getElementById('salidaSig');
     const $municipio        = document.getElementById('municipio');
     const $admin            = document.getElementById('admin');
     const $meteoTemp        = document.getElementById('meteoTemp');
@@ -510,6 +569,15 @@
           } else {
             debug.log(`MotorwayExit: ${r.estado}${roadRefActual ? ' (vía ' + roadRefActual + ')' : ''}`);
           }
+        }
+        // Actualizar bloque visual
+        if (r.activo) {
+          $salidaNum.textContent  = r.proxima.ref;
+          $salidaDist.textContent = r.proxima.distanciaKm + ' km';
+          $salidaSig.textContent  = r.siguiente ? 'luego ' + r.siguiente.ref : '';
+          $salidaBloque.classList.add('visible');
+        } else {
+          $salidaBloque.classList.remove('visible');
         }
       } catch (err) {
         debug.error(`MotorwayExit: ${err.message}`);
