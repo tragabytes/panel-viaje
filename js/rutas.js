@@ -128,21 +128,38 @@ const Rutas = (() => {
     },
 
     // ========================================================================
-    // a6-salidas — tramo A-6 con 4 salidas numeradas (km 24, 26, 27, 29)
+    // a6-salidas — tramo A-6 con pre-roll + 4 salidas numeradas (24, 26, 27, 29)
     // Objetivo: probar MotorwayExitModule desde casa sin conducir.
-    // El módulo debe detectar la próxima salida y mostrar su número.
-    // Salidas cubiertas: 24 (Galapagar), 26 (Collado Villalba S), 27, 29
     //
-    // Datos extraídos de OSM vía Overpass (sesión 12). Query: way ref=A-6 +
-    // motorway_junction nodes. Submuestreados a 10 puntos en el tramo
-    // km 11.5–21.5 (referenciados desde el inicio de los datos OSM, que
-    // arranca en la salida 19 de la A-6 / Torrelodones).
-    // Los "km" en las notas son km acumulados desde el inicio del tramo OSM,
-    // no km oficiales de la A-6 (que son ~8 km más por el origen en Madrid).
+    // Estructura: 9 puntos de pre-roll (Torrelodones - aprox. A-6 km 18-23)
+    // + 10 puntos con las salidas (A-6 km ~24-29, Galapagar/Collado Villalba).
+    // Total: 19 puntos, ~20 km.
+    //
+    // Por qué el pre-roll: MotorwayExitModule tiene histéresis de 30 s a
+    // >50 km/h antes de activarse. Con el simulador a x10, cada tick tarda
+    // ~3.5 s reales. Sin pre-roll el módulo no activaría hasta la salida 29.
+    // Con 9 puntos de pre-roll (~32 s reales a x10), la histéresis se despeja
+    // antes de llegar a la salida 24 y la query Overpass tiene tiempo de
+    // completarse antes de que llegue el primer junction interesante.
+    //
+    // Datos extraídos de OSM vía Overpass (sesión 12). Los km en las notas
+    // son acumulados desde el inicio del dataset OSM (arranca en salida 19),
+    // no km oficiales de la A-6 (que son ~8 km más desde Madrid).
     // ========================================================================
     'a6-salidas': {
-      descripcion: 'A-6 tramo salidas 24-29 (Torrelodones-Collado Villalba, 10 km, datos OSM)',
+      descripcion: 'A-6 pre-roll + salidas 24-29 (Torrelodones→Collado Villalba, ~20 km, datos OSM)',
       puntos: [
+        // --- Pre-roll: 9 puntos para que la histéresis de MotorwayExitModule se despeje ---
+        { lat: 40.49186, lon: -3.86751, nota: 'A-6 · pre-roll 1/9 · Torrelodones zona · OSM' },
+        { lat: 40.49586, lon: -3.86953, nota: 'A-6 · pre-roll 2/9 · OSM' },
+        { lat: 40.49855, lon: -3.87290, nota: 'A-6 · pre-roll 3/9 · OSM' },
+        { lat: 40.50119, lon: -3.87349, nota: 'A-6 · pre-roll 4/9 · OSM' },
+        { lat: 40.50281, lon: -3.87434, nota: 'A-6 · pre-roll 5/9 · OSM' },
+        { lat: 40.50747, lon: -3.87752, nota: 'A-6 · pre-roll 6/9 · OSM' },
+        { lat: 40.51627, lon: -3.88379, nota: 'A-6 · pre-roll 7/9 · OSM' },
+        { lat: 40.52091, lon: -3.88622, nota: 'A-6 · pre-roll 8/9 · OSM' },
+        { lat: 40.52133, lon: -3.88660, nota: 'A-6 · pre-roll 9/9 · ~1 km antes salida 24 · OSM' },
+        // --- Tramo con salidas: histéresis ya despejada, módulo activo ---
         { lat: 40.52954, lon: -3.88725, nota: 'A-6 · km 11.5 · antes salida 24 · OSM' },
         { lat: 40.53422, lon: -3.88837, nota: 'A-6 · km 12.5 · aprox. 1 km antes salida 24 · OSM' },
         { lat: 40.54170, lon: -3.89290, nota: 'A-6 · km 13.6 · salida 24 a 138 m · OSM' },
