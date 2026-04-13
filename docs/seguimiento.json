@@ -7,9 +7,9 @@
     "nota_pie": "Actualizar al final de cada sesión de trabajo"
   },
   "estado_actual": {
-    "fase_actual": "Fase 2 — Módulos de datos (en curso). LocationModule, WeatherModule, Wake Lock, Simulator, carreteras, RoadRef y MotorwayExitModule operativos. MO-01 y MO-02 completados (en cian). Pre-roll añadido a a6-salidas. Módulo verificado con tests de unidad.",
-    "ultima_actualizacion": "Sesión 12 (continuación) — MO-02 completado. MotorwayExitModule verificado: parsearJunctions OK, filtro angular OK, histéresis OK. Ruta a6-salidas ampliada con 9 puntos de pre-roll para que la histéresis se despeje antes de salida 24.",
-    "siguiente_hito": "MO-03: Integrar la próxima salida en la UI del panel (cartel verde con número y distancia). MO-02 en cian pendiente de revisión por Laureano en simulador.",
+    "fase_actual": "Fase 2 — Módulos de datos (en curso). LocationModule, WeatherModule, Wake Lock, Simulator, carreteras, RoadRef y MotorwayExitModule operativos. MO-01, MO-02 y MO-03 completados (en cian). El panel muestra la próxima salida de autovía en cartel verde.",
+    "ultima_actualizacion": "Sesión 12 — MO-03 completado. Cartel verde de próxima salida integrado en el panel: número de salida grande, distancia en km, siguiente salida en gris. Visible solo cuando MotorwayExitModule.activo=true.",
+    "siguiente_hito": "Laureano valida MO-01..03 con el simulador a6-salidas y en carretera real. Después: arrancar POIModule (PO-01).",
     "bloqueos": "Ninguno."
   },
   "fases": [
@@ -1648,7 +1648,7 @@
         ],
         [
           "Pendiente al cerrar la sesión",
-          "MO-01 en cian, pendiente de revisión por Laureano. MO-02 (implementar MotorwayExitModule) desbloqueado. BPC-01..03 en cian pendientes de validación en carretera. MO-02 también completada en la misma sesión: pre-roll añadido a a6-salidas (9 puntos extra para que la histéresis se despeje antes de salida 24), tests de unidad del módulo verificados por CLI (parsearJunctions, filtro angular, distanciaMetros, rumboHacia). MO-02 en cian."
+          "MO-01 en cian, pendiente de revisión por Laureano. MO-02 (implementar MotorwayExitModule) desbloqueado. BPC-01..03 en cian pendientes de validación en carretera. MO-02 también completada en la misma sesión: pre-roll añadido a a6-salidas (9 puntos extra para que la histéresis se despeje antes de salida 24), tests de unidad del módulo verificados por CLI (parsearJunctions, filtro angular, distanciaMetros, rumboHacia). MO-02 en cian. MO-03 completada: cartel verde de proxima salida añadido al panel (CSS + HTML + JS). Bloque oculto por defecto, visible solo cuando MotorwayExitModule.activo=true. Muestra numero de salida (22px bold), distancia en km, y salida siguiente en gris."
         ]
       ]
     }
