@@ -36,13 +36,76 @@
       overflow: hidden;
     }
 
-    /* Vista 1: layout vertical con padding, como el panel original */
+    /* Vista 1: grid 2 columnas compacto para 640×360 */
     #vista1 {
+      display: grid;
+      grid-template-columns: 58% 42%;
+      grid-template-rows: 22px 1fr auto;
+      grid-template-areas:
+        "estado estado"
+        "izq    der"
+        "poi    poi";
+      padding: 10px 12px 8px;
+      column-gap: 10px;
+      overflow: hidden;
+    }
+
+    .v1-estado { grid-area: estado; display: flex; align-items: center; }
+
+    .v1-izq {
+      grid-area: izq;
       display: flex;
       flex-direction: column;
-      padding: 16px;
-      overflow-y: auto;
+      gap: 3px;
+      padding-top: 4px;
+      min-height: 0;
     }
+
+    .v1-der {
+      grid-area: der;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      padding-top: 4px;
+      padding-left: 10px;
+      border-left: 1px solid rgba(255,255,255,0.1);
+      min-height: 0;
+    }
+
+    .v1-poi {
+      grid-area: poi;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      padding-top: 5px;
+    }
+
+    /* Compactar elementos para Vista 1 */
+    #vista1 .estado { font-size: 12px; margin: 0; line-height: 1.2; }
+    #vista1 .carretera { margin-bottom: 3px; min-height: auto; }
+    #vista1 .salida { margin-bottom: 3px; }
+    #vista1 .salida-num { font-size: 18px; }
+    #vista1 .ubicacion { margin: 0; padding: 0; border: none; }
+    #vista1 .municipio { font-size: 20px; }
+    #vista1 .admin { font-size: 12px; }
+    #vista1 .datos-municipio { font-size: 11px; margin-top: 1px; }
+    #vista1 .municipio-info { display: none; }
+    #vista1 .meteo { margin: 0; padding: 0; border: none; }
+    #vista1 .meteo .temp { font-size: 20px; margin-bottom: 2px; }
+    #vista1 .meteo .descripcion { font-size: 13px; margin-bottom: 2px; }
+    #vista1 .meteo .descripcion .icono { font-size: 16px; }
+    #vista1 .meteo .sub { font-size: 11px; }
+    #vista1 .meteo .prevision { font-size: 11px; margin-top: 4px; padding-top: 4px; }
+
+    /* POI compacto en Vista 1: chips sin iconos */
+    #vista1 .poi-seccion { margin: 0; padding: 0; border: none; }
+    #vista1 .poi-scroll { display: flex; flex-wrap: wrap; gap: 2px 10px; overflow: hidden; }
+    #vista1 .poi-pueblo {
+      min-width: auto; background: none; padding: 0;
+      display: flex; align-items: baseline; gap: 3px; flex-shrink: 0;
+    }
+    #vista1 .poi-pueblo-cab { margin-bottom: 0; }
+    #vista1 .poi-pueblo-nombre { font-size: 12px; white-space: nowrap; }
+    #vista1 .poi-pueblo-dist { font-size: 11px; }
+    #vista1 .poi-item { display: none; }
 
     .estado {
       font-size: 14px;
@@ -378,62 +441,67 @@
 <div id="visor" class="visor">
   <section class="vista" id="vista1">
 
-  <div id="estado" class="estado">Esperando permiso de GPS…</div>
-
-  <div class="carretera" id="carreteraBloque">
-    <span class="sin-carretera">Sin vía identificada</span>
+  <div class="v1-estado">
+    <div id="estado" class="estado">Esperando permiso de GPS…</div>
   </div>
 
-  <div id="salidaBloque" class="salida">
-    <div class="salida-pastilla">
-      <div class="salida-fila">
-        <span class="salida-label">Salida</span>
-        <span id="salidaNum" class="salida-num">—</span>
-        <span id="salidaDist" class="salida-dist">—</span>
+  <div class="v1-izq">
+    <div class="carretera" id="carreteraBloque">
+      <span class="sin-carretera">Sin vía identificada</span>
+    </div>
+    <div id="salidaBloque" class="salida">
+      <div class="salida-pastilla">
+        <div class="salida-fila">
+          <span class="salida-label">Salida</span>
+          <span id="salidaNum" class="salida-num">—</span>
+          <span id="salidaDist" class="salida-dist">—</span>
+        </div>
+        <span id="salidaDestinos" class="salida-destinos"></span>
       </div>
-      <span id="salidaDestinos" class="salida-destinos"></span>
+      <span id="salidaSig" class="salida-sig"></span>
     </div>
-    <span id="salidaSig" class="salida-sig"></span>
-  </div>
-
-  <div class="ubicacion">
-    <div class="label">Ubicación</div>
-    <div id="municipio" class="municipio">—</div>
-    <div id="admin" class="admin">—</div>
-    <div id="datosMunicipio" class="datos-municipio"></div>
-    <div id="municipioInfo" class="municipio-info" style="display:none">
-      <img id="municipioFoto" src="" alt="">
-      <span id="municipioDesc" class="municipio-desc"></span>
+    <div class="ubicacion">
+      <div id="municipio" class="municipio">—</div>
+      <div id="admin" class="admin">—</div>
+      <div id="datosMunicipio" class="datos-municipio"></div>
+      <div id="municipioInfo" class="municipio-info" style="display:none">
+        <img id="municipioFoto" src="" alt="">
+        <span id="municipioDesc" class="municipio-desc"></span>
+      </div>
     </div>
   </div>
 
-  <div class="meteo" id="meteoBloque">
-    <div class="label">Meteo</div>
-    <div id="meteoTemp" class="temp">—</div>
-    <div id="meteoDescripcion" class="descripcion">
-      <span class="icono">—</span>
-      <span class="texto">—</span>
+  <div class="v1-der">
+    <div class="meteo" id="meteoBloque">
+      <div id="meteoTemp" class="temp">—</div>
+      <div id="meteoDescripcion" class="descripcion">
+        <span class="icono">—</span>
+        <span class="texto">—</span>
+      </div>
+      <div id="meteoViento" class="sub">—</div>
+      <div id="meteoHumedad" class="sub">—</div>
+      <div id="meteoPrevision" class="prevision">—</div>
     </div>
-    <div id="meteoViento" class="sub">—</div>
-    <div id="meteoHumedad" class="sub">—</div>
-    <div id="meteoPrevision" class="prevision">—</div>
   </div>
 
-  <div id="poiBloque" class="poi-seccion" style="display:none">
-    <div class="label">Qué ver por la zona</div>
-    <div id="poiScroll" class="poi-scroll"></div>
+  <div class="v1-poi">
+    <div id="poiBloque" class="poi-seccion" style="display:none">
+      <div id="poiScroll" class="poi-scroll"></div>
+    </div>
   </div>
 
-  <div class="coordenadas">
-    <div>Latitud: <b id="lat">—</b></div>
-    <div>Longitud: <b id="lon">—</b></div>
-  </div>
-
-  <div class="detalles">
-    <div><span>Precisión:</span> <b id="precision">—</b></div>
-    <div><span>Velocidad:</span> <b id="velocidad">—</b></div>
-    <div><span>Rumbo:</span> <b id="rumbo">—</b></div>
-    <div><span>Última actualización:</span> <b id="hora">—</b></div>
+  <!-- Datos GPS: ocultos aquí, visibles con ?debug=1 (IU-07) -->
+  <div id="v1-gps" style="display:none">
+    <div class="coordenadas">
+      <div>Latitud: <b id="lat">—</b></div>
+      <div>Longitud: <b id="lon">—</b></div>
+    </div>
+    <div class="detalles">
+      <div><span>Precisión:</span> <b id="precision">—</b></div>
+      <div><span>Velocidad:</span> <b id="velocidad">—</b></div>
+      <div><span>Rumbo:</span> <b id="rumbo">—</b></div>
+      <div><span>Última actualización:</span> <b id="hora">—</b></div>
+    </div>
   </div>
 
   </section><!-- /vista1 -->
