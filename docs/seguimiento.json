@@ -7,10 +7,10 @@
     "nota_pie": "Actualizar al final de cada sesión de trabajo"
   },
   "estado_actual": {
-    "fase_actual": "Fase 2 — MO-05 en revisión, tarjetas RE-01/02/03 propuestas",
+    "fase_actual": "Fase 3 — UI definitiva: tres vistas deslizables",
     "ultima_actualizacion": "14 de abril de 2026",
-    "siguiente_hito": "Aprobar MO-05 y RE-01/02/03. Implementar fallback Wikipedia geosearch en POIModule.",
-    "bloqueos": "PEC-03 pendiente de aprobación. BPC-04 y BPC-05 bloqueadas hasta PEC-03."
+    "siguiente_hito": "IU-03 Layout compacto Vista 1 (grid 2 columnas) + IU-04 Vista 2 Meteo + IU-05 Vista 3 POIs",
+    "bloqueos": "Ninguno. IU-02 en revision. IU-03/04/05/06/07 pendientes de aprobacion."
   },
   "fases": [
     {
@@ -1849,6 +1849,40 @@
         [
           "Pendientes",
           "MO-05 en cian (revisión por Laureano en próxima prueba real). RE-01/02/03 propuestas (moradas), pendientes de aprobación. PEC-03 sigue bloqueando BPC-04 y BPC-05."
+        ]
+      ]
+    },
+    {
+      "n": 19,
+      "titulo": "Fase 3 arranca — plan UI + IU-02 estructura tres vistas scroll-snap",
+      "campos": [
+        [
+          "Fecha",
+          "14 de abril de 2026"
+        ],
+        [
+          "Fase trabajada",
+          "Fase 3 — UI definitiva: tres vistas deslizables"
+        ],
+        [
+          "Contexto de arranque",
+          "El proyecto tenia todos los modulos de datos completos (Location, Weather, RoadRef, MotorwayExit, POI). La UI era un scroll vertical de desarrollo. Esta sesion empieza la Fase 3: transformar el panel en una interfaz de conduccion con tres vistas landscape a pantalla completa y swipe horizontal."
+        ],
+        [
+          "Lo que se ha hecho",
+          "Definicion del plan Fase 3 con Laureano: tres vistas (Completa, Ubicacion+Meteo, POIs), swipe horizontal con CSS scroll-snap puro, sin libreria JS. Propuesta y aprobacion de 7 tarjetas Kanvas (IU-02 a IU-08). Implementacion de IU-02: reestructuracion de index.html con visor .visor (scroll-snap-type: x mandatory) y tres <section class=vista>. Vista 1 contiene todo el contenido actual. Vistas 2 y 3 son placeholders. Eliminado h1 Panel de viaje. Eliminado padding-bottom del body para el debug panel (ya usa position:fixed, no necesitaba el padding). Verificado en preview 640x360: swipe funciona, vista1 muestra datos en vivo del simulador, debug panel funcional."
+        ],
+        [
+          "Decisiones tomadas",
+          "CSS scroll-snap puro sin libreria JS. Vista 1 con overflow-y:auto como medida provisional hasta IU-03. Debug panel no necesita padding en body ya que usa position:fixed por si solo. h1 eliminado porque no tiene sentido en la UI de conduccion."
+        ],
+        [
+          "Problemas encontrados",
+          "Ninguno tecnico. La pantalla del simulador (chrome preview) tardaba en cargar pero era cache del navegador, resuelto con reload."
+        ],
+        [
+          "Pendientes",
+          "IU-03: Layout compacto Vista 1 grid 2 columnas. IU-04: Vista 2 Ubicacion+Meteo con gradientes. IU-05: Vista 3 POIs grid. IU-06: Iconos SVG meteo. IU-07: Velocidad visible, GPS solo en debug. IU-08: Pulido final."
         ]
       ]
     }
