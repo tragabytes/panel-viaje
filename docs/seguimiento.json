@@ -7,9 +7,9 @@
     "nota_pie": "Actualizar al final de cada sesión de trabajo"
   },
   "estado_actual": {
-    "fase_actual": "Fase 2 — MotorwayExitModule (MO-05 en revisión) + POIModule/IU estables",
+    "fase_actual": "Fase 2 — MO-05 en revisión, tarjetas RE-01/02/03 propuestas",
     "ultima_actualizacion": "14 de abril de 2026",
-    "siguiente_hito": "Laureano aprueba MO-05 (destinos legibles) y avanza a PEC-03 (prueba en carretera real del bloque POI).",
+    "siguiente_hito": "Aprobar MO-05 y RE-01/02/03. Implementar fallback Wikipedia geosearch en POIModule.",
     "bloqueos": "PEC-03 pendiente de aprobación. BPC-04 y BPC-05 bloqueadas hasta PEC-03."
   },
   "fases": [
@@ -1820,7 +1820,7 @@
     },
     {
       "n": 18,
-      "titulo": "MO-05 — destinos legibles en próxima salida de autovía",
+      "titulo": "MO-05 destinos legibles + análisis resiliencia Overpass + tarjetas RE-01/02/03",
       "campos": [
         [
           "Fecha",
@@ -1828,7 +1828,7 @@
         ],
         [
           "Fase trabajada",
-          "Fase 2 — MotorwayExitModule (MO-05)"
+          "Fase 2 — MotorwayExitModule (MO-05) + análisis de resiliencia API"
         ],
         [
           "Contexto de arranque",
@@ -1836,19 +1836,19 @@
         ],
         [
           "Lo que se ha hecho",
-          "Investigación: verificada la query Overpass «node(id); way(bn)[highway=motorway_link]; out tags;» con el nodo 21678538 (salida 26 A-6 Torrelodones). Devuelve destination: Las Matas;Los Peñascales;vía de servicio. Los mirrors estaban saturados pero la query es correcta. | motorwayexit.js: parsearJunctions ahora guarda el id OSM del nodo (además de ref, lat, lon). Nueva constante UMBRAL_DESTINOS_KM=2.0. Nueva caché destinosPorJunction por node ID. Nueva función consultarDestinos(junctionId) que lanza la query extra solo una vez por salida y guarda el resultado. Nueva función formatearDestinos() que normaliza el separador «;» de OSM a «·». actualizar() dispara consultarDestinos cuando proxima.distanciaKm ≤ 2.0 y expone proxima.destinos en el retorno. reset() limpia también destinosPorJunction. | index.html: .salida-pastilla pasa a flex-direction:column. Nueva clase .salida-fila agrupa label/número/distancia en horizontal. Nuevo #salidaDestinos (clase salida-destinos) se muestra debajo si hay texto. Lógica de renderizado actualizada para escribir y limpiar #salidaDestinos. Limpieza defensiva de la clase visible en el else del bloque de salida."
+          "MO-05 implementado: query Overpass para destination tags de motorway_link. Verificada con nodo 21678538 (salida 26 A-6, destino: Las Matas;Los Peñascales;vía de servicio). Nuevas funciones en motorwayexit.js: consultarDestinos(), formatearDestinos(). parsearJunctions ahora guarda el id OSM. actualizar() dispara consulta a ≤2 km y expone proxima.destinos. | Bugfix: el array candidatos no copiaba el id del junction, por lo que proxima.id era undefined y consultarDestinos nunca se lanzaba. Corregido añadiendo id: j.id al push de candidatos. | HTML/CSS: .salida-pastilla pasa a flex-column con nueva .salida-fila. Nuevo #salidaDestinos en segunda línea de la pastilla verde. Lógica de renderizado actualizada. | Análisis de resiliencia Overpass: auditoría completa de las 5 queries Overpass del panel (frecuencia, radio, caché, concurrencia). POIModule es el 60% del tráfico (~30-50 queries en un viaje de 2h). | Investigación de APIs alternativas: probadas Wikipedia geosearch, Wikidata SPARQL, GeoNames (certificado caducado), OpenTripMap (abandonada), Nominatim (solo devuelve 1 resultado). Wikipedia geosearch es el mejor fallback: infraestructura Wikimedia independiente, gratis, sin API key, CORS, 10-50 ms. | Propuestas 3 tarjetas en nuevo grupo Resiliencia API: RE-01 fallback Wikipedia para pueblos, RE-02 fallback Wikipedia para POIs, RE-03 caché persistente IndexedDB."
         ],
         [
           "Decisiones tomadas",
-          "Umbral de 2 km para disparar la consulta: da tiempo suficiente de carga sin gastar datos innecesariamente. Caché por node ID en memoria (no localStorage): las salidas no cambian y el módulo ya reinicia al recargar. Solo se toma el primer way motorway_link con destination (en práctica solo hay uno por salida)."
+          "Umbral de 2 km para disparar consultarDestinos: da tiempo de carga sin gastar datos. Caché por node ID en memoria (una sola petición por salida). Solo se toma el primer way motorway_link con destination. Para resiliencia, Wikipedia geosearch como fallback principal de Overpass: servidores Wikimedia independientes, probado con datos reales de la zona del simulador."
         ],
         [
           "Problemas encontrados",
-          "Los tres mirrors Overpass estuvieron saturados durante toda la sesión de prueba (504 y timeouts). Esto impidió verificar el flujo end-to-end con el simulador en tiempo real. El código fue verificado: (a) la query funciona correctamente con datos reales de curl, (b) la estructura DOM y CSS fue verificada inyectando datos manualmente en el browser."
+          "Los tres mirrors Overpass estuvieron saturados durante toda la sesión (504 y timeouts en todas las queries: POI, MotorwayExit, RoadRef). Impidió verificar el flujo completo de destinos en el simulador. Bug del id faltante en candidatos descubierto durante la prueba en vivo: proxima.id era undefined. Para salidas de autovía no existe alternativa a Overpass: ni Wikidata, ni Nominatim, ni Wikipedia indexan nodos motorway_junction."
         ],
         [
           "Pendientes",
-          "MO-05 en cian (revisión). Laureano debe verificar que los destinos aparecen al conducir cerca de una salida real. PEC-03 sigue bloqueando BPC-04 y BPC-05."
+          "MO-05 en cian (revisión por Laureano en próxima prueba real). RE-01/02/03 propuestas (moradas), pendientes de aprobación. PEC-03 sigue bloqueando BPC-04 y BPC-05."
         ]
       ]
     }
