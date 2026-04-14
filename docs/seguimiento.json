@@ -7,10 +7,10 @@
     "nota_pie": "Actualizar al final de cada sesión de trabajo"
   },
   "estado_actual": {
-    "fase_actual": "Fase 2 — Módulos de datos (en curso). LocationModule, WeatherModule, Wake Lock, Simulator, carreteras, RoadRef y MotorwayExitModule operativos y validados. MO-04 completado: query Overpass filtra junctions por vía padre (23 vs 157). POIModule pendiente de arrancar.",
-    "ultima_actualizacion": "Sesión 13 — BPC-01/02/03, MO-03, PEC-02 validados con simulador. MO-04 implementado y verificado: query tres pasos elimina falsos positivos P24.",
-    "siguiente_hito": "Laureano valida MO-04 en carretera real. Arrancar POIModule con PO-01 (revisar decisión 13).",
-    "bloqueos": "Ninguno. MotorwayExitModule completo. POIModule en morado pendiente de arranque."
+    "fase_actual": "Fase 2 — POIModule en curso (PO-04 pendiente)",
+    "ultima_actualizacion": "14 de abril de 2026",
+    "siguiente_hito": "PO-04 soporte de pedanías en POIModule + prueba en carretera real del módulo POI",
+    "bloqueos": "Ninguno. PO-04 disponible para iniciar."
   },
   "fases": [
     {
@@ -1685,35 +1685,43 @@
           "MO-04 en cian, pendiente de validación en carretera real. Grupo MotorwayExitModule completo. Siguiente: PO-01 (revisar decisión 13 y arrancar POIModule)."
         ]
       ]
-    }
-  ],
-  "problemas_abiertos": [
+    },
     {
-      "id": "P24",
+      "n": 14,
+      "titulo": "PO-05 overpass.js + PO-02 POIModule base + PO-03 vista Qué ver por la zona",
       "campos": [
         [
-          "Fecha de aparicion",
-          "Sesion 12 (13 abril 2026)"
+          "Fecha",
+          "14 de abril de 2026"
         ],
         [
-          "Sintoma",
-          "En la segunda vuelta del simulador a6-salidas, MotorwayExitModule mostraba salidas 82 y 83 como proximas en lugar de las salidas 24-26 de la A-6. El log mostro: proxima 83 a 3.4km, luego 24 a 5.8km y proxima 82 a 2.3km, luego 83 a 3km."
+          "Fase trabajada",
+          "Fase 2 — POIModule (PO-01 análisis, PO-05 refactorización, PO-02 módulo, PO-03 vista)"
         ],
         [
-          "Causa",
-          "La query Overpass devuelve TODOS los motorway_junction en 50 km de radio sin filtrar por carretera. Las salidas 82 y 83 son de la M-40 (u otra via proxima) y pasan el filtro de angulo porque la M-40 discurre en la misma direccion general que la A-6 en esa zona. El codigo tenia una nota explicita de esta limitacion: si vemos falsos positivos de otra autovia cruzada, endurecemos la query."
+          "Contexto de arranque",
+          "Merge de PR #1 en main con MO-04 (fix query Overpass tres pasos). Tablero: MO-04 verde, PO-01 a rojo para iniciar."
         ],
         [
-          "Resolucion",
-          "Pendiente. Tarjeta MO-04 propuesta: cambiar la query para obtener solo nodos junction de las ways con ref igual a roadRef (way[ref=X] → node(w)[motorway_junction]). Esto excluye junctions de vias cruzadas con distinta ref."
+          "Lo que se ha hecho",
+          "(1) PO-01: análisis decisión 13 y definición de parámetros para POIModule. Resueltas 4 preguntas: pueblos cercanos desde el principio (Overpass 15 km), caché en memoria sin TTL por capas, 2 POIs por pueblo, datos de municipio dentro de POIModule. (2) PO-05: extraída la cascada de mirrors Overpass y utilidades geodésicas a js/overpass.js compartido. roadref.js y motorwayexit.js refactorizados para usar Overpass.query() y Overpass.distanciaMetros(). Verificado con simulador a6-salidas: MotorwayExit sigue mostrando salidas 23/24/26 correctamente. (3) PO-02: implementado js/pois.js con cuatro pasos — obtenerPueblosCercanos (Overpass 15 km, caché por desplazamiento >5 km), obtenerPOIsPueblo (Overpass 1500 m, caché por nombre), enriquecerPOI (Wikipedia REST → Wikidata SPARQL Jaccard ≥ 0.5 → icono fallback), obtenerDatosMunicipio (Wikidata SPARQL Q2074737). Verificado con simulador m505: 5 pueblos, 8 POIs, cascada de enriquecimiento completa. (4) PO-03: añadida sección «Qué ver por la zona» en index.html con fila horizontal deslizable de tarjetas de pueblo (foto Wikipedia o icono de fallback, nombre del POI, segundo POI en modo discreto). Datos del municipio (población, altitud) bajo la línea de admin en el bloque de ubicación."
         ],
         [
-          "Estado",
-          "abierto"
+          "Decisiones tomadas",
+          "Caché de POIModule en tres capas: (a) pueblos cercanos: refresco por desplazamiento >5 km, sin TTL; (b) POIs por pueblo: caché por nombre de pueblo, sin expiración en sesión; (c) enriquecimiento por POI: caché por nombre+coords, sin expiración. Trigger de POIModule: cada vez que hayQueActualizar (50 m), fire-and-forget con enActualizacion=false como guard. Jaccard mínimo para municipio bajado a 0.3 (más laxo que 0.5 de POIs) porque los nombres municipales suelen coincidir más exactamente."
+        ],
+        [
+          "Problemas encontrados durante la sesión",
+          "Mirrors Overpass saturados durante las pruebas (429 y timeout frecuentes en overpass-api.de y kumi.systems). El primer ciclo completo de POIModule tardó hasta 2 min por los fallos encadenados. En condiciones normales (200-800 ms por mirror) se esperan 15-30 s para el primer ciclo. No es un bug del código sino estado de los servidores públicos ese día. El servidor preview estaba apuntando al worktree antiguo (sesión 13), hubo que pararlo y reiniciarlo."
+        ],
+        [
+          "Pendiente al cerrar la sesión",
+          "PO-03 en cian, pendiente de aprobación de Laureano. PO-04 (soporte de pedanías) desbloqueado una vez PO-03 pase a verde. Prueba en carretera real del bloque POI pendiente."
         ]
       ]
     }
   ],
+  "problemas_abiertos": [],
   "problemas_resueltos": [
     {
       "id": "P01",
@@ -2374,6 +2382,31 @@
         [
           "Estado",
           "cerrado (sesión 13)"
+        ]
+      ]
+    },
+    {
+      "id": "P24",
+      "campos": [
+        [
+          "Fecha de aparicion",
+          "Sesion 12 (13 abril 2026)"
+        ],
+        [
+          "Sintoma",
+          "En la segunda vuelta del simulador a6-salidas, MotorwayExitModule mostraba salidas 82 y 83 como proximas en lugar de las salidas 24-26 de la A-6. El log mostro: proxima 83 a 3.4km, luego 24 a 5.8km y proxima 82 a 2.3km, luego 83 a 3km."
+        ],
+        [
+          "Causa",
+          "La query Overpass devuelve TODOS los motorway_junction en 50 km de radio sin filtrar por carretera. Las salidas 82 y 83 son de la M-40 (u otra via proxima) y pasan el filtro de angulo porque la M-40 discurre en la misma direccion general que la A-6 en esa zona. El codigo tenia una nota explicita de esta limitacion: si vemos falsos positivos de otra autovia cruzada, endurecemos la query."
+        ],
+        [
+          "Resolucion",
+          "Resuelto en sesión 14 (MO-04, verde). La query Overpass de tres pasos (nodos en radio → ways con ref → nodos de esas ways) filtra correctamente los junctions de vías cruzadas. Validado con simulador a6-salidas: salidas 23, 24, 26, 27, 29 de A-6 sin falsos positivos de M-40 ni AP-6."
+        ],
+        [
+          "Estado",
+          "resuelto"
         ]
       ]
     }
