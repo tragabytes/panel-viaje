@@ -313,7 +313,7 @@
 			"y": 760,
 			"width": 280,
 			"height": 160,
-			"color": "5"
+			"color": "4"
 		},
 		{
 			"id": "8c503e62",
@@ -324,6 +324,45 @@
 			"width": 280,
 			"height": 160,
 			"color": "4"
+		},
+		{
+			"id": "group-resili",
+			"type": "group",
+			"x": 2200,
+			"y": 0,
+			"width": 380,
+			"height": 700,
+			"label": "Resiliencia API"
+		},
+		{
+			"id": "074bb897",
+			"type": "text",
+			"text": "## RA-01 RE-01 Fallback Wikipedia geosearch para pueblos cercanos\nSi obtenerPueblosCercanos() falla en todos los mirrors de Overpass, intentar con es.wikipedia.org/w/api.php?action=query&list=geosearch (radio 10 km, límite 50 resultados). Filtrar en cliente: excluir títulos que contengan Estación de, Embalse, Arroyo, códigos de carretera, etc. Quedarse con los que parezcan municipios/pedanías. Infraestructura Wikimedia, completamente independiente de Overpass.",
+			"x": 2220,
+			"y": 40,
+			"width": 280,
+			"height": 160,
+			"color": "6"
+		},
+		{
+			"id": "5711fa1b",
+			"type": "text",
+			"text": "## RA-02 RE-02 Fallback Wikipedia geosearch para POIs por pueblo\nSi obtenerPOIsPueblo() falla en todos los mirrors de Overpass, intentar con Wikipedia geosearch centrado en las coordenadas del pueblo (radio 2 km). Los artículos de Wikipedia correlacionan bien con POIs notables (castillos, palacios, miradores). Ventaja extra: el pageid devuelto permite pedir el extracto de Wikipedia directamente, sin lookup adicional.",
+			"x": 2220,
+			"y": 220,
+			"width": 280,
+			"height": 160,
+			"color": "6"
+		},
+		{
+			"id": "a0faf2b1",
+			"type": "text",
+			"text": "## RA-03 RE-03 Caché persistente de POIs en IndexedDB\nLos POIs de un pueblo no cambian en meses. Guardar el resultado (venga de Overpass o de Wikipedia) en IndexedDB con TTL de 7-30 días. En la siguiente visita al mismo pueblo, leer de caché local sin ninguna petición de red. Elimina la dependencia de Overpass/Wikipedia para pueblos ya visitados y ahorra datos móviles.",
+			"x": 2220,
+			"y": 400,
+			"width": 280,
+			"height": 160,
+			"color": "6"
 		}
 	],
 	"edges": [
@@ -409,6 +448,27 @@
 			"fromNode": "75ad7211",
 			"fromSide": "bottom",
 			"toNode": "f2e20e5d",
+			"toSide": "top"
+		},
+		{
+			"id": "edge-013",
+			"fromNode": "074bb897",
+			"fromSide": "bottom",
+			"toNode": "5711fa1b",
+			"toSide": "top"
+		},
+		{
+			"id": "edge-014",
+			"fromNode": "074bb897",
+			"fromSide": "bottom",
+			"toNode": "a0faf2b1",
+			"toSide": "top"
+		},
+		{
+			"id": "edge-015",
+			"fromNode": "5711fa1b",
+			"fromSide": "bottom",
+			"toNode": "a0faf2b1",
 			"toSide": "top"
 		}
 	]
