@@ -8,33 +8,40 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     html, body {
-      min-height: 100%;
+      height: 100%;
+      overflow: hidden;
       background: #0f1117;
       color: #fff;
       font-family: -apple-system, system-ui, sans-serif;
     }
 
-    body {
+    /* Visor: contenedor de las tres vistas con swipe horizontal */
+    .visor {
+      display: flex;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+      width: 100vw;
+      height: 100vh;
+      scrollbar-width: none;
+    }
+    .visor::-webkit-scrollbar { display: none; }
+
+    /* Cada vista ocupa la pantalla completa */
+    .vista {
+      scroll-snap-align: start;
+      min-width: 100vw;
+      height: 100vh;
+      flex-shrink: 0;
+      overflow: hidden;
+    }
+
+    /* Vista 1: layout vertical con padding, como el panel original */
+    #vista1 {
       display: flex;
       flex-direction: column;
       padding: 16px;
-    }
-
-    /* Cuando el panel de debug está activo, reservamos espacio al final
-       del body para que el último bloque no quede tapado. El propio
-       debug.js añade y quita estas clases según su estado. */
-    body.debug-activo {
-      padding-bottom: calc(30vh + 32px);
-    }
-    body.debug-activo.debug-colapsado {
-      padding-bottom: 50px;
-    }
-
-    h1 {
-      font-size: 18px;
-      font-weight: 400;
-      opacity: 0.6;
-      margin-bottom: 20px;
+      overflow-y: auto;
     }
 
     .estado {
@@ -368,8 +375,8 @@
   </style>
 </head>
 <body>
-
-  <h1>Panel de viaje</h1>
+<div id="visor" class="visor">
+  <section class="vista" id="vista1">
 
   <div id="estado" class="estado">Esperando permiso de GPS…</div>
 
@@ -428,6 +435,17 @@
     <div><span>Rumbo:</span> <b id="rumbo">—</b></div>
     <div><span>Última actualización:</span> <b id="hora">—</b></div>
   </div>
+
+  </section><!-- /vista1 -->
+
+  <section class="vista" id="vista2" style="display:flex;align-items:center;justify-content:center;opacity:0.25;font-size:14px">
+    Vista 2 — Ubicación + Meteo (próximamente)
+  </section>
+
+  <section class="vista" id="vista3" style="display:flex;align-items:center;justify-content:center;opacity:0.25;font-size:14px">
+    Vista 3 — POIs (próximamente)
+  </section>
+</div><!-- /visor -->
 
   <script src="js/debug.js"></script>
   <script src="js/wakelock.js"></script>
