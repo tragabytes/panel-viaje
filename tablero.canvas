@@ -10,15 +10,6 @@
 			"label": "POIModule"
 		},
 		{
-			"id": "group-prueba",
-			"type": "group",
-			"x": 0,
-			"y": 0,
-			"width": 380,
-			"height": 700,
-			"label": "Prueba en carretera"
-		},
-		{
 			"id": "group-motorw",
 			"type": "group",
 			"x": 440,
@@ -26,6 +17,15 @@
 			"width": 380,
 			"height": 760,
 			"label": "MotorwayExitModule"
+		},
+		{
+			"id": "group-prueba",
+			"type": "group",
+			"x": 0,
+			"y": 0,
+			"width": 380,
+			"height": 700,
+			"label": "Prueba en carretera"
 		},
 		{
 			"id": "group-bugspr",
@@ -84,7 +84,7 @@
 			"y": 40,
 			"width": 280,
 			"height": 160,
-			"color": "5"
+			"color": "4"
 		},
 		{
 			"id": "24da1a0b",
@@ -94,7 +94,7 @@
 			"y": 220,
 			"width": 280,
 			"height": 160,
-			"color": "5"
+			"color": "4"
 		},
 		{
 			"id": "84fa0fde",
@@ -104,7 +104,7 @@
 			"y": 400,
 			"width": 280,
 			"height": 160,
-			"color": "5"
+			"color": "4"
 		},
 		{
 			"id": "89ae8a6c",
@@ -124,7 +124,7 @@
 			"y": 400,
 			"width": 280,
 			"height": 160,
-			"color": "5"
+			"color": "4"
 		},
 		{
 			"id": "9d3d196e",
@@ -154,7 +154,7 @@
 			"y": 220,
 			"width": 280,
 			"height": 160,
-			"color": "0"
+			"color": "4"
 		},
 		{
 			"id": "legend",
@@ -194,7 +194,7 @@
 			"y": 580,
 			"width": 280,
 			"height": 160,
-			"color": "6"
+			"color": "5"
 		}
 	],
 	"edges": [
