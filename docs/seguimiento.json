@@ -1904,7 +1904,7 @@
         ],
         [
           "Lo que se ha hecho",
-          "Implementacion de IU-03: Vista 1 reestructurada con grid CSS 2 columnas (58/42). Columna izquierda: carretera, salida autovia, municipio, admin, datos municipio. Columna derecha: meteo completo. Fila inferior full-width: chips POI compactos (nombre+distancia, sin iconos ni fotos). Datos GPS (lat/lon/precision/rumbo) movidos a div oculto #v1-gps de cara a IU-07. Labels Ubicacion y Meteo eliminados del markup. overflow:hidden en #vista1 — sin scroll vertical. Verificado: scrollHeight === clientHeight === 360px incluso con salida de autovia visible y chips POI."
+          "Implementacion de IU-03: Vista 1 reestructurada con grid CSS 2 columnas (58/42). Columna izquierda: carretera, salida autovia, municipio, admin, datos municipio. Columna derecha: meteo completo. Fila inferior full-width: chips POI compactos (nombre+distancia, sin iconos ni fotos). Datos GPS (lat/lon/precision/rumbo) movidos a div oculto #v1-gps de cara a IU-07. Labels Ubicacion y Meteo eliminados del markup. overflow:hidden en #vista1 — sin scroll vertical. Verificado: scrollHeight === clientHeight === 360px incluso con salida de autovia visible y chips POI. Ademas: bug detectado por Laureano al probar en el movil real — la barra de Chrome y la barra Android recortaban el visor por abajo. Corregido con height:100dvh (fallback 100vh) en .visor y .vista."
         ],
         [
           "Decisiones tomadas",
@@ -1912,7 +1912,7 @@
         ],
         [
           "Problemas encontrados",
-          "El simulador resetea el estado de la salida en cada tick, lo que dificultaba la verificacion visual. Solucionado verificando con metricas JS (scrollHeight === clientHeight) en lugar de screenshot."
+          "El simulador resetea el estado de la salida en cada tick, lo que dificultaba la verificacion visual. Solucionado verificando con metricas JS (scrollHeight === clientHeight) en lugar de screenshot. Bug movil real: 100vh no descuenta la barra de navegador en Chrome Android. Solucion: 100dvh con fallback 100vh. Verificado por Laureano en dispositivo fisico."
         ],
         [
           "Pendientes",
@@ -2607,6 +2607,31 @@
         [
           "Estado",
           "resuelto"
+        ]
+      ]
+    },
+    {
+      "id": "P25",
+      "campos": [
+        [
+          "Fecha de aparicion",
+          "14 de abril de 2026"
+        ],
+        [
+          "Sintoma",
+          "En Chrome para Android con barra de direcciones visible, el visor quedaba recortado por la parte inferior. La fila de POIs y el borde inferior de la vista no eran visibles."
+        ],
+        [
+          "Causa",
+          "height:100vh en Chrome movil no descuenta la altura de la UI del navegador (barra de direcciones + barra de navegacion Android). El visor se dimensionaba como si el area fuera mas grande de lo visible."
+        ],
+        [
+          "Resolucion",
+          "Cambiar a height:100dvh (dynamic viewport height) en .visor y .vista. Se mantiene 100vh como primera declaracion para navegadores sin soporte dvh. dvh disponible desde Chrome 108; el movil usa Chrome 146."
+        ],
+        [
+          "Estado",
+          "Resuelto en sesion 20"
         ]
       ]
     }
