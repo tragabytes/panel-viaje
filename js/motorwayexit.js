@@ -19,10 +19,7 @@
 //   · Filtro local en cada tick: distancia >300 m y ángulo <45° respecto
 //     al rumbo actual. El rumbo SIEMPRE es el del fix más reciente, nunca
 //     uno cacheado (aprendizaje de decisión 14).
-//   · Cascada de mirrors duplicada de roadref.js. Deuda técnica explícita:
-//     cuando motorwayexit y roadref estén validados en carretera real,
-//     se extrae el patrón a una función común. Por ahora duplicamos para
-//     no tocar un archivo validado.
+//   · Cascada de mirrors delegada a Overpass.query() (overpass.js).
 //   · Caché solo en memoria. Si se recarga el panel en marcha, nueva
 //     consulta. En un viaje típico son 3-5 consultas, despreciables.
 //
@@ -44,6 +41,8 @@
 //   MotorwayExitModule.reset()
 //     Vacía caché y estado. Útil para tests con el simulador.
 //
+// Dependencia: overpass.js debe cargarse antes que este archivo.
+//
 // NOTA CRÍTICA SOBRE EL SCOPE GLOBAL (P18-bis, sesión 10):
 //   En scripts clásicos de navegador todos los <script> comparten el mismo
 //   ámbito global. Por eso NO podemos declarar `const __global__ = ...` a
@@ -60,14 +59,6 @@
   __global__.MotorwayExitModule = (() => {
 
   // --- Constantes configurables ---
-
-  const MIRRORS = [
-    'https://overpass-api.de/api/interpreter',
-    'https://overpass.kumi.systems/api/interpreter',
-    'https://overpass.private.coffee/api/interpreter',
-  ];
-
-  const TIMEOUT_MIRROR_MS = 8000;
 
   const RADIO_CONSULTA_KM = 50;
   const UMBRAL_REFRESCO_KM = 35;
@@ -105,40 +96,6 @@
   let ultimoRoadRefConocido = null;
   let tsUltimoRoadRefConocido = 0;
 
-  // --- Utilidades geodésicas ---
-
-  function distanciaMetros(lat1, lon1, lat2, lon2) {
-    const R = 6371000;
-    const toRad = (g) => g * Math.PI / 180;
-    const dLat = toRad(lat2 - lat1);
-    const dLon = toRad(lon2 - lon1);
-    const a = Math.sin(dLat / 2) ** 2 +
-              Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-              Math.sin(dLon / 2) ** 2;
-    return 2 * R * Math.asin(Math.sqrt(a));
-  }
-
-  // Rumbo inicial (bearing) de (lat1,lon1) a (lat2,lon2), en grados 0-360.
-  // 0 = norte, 90 = este.
-  function rumboHacia(lat1, lon1, lat2, lon2) {
-    const toRad = (g) => g * Math.PI / 180;
-    const toDeg = (r) => r * 180 / Math.PI;
-    const phi1 = toRad(lat1);
-    const phi2 = toRad(lat2);
-    const dLon = toRad(lon2 - lon1);
-    const y = Math.sin(dLon) * Math.cos(phi2);
-    const x = Math.cos(phi1) * Math.sin(phi2) -
-              Math.sin(phi1) * Math.cos(phi2) * Math.cos(dLon);
-    const theta = Math.atan2(y, x);
-    return (toDeg(theta) + 360) % 360;
-  }
-
-  // Diferencia angular mínima entre dos rumbos, en grados [0, 180].
-  function diferenciaAngular(a, b) {
-    const d = Math.abs(a - b) % 360;
-    return d > 180 ? 360 - d : d;
-  }
-
   // --- Overpass ---
 
   // Pedimos los nodos highway=motorway_junction de la vía actual.
@@ -159,31 +116,6 @@
       `node(w.via_actual)[highway=motorway_junction]["ref"](if:t["ref"]!="0");` +
       `out body;`
     );
-  }
-
-  async function llamarMirror(url, query) {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MIRROR_MS);
-    const t0 = (typeof performance !== 'undefined') ? performance.now() : Date.now();
-    try {
-      const resp = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'data=' + encodeURIComponent(query),
-        signal: controller.signal,
-      });
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      const datos = await resp.json();
-      const dt = Math.round(
-        ((typeof performance !== 'undefined') ? performance.now() : Date.now()) - t0
-      );
-      return { datos, dt };
-    } catch (err) {
-      if (err.name === 'AbortError') throw new Error('timeout');
-      throw err;
-    } finally {
-      clearTimeout(timeoutId);
-    }
   }
 
   // Parsea elements de Overpass en lista de junctions limpia.
@@ -214,27 +146,13 @@
   }
 
   async function consultarOverpass(lat, lon, refVia) {
-    const query = construirQuery(lat, lon, refVia);
-    for (let i = 0; i < MIRRORS.length; i++) {
-      const url = MIRRORS[i];
-      const nombreMirror = url.split('/')[2];
-      try {
-        const { datos, dt } = await llamarMirror(url, query);
-        const { lista, descartados } = parsearJunctions(datos);
-        if (typeof debug !== 'undefined') {
-          debug.log(`MotorwayExit ${nombreMirror} OK en ${dt}ms · ${lista.length} junctions válidos · ${descartados} descartados`);
-        }
-        return { lista, mirror: nombreMirror };
-      } catch (err) {
-        if (typeof debug !== 'undefined') {
-          debug.log(`MotorwayExit ${nombreMirror} fallo: ${err.message}`);
-        }
-      }
-    }
+    const queryQL = construirQuery(lat, lon, refVia);
+    const { datos } = await Overpass.query(queryQL, 'MotorwayExit');
+    const { lista, descartados } = parsearJunctions(datos);
     if (typeof debug !== 'undefined') {
-      debug.error('MotorwayExit: todos los mirrors fallaron');
+      debug.log(`MotorwayExit · ${lista.length} junctions válidos · ${descartados} descartados`);
     }
-    throw new Error('todos_mirrors_fallaron');
+    return { lista };
   }
 
   // --- Gestión de caché ---
@@ -396,7 +314,7 @@
 
     // Caché presente y cargada. ¿Toca refrescar por distancia?
     // No disparamos un refresco si ya hay uno en vuelo.
-    const distCentroKm = distanciaMetros(lat, lon, cache.centroLat, cache.centroLon) / 1000;
+    const distCentroKm = Overpass.distanciaMetros(lat, lon, cache.centroLat, cache.centroLon) / 1000;
     if (distCentroKm >= UMBRAL_REFRESCO_KM && !cache.refrescando) {
       if (typeof debug !== 'undefined') {
         debug.log(`MotorwayExit: refresco por distancia (centro a ${distCentroKm.toFixed(1)}km)`);
@@ -414,11 +332,11 @@
 
     const candidatos = [];
     for (const j of junctions) {
-      const distM = distanciaMetros(lat, lon, j.lat, j.lon);
+      const distM = Overpass.distanciaMetros(lat, lon, j.lat, j.lon);
       if (distM < DISTANCIA_MIN_JUNCTION_M) continue;
       if (typeof rumbo === 'number') {
-        const rumboJ = rumboHacia(lat, lon, j.lat, j.lon);
-        const diff = diferenciaAngular(rumbo, rumboJ);
+        const rumboJ = Overpass.rumboHacia(lat, lon, j.lat, j.lon);
+        const diff = Overpass.diferenciaAngular(rumbo, rumboJ);
         if (diff > TOLERANCIA_ANGULAR_GRADOS) continue;
       }
       candidatos.push({ ref: j.ref, distanciaKm: distM / 1000 });
@@ -458,9 +376,6 @@
     actualizar,
     reset,
     // Expuestos para tests
-    _distanciaMetros: distanciaMetros,
-    _rumboHacia: rumboHacia,
-    _diferenciaAngular: diferenciaAngular,
     _parsearJunctions: parsearJunctions,
     _construirQuery: construirQuery,
   };

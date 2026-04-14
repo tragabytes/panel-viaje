@@ -18,38 +18,22 @@
 // Diseño (decisión 22, sesión 9.8):
 //   · Query mínima: way(around:25)[highway][ref]; out tags 3;
 //     Solo tags, máximo 3 ways, sin geometría. Respuesta por debajo de 1 KB.
-//   · Fallback entre mirrors: overpass-api.de → kumi.systems → private.coffee.
-//     Aprendizaje de sesiones 05/06: los mirrors de Overpass son inestables,
-//     hay que poder saltar al siguiente.
+//   · Fallback entre mirrors: delegado a Overpass.query() (overpass.js).
 //   · Caché por proximidad: 300 m. Una carretera interurbana es larga y un
 //     cambio de ref real no ocurre a menos de 300 m del punto anterior.
-//   · Timeout de cliente: 8 s por mirror. Aprendizaje del P09: no confiar
-//     en que Overpass responda rápido siempre.
+//   · Timeout de cliente: 8 s por mirror (configurado en overpass.js).
 //   · Se llama SOLO como fallback cuando Nominatim no ha dado código, no
 //     por cada tick del GPS. El rate limiter vive en index.html (por el
 //     dedupe + filtro de desplazamiento), aquí no hay cola.
 //
 // API pública:
 //   RoadRef.consultar(lat, lon) → Promise<string|null>
-
-// Exponemos directamente en window, igual que wakelock.js y simulator.js,
-// porque index.html hace `if (window.RoadRef)` como guard defensivo antes
-// de llamarlo. Un `const RoadRef = ...` a nivel top-level NO se engancha
-// a window en scripts clásicos, y ese fue exactamente el bug de RoadRef
-// en la primera iteración de sesión 9.8 (misma pisada que pasó con
-// `const Rutas` en sesión 9.7).
 //
-// En Node (tests), `window` no existe, así que usamos un shim.
+// Dependencia: overpass.js debe cargarse antes que este archivo.
+
 const __global__ = (typeof window !== 'undefined') ? window : globalThis;
 
 __global__.RoadRef = (() => {
-  const MIRRORS = [
-    'https://overpass-api.de/api/interpreter',
-    'https://overpass.kumi.systems/api/interpreter',
-    'https://overpass.private.coffee/api/interpreter',
-  ];
-
-  const TIMEOUT_MS = 8000;
   const RADIO_CACHE_M = 300;
   const RADIO_BUSQUEDA_M = 25;
 
@@ -60,49 +44,11 @@ __global__.RoadRef = (() => {
 
   let cache = null; // { lat, lon, ref }
 
-  function distanciaMetros(lat1, lon1, lat2, lon2) {
-    const R = 6371000;
-    const toRad = (g) => g * Math.PI / 180;
-    const dLat = toRad(lat2 - lat1);
-    const dLon = toRad(lon2 - lon1);
-    const a = Math.sin(dLat / 2) ** 2 +
-              Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-              Math.sin(dLon / 2) ** 2;
-    return 2 * R * Math.asin(Math.sqrt(a));
-  }
-
   // Construye la query QL. Pedimos solo tags de ways con highway y ref.
   // `out tags 3` = solo campo tags, sin coordenadas ni nodos, máximo 3
   // elementos. La respuesta típica está por debajo de 1 KB.
   function construirQuery(lat, lon) {
     return `[out:json][timeout:10];way(around:${RADIO_BUSQUEDA_M},${lat},${lon})[highway][ref];out tags 3;`;
-  }
-
-  // Llama a un mirror concreto con timeout. Devuelve el JSON parseado
-  // si todo va bien, o lanza error.
-  async function llamarMirror(url, query) {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
-    const t0 = (typeof performance !== 'undefined') ? performance.now() : Date.now();
-    try {
-      const resp = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'data=' + encodeURIComponent(query),
-        signal: controller.signal,
-      });
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      const datos = await resp.json();
-      const dt = Math.round(
-        ((typeof performance !== 'undefined') ? performance.now() : Date.now()) - t0
-      );
-      return { datos, dt };
-    } catch (err) {
-      if (err.name === 'AbortError') throw new Error('timeout');
-      throw err;
-    } finally {
-      clearTimeout(timeoutId);
-    }
   }
 
   // Recorre los elements devueltos por Overpass, extrae la primera ref
@@ -129,7 +75,7 @@ __global__.RoadRef = (() => {
   async function consultar(lat, lon) {
     // 1) Caché por proximidad
     if (cache) {
-      const d = distanciaMetros(lat, lon, cache.lat, cache.lon);
+      const d = Overpass.distanciaMetros(lat, lon, cache.lat, cache.lon);
       if (d < RADIO_CACHE_M) {
         if (typeof debug !== 'undefined') {
           debug.log(`RoadRef caché reusada (dist ${Math.round(d)}m): ${cache.ref || 'null'}`);
@@ -138,37 +84,25 @@ __global__.RoadRef = (() => {
       }
     }
 
-    const query = construirQuery(lat, lon);
+    const queryQL = construirQuery(lat, lon);
 
-    // 2) Cascada de mirrors
-    for (let i = 0; i < MIRRORS.length; i++) {
-      const url = MIRRORS[i];
-      const nombreMirror = url.split('/')[2];
-      try {
-        const { datos, dt } = await llamarMirror(url, query);
-        const ref = elegirRef(datos);
-        if (typeof debug !== 'undefined') {
-          const n = (datos.elements || []).length;
-          debug.log(`RoadRef ${nombreMirror} OK en ${dt}ms · ${n} ways · ref=${ref || 'null'}`);
-        }
-        cache = { lat, lon, ref };
-        return ref;
-      } catch (err) {
-        if (typeof debug !== 'undefined') {
-          debug.log(`RoadRef ${nombreMirror} fallo: ${err.message}`);
-        }
-        // Probamos el siguiente mirror
+    // 2) Cascada de mirrors (delegada a overpass.js)
+    try {
+      const { datos } = await Overpass.query(queryQL, 'RoadRef');
+      const ref = elegirRef(datos);
+      if (typeof debug !== 'undefined') {
+        const n = (datos.elements || []).length;
+        debug.log(`RoadRef · ${n} ways · ref=${ref || 'null'}`);
       }
+      cache = { lat, lon, ref };
+      return ref;
+    } catch (err) {
+      // Todos los mirrors fallaron. Cacheamos null para no martillear en
+      // tics sucesivos dentro del radio; el próximo movimiento >300 m
+      // volverá a intentar.
+      cache = { lat, lon, ref: null };
+      return null;
     }
-
-    // 3) Todos los mirrors fallaron. Cacheamos null para no martillear en
-    //    tics sucesivos dentro del radio; el próximo movimiento >300 m
-    //    volverá a intentar.
-    if (typeof debug !== 'undefined') {
-      debug.error('RoadRef: todos los mirrors fallaron');
-    }
-    cache = { lat, lon, ref: null };
-    return null;
   }
 
   return {

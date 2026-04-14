@@ -225,6 +225,103 @@
       opacity: 0.45;
     }
     /* ---- Fin bloque próxima salida ---- */
+
+    /* ---- Bloque POI: Qué ver por la zona ---- */
+    .poi-seccion {
+      margin-bottom: 20px;
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    /* Fila de tarjetas deslizable horizontalmente */
+    .poi-scroll {
+      display: flex;
+      overflow-x: auto;
+      gap: 10px;
+      padding-bottom: 4px;
+      -webkit-overflow-scrolling: touch;
+    }
+    .poi-scroll::-webkit-scrollbar { display: none; }
+
+    .poi-pueblo {
+      min-width: 175px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 8px;
+      padding: 10px;
+      flex-shrink: 0;
+    }
+
+    .poi-pueblo-cab {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+
+    .poi-pueblo-nombre {
+      font-size: 13px;
+      font-weight: 600;
+      opacity: 0.9;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .poi-pueblo-dist {
+      font-size: 11px;
+      opacity: 0.45;
+      flex-shrink: 0;
+    }
+
+    .poi-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 5px;
+    }
+
+    .poi-foto {
+      width: 52px;
+      height: 52px;
+      object-fit: cover;
+      border-radius: 6px;
+      flex-shrink: 0;
+    }
+
+    .poi-icono-box {
+      width: 52px;
+      height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 26px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 6px;
+      flex-shrink: 0;
+    }
+
+    .poi-nombre {
+      font-size: 12px;
+      opacity: 0.85;
+      line-height: 1.35;
+    }
+
+    .poi-nombre-sec {
+      font-size: 11px;
+      opacity: 0.5;
+    }
+    /* ---- Fin bloque POI ---- */
+
+    /* Datos del municipio (población, altitud) bajo la línea admin */
+    .datos-municipio {
+      font-size: 12px;
+      opacity: 0.4;
+      margin-top: 2px;
+      line-height: 1.5;
+    }
   </style>
 </head>
 <body>
@@ -250,6 +347,7 @@
     <div class="label">Ubicación</div>
     <div id="municipio" class="municipio">—</div>
     <div id="admin" class="admin">—</div>
+    <div id="datosMunicipio" class="datos-municipio"></div>
   </div>
 
   <div class="meteo" id="meteoBloque">
@@ -262,6 +360,11 @@
     <div id="meteoViento" class="sub">—</div>
     <div id="meteoHumedad" class="sub">—</div>
     <div id="meteoPrevision" class="prevision">—</div>
+  </div>
+
+  <div id="poiBloque" class="poi-seccion" style="display:none">
+    <div class="label">Qué ver por la zona</div>
+    <div id="poiScroll" class="poi-scroll"></div>
   </div>
 
   <div class="coordenadas">
@@ -279,11 +382,13 @@
   <script src="js/debug.js"></script>
   <script src="js/wakelock.js"></script>
   <script src="js/carreteras.js"></script>
+  <script src="js/overpass.js"></script>
   <script src="js/roadref.js"></script>
   <script src="js/location.js"></script>
   <script src="js/meteo_codigos.js"></script>
   <script src="js/weather.js"></script>
   <script src="js/motorwayexit.js"></script>
+  <script src="js/pois.js"></script>
   <script src="js/rutas.js"></script>
   <script src="js/simulator.js"></script>
   <script>
@@ -303,6 +408,9 @@
     const $salidaSig        = document.getElementById('salidaSig');
     const $municipio        = document.getElementById('municipio');
     const $admin            = document.getElementById('admin');
+    const $datosMunicipio   = document.getElementById('datosMunicipio');
+    const $poiBloque        = document.getElementById('poiBloque');
+    const $poiScroll        = document.getElementById('poiScroll');
     const $meteoTemp        = document.getElementById('meteoTemp');
     const $meteoDescripcion = document.getElementById('meteoDescripcion');
     const $meteoViento      = document.getElementById('meteoViento');
@@ -325,6 +433,7 @@
     // caminos de actualizarCarretera() y lo consume MotorwayExitModule en
     // cada tick de GPS para saber en qué vía buscar próximas salidas.
     let roadRefActual           = null;
+    let municipioActual         = null;
     // Si el último pintado del bloque meteo fue un estado de error, lo
     // guardamos aquí para forzar el repintado en cuanto llegue cualquier
     // dato válido, aunque la clave de dedupe coincida con el último válido
@@ -384,6 +493,7 @@
         if (clave === ultimaUbicacionMostrada) return;
         ultimaUbicacionMostrada = clave;
 
+        municipioActual = info.municipio || null;
         $municipio.textContent = info.municipio || '(municipio desconocido)';
         $admin.textContent = formatearAdmin(info);
         debug.log(`Ubicación [${info.fuente}]: ${info.municipio} · ${formatearAdmin(info)}`);
@@ -529,6 +639,84 @@
       }
     }
 
+    // --- POIModule ---
+
+    function pintarPOIs(resultado) {
+      // Datos del municipio actual (población, altitud)
+      const dm = resultado.datosMunicipio;
+      if (dm) {
+        const partes = [];
+        if (dm.poblacion != null) partes.push(dm.poblacion.toLocaleString('es') + ' hab');
+        if (dm.altitud   != null) partes.push(dm.altitud + ' m');
+        $datosMunicipio.textContent = partes.join(' · ');
+      } else {
+        $datosMunicipio.textContent = '';
+      }
+
+      // Tarjetas de pueblos con POIs
+      const pueblos = (resultado.pueblosCercanos || []).filter(p => p.pois.length > 0);
+      if (pueblos.length === 0) {
+        $poiBloque.style.display = 'none';
+        return;
+      }
+
+      $poiScroll.innerHTML = pueblos.map(pueblo => {
+        const dist = pueblo.distKm < 1
+          ? Math.round(pueblo.distKm * 1000) + ' m'
+          : pueblo.distKm.toFixed(1) + ' km';
+
+        const poisHtml = pueblo.pois.map((poi, i) => {
+          if (i === 0) {
+            // POI principal: foto o icono grande + nombre
+            const mediaHtml = poi.foto
+              ? `<img class="poi-foto" src="${escapar(poi.foto)}" alt="" loading="lazy">`
+              : `<span class="poi-icono-box">${escapar(poi.icono)}</span>`;
+            return `<div class="poi-item">
+              ${mediaHtml}
+              <span class="poi-nombre">${escapar(poi.nombre)}</span>
+            </div>`;
+          } else {
+            // POI secundario: icono pequeño + nombre discreto
+            return `<div class="poi-item">
+              <span style="font-size:14px;opacity:0.5;flex-shrink:0">${escapar(poi.icono)}</span>
+              <span class="poi-nombre-sec">${escapar(poi.nombre)}</span>
+            </div>`;
+          }
+        }).join('');
+
+        return `<div class="poi-pueblo">
+          <div class="poi-pueblo-cab">
+            <span class="poi-pueblo-nombre">${escapar(pueblo.nombre)}</span>
+            <span class="poi-pueblo-dist">${escapar(dist)}</span>
+          </div>
+          ${poisHtml}
+        </div>`;
+      }).join('');
+
+      $poiBloque.style.display = '';
+    }
+
+    let poiChequeado = false;
+
+    function actualizarPOIs(lat, lon) {
+      if (!poiChequeado) {
+        poiChequeado = true;
+        if (window.POIModule) {
+          debug.log('POIModule: cargado, primer tick recibido');
+        } else {
+          debug.error('POIModule: no disponible');
+          return;
+        }
+      }
+      if (!window.POIModule) return;
+      // Fire-and-forget. Cuando resuelve, pintamos los resultados.
+      POIModule.actualizar(lat, lon, municipioActual).then(resultado => {
+        if (resultado) pintarPOIs(resultado);
+      }).catch(err => {
+        debug.error(`POIModule: ${err.message}`);
+      });
+    }
+
     // Estado del último log de próximas salidas, para evitar spammear
     // el panel de debug con el mismo resultado en cada tick de GPS.
     let ultimoLogSalidas = null;
@@ -619,6 +807,7 @@
         actualizarUbicacionAdministrativa(c.latitude, c.longitude);
         actualizarCarretera(c.latitude, c.longitude);
         actualizarMeteo(c.latitude, c.longitude);
+        actualizarPOIs(c.latitude, c.longitude);
       }
 
       // MotorwayExit se evalúa en CADA tick, no solo cada 50 m. Es barato
