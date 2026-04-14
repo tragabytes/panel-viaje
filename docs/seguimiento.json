@@ -7,10 +7,10 @@
     "nota_pie": "Actualizar al final de cada sesión de trabajo"
   },
   "estado_actual": {
-    "fase_actual": "Fase 2 — POIModule (BPC-06/07/08 en revisión)",
+    "fase_actual": "Fase 2 — POIModule (PO-06/07/08 e IU-01 en revisión)",
     "ultima_actualizacion": "14 de abril de 2026",
-    "siguiente_hito": "Aprobar BPC-06/07/08 y PEC-03 (prueba en carretera real del bloque POI).",
-    "bloqueos": "BPC-04 y BPC-05 bloqueados hasta PEC-03."
+    "siguiente_hito": "Aprobar PO-06/07/08 e IU-01 y avanzar a PEC-03 (prueba en carretera real del bloque POI).",
+    "bloqueos": "PEC-03 sigue pendiente y desbloquea BPC-04 y BPC-05."
   },
   "fases": [
     {
@@ -1781,6 +1781,40 @@
         [
           "Pendiente al cerrar la sesión",
           "BPC-06/07/08 en cian pendientes de aprobación de Laureano. PEC-03 (prueba en carretera real del bloque POI completo) sigue pendiente y desbloquea BPC-04 y BPC-05."
+        ]
+      ]
+    },
+    {
+      "n": 17,
+      "titulo": "PO-06/07/08 + IU-01 — descripción/foto municipio, comarca, miniaturas optimizadas e indicador de datos obsoletos",
+      "campos": [
+        [
+          "Fecha",
+          "14 de abril de 2026"
+        ],
+        [
+          "Fase trabajada",
+          "Fase 2 — POIModule (PO-06, PO-07, PO-08) + UI/Experiencia (IU-01)"
+        ],
+        [
+          "Contexto de arranque",
+          "Las 4 tarjetas rojas del tablero estaban listas para implementar. También se detectó y corrigió un bug en canvas-tool.py que corrompía el texto de la tarjeta IU-01 al prepender repetidamente el prefijo «U/E-» inválido."
+        ],
+        [
+          "Lo que se ha hecho",
+          "PO-07: añadido ?width=100 a la URL del endpoint Wikipedia REST /page/summary. Las miniaturas pasan de 320 px a 100 px, ahorrando ~75 % de datos por foto (una línea de cambio). PO-08: ampliada la query Wikidata del municipio con OPTIONAL { ?item wdt:P131 ?comarca }. El campo comarca se añade al resultado y se muestra al inicio de la línea de datos del bloque UBICACIÓN: «Maragatería · 1.234 hab · 868 m». PO-06: tras obtener los datos Wikidata, obtenerDatosMunicipio llama a consultarWikipedia para enriquecer el resultado con descripcion (primera frase del extracto) y foto. En el bloque UBICACIÓN aparece un nuevo sub-bloque «municipio-info» con thumbnail 52×52 y la primera frase. Si Wikipedia falla, el enriquecimiento se omite sin error. IU-01: añadida variable ultimoTickGPS que se actualiza en cada tick de GPS. Un setInterval cada 30 s comprueba si han pasado más de 3 min (UMBRAL_GPS_OBSOLETO_MS = 180 000 ms); si es así,  muestra «Datos de hace Xm» en naranja (nueva clase CSS .estado.aviso). Cuando llega un tick nuevo vuelve a verde automáticamente. Fix canvas-tool.py: group_prefix ahora filtra palabras no-alfa al derivar el prefijo de un grupo sin tarjetas con ID. El separador «/» del grupo «UI / Experiencia» generaba el prefijo «U/E» que no casaba con el regex [A-Z]{1,3} y causaba un bucle que repetía el prefijo en el texto de la tarjeta en cada llamada que ejecutara normalize. Se limpió manualmente el texto corrompido de la tarjeta IU-01 en tablero.canvas."
+        ],
+        [
+          "Decisiones tomadas",
+          "Para PO-06 se optó por enriquecer dentro de obtenerDatosMunicipio (en lugar de una función separada) porque la caché ya existente por nombre de municipio cubre también la llamada a Wikipedia: una vez cacheado el resultado completo, no se vuelve a llamar a ninguna API. El enriquecimiento Wikipedia es no-crítico: un fallo no genera error visible ni bloquea los datos de población/altitud/comarca. La primera frase del extracto Wikipedia se obtiene con split(\". \")[0] + «.», lo que da un texto de una sola línea adecuado para el panel. El umbral de IU-01 se fijó en 3 min (180 s) siguiendo la descripción original de la tarjeta. La comprobación cada 30 s es un compromiso entre reactividad y consumo; el intervalo es mucho más barato que cualquier llamada de red."
+        ],
+        [
+          "Problemas encontrados durante la sesión",
+          "Bug en canvas-tool.py: al llamar a start para cualquier tarea con normalize activado, el script repetía el prefijo «U/E-01» en el texto de la tarjeta IU-01 porque el grupo «UI / Experiencia» generaba el prefijo inválido «U/E» (incluye el carácter «/»). Corregido filtrando palabras no-alfa en group_prefix y limpiando el texto corrompido directamente en el JSON del canvas."
+        ],
+        [
+          "Pendiente al cerrar la sesión",
+          "PO-06/07/08 e IU-01 en cian pendientes de revisión de Laureano en el móvil. PEC-03 (prueba en carretera real del bloque POI completo) sigue pendiente y desbloquea BPC-04 y BPC-05."
         ]
       ]
     }
