@@ -10,6 +10,7 @@
 //
 // Arquitectura (decisión 13, sesiones 06-07):
 //   Paso 1 — Pueblos cercanos: Overpass node[place] en radio 15 km.
+//             Tags: village|town|city|hamlet (pedanías incluidas).
 //             Caché por desplazamiento > 5 km del centro de la última consulta.
 //   Paso 2 — Inventario POIs: Overpass en radio 1500 m del centro de cada pueblo.
 //             Tags: historic=castle|cathedral|monastery|church|chapel|fort|
@@ -22,10 +23,11 @@
 //             Jaccard ≥ 0.5 sobre palabras significativas) →
 //             fallback icono por tipo.
 //             Caché por POI (nombre+coords), sin expiración.
-//   Paso 4 — Datos del municipio: Wikidata SPARQL por proximidad (radio 10 km),
-//             filtrando por wd:Q2074737 (municipio de España). Campos:
-//             población (P1082), altitud (P2044), superficie (P2046).
-//             Caché por nombre de municipio, sin expiración.
+//   Paso 4 — Datos del municipio: Wikidata SPARQL por proximidad (radio 10 km).
+//             Capa 1: wd:Q2074737 (municipio de España), Jaccard ≥ 0.3.
+//             Capa 2 (pedanías): wd:Q56061 (entidad singular de población),
+//             solo si capa 1 falla, Jaccard ≥ 0.5. Campos: población (P1082),
+//             altitud (P2044), superficie (P2046). Caché por nombre, sin expiración.
 //
 // API pública:
 //   POIModule.actualizar(lat, lon, municipioActual)
@@ -56,6 +58,7 @@
     const TIMEOUT_WIKIDATA_MS     = 12000;
     const JACCARD_MIN_POI         = 0.5;
     const JACCARD_MIN_MUNICIPIO   = 0.3;
+    const JACCARD_MIN_PEDANIA     = 0.5;   // más estricto para Q56061 (entidades singulares)
 
     const WIKIDATA_ENDPOINT = 'https://query.wikidata.org/sparql';
     const WIKIPEDIA_ENDPOINT = 'https://es.wikipedia.org/api/rest_v1/page/summary';
@@ -135,7 +138,7 @@
       return (
         `[out:json][timeout:20];` +
         `node(around:${RADIO_PUEBLOS_M},${lat},${lon})` +
-        `[place~"^(village|town|city)$"]["name"];` +
+        `[place~"^(village|town|city|hamlet)$"]["name"];` +
         `out body;`
       );
     }
@@ -317,29 +320,27 @@
       return { ...poi, ...base };
     }
 
-    // --- Paso 4: Datos del municipio (Wikidata) ---
+    // --- Paso 4: Datos del municipio (Wikidata, dos capas) ---
 
-    async function obtenerDatosMunicipio(nombre, lat, lon) {
-      if (cacheMunicipio.has(nombre)) {
-        if (typeof debug !== 'undefined') {
-          debug.log(`POI municipio [${nombre}]: caché OK`);
-        }
-        return cacheMunicipio.get(nombre);
-      }
-
-      const sparql = `SELECT ?item ?itemLabel ?poblacion ?altitud ?superficie WHERE {
-  SERVICE wikibase:around {
-    ?item wdt:P625 ?coords.
-    bd:serviceParam wikibase:center "Point(${lon} ${lat})"^^geo:wktLiteral.
-    bd:serviceParam wikibase:radius "${RADIO_MUNICIPIO_KM}".
-  }
-  ?item wdt:P31 wd:Q2074737.
-  OPTIONAL { ?item wdt:P1082 ?poblacion. }
-  OPTIONAL { ?item wdt:P2044 ?altitud. }
-  OPTIONAL { ?item wdt:P2046 ?superficie. }
-  SERVICE wikibase:label { bd:serviceParam wikibase:language "es,en". }
-} LIMIT 5`;
-
+    // Helper compartido por las dos capas de búsqueda.
+    // filtroQ: 'Q2074737' (municipio oficial) o 'Q56061' (entidad singular).
+    // umbral:  Jaccard mínimo para aceptar el match.
+    // Devuelve {nombre, poblacion, altitud, superficie} o null.
+    async function _buscarEnWikidata(nombre, lat, lon, filtroQ, umbral) {
+      const sparql = (
+        `SELECT ?item ?itemLabel ?poblacion ?altitud ?superficie WHERE {` +
+        `  SERVICE wikibase:around {` +
+        `    ?item wdt:P625 ?coords.` +
+        `    bd:serviceParam wikibase:center "Point(${lon} ${lat})"^^geo:wktLiteral.` +
+        `    bd:serviceParam wikibase:radius "${RADIO_MUNICIPIO_KM}".` +
+        `  }` +
+        `  ?item wdt:P31 wd:${filtroQ}.` +
+        `  OPTIONAL { ?item wdt:P1082 ?poblacion. }` +
+        `  OPTIONAL { ?item wdt:P2044 ?altitud. }` +
+        `  OPTIONAL { ?item wdt:P2046 ?superficie. }` +
+        `  SERVICE wikibase:label { bd:serviceParam wikibase:language "es,en". }` +
+        `} LIMIT 5`
+      );
       const url = `${WIKIDATA_ENDPOINT}?query=${encodeURIComponent(sparql)}&format=json`;
       const t0 = Date.now();
       const datos = await fetchConTimeout(url, {}, TIMEOUT_WIKIDATA_MS);
@@ -353,26 +354,59 @@
         if (sim > mejorSim) { mejorSim = sim; mejorB = b; }
       }
 
-      let resultado = null;
-      if (mejorB && mejorSim >= JACCARD_MIN_MUNICIPIO) {
-        resultado = {
-          nombre:     mejorB.itemLabel ? mejorB.itemLabel.value : nombre,
-          poblacion:  mejorB.poblacion  ? Math.round(Number(mejorB.poblacion.value))  : null,
-          altitud:    mejorB.altitud    ? Math.round(Number(mejorB.altitud.value))    : null,
-          superficie: mejorB.superficie ? Math.round(Number(mejorB.superficie.value)) : null,
-        };
+      if (!mejorB || mejorSim < umbral) {
         if (typeof debug !== 'undefined') {
-          debug.log(
-            `POI municipio [${nombre}]: Wikidata OK en ${dt}ms · ` +
-            `${resultado.poblacion != null ? resultado.poblacion + ' hab' : ''}` +
-            `${resultado.altitud   != null ? ' · ' + resultado.altitud + 'm' : ''}`
-          );
+          debug.log(`POI municipio [${nombre}] (${filtroQ}): sin match (${bindings.length} cands, Jaccard ${mejorSim >= 0 ? mejorSim.toFixed(2) : 'n/a'})`);
         }
-      } else {
+        return null;
+      }
+
+      const resultado = {
+        nombre:     mejorB.itemLabel ? mejorB.itemLabel.value : nombre,
+        poblacion:  mejorB.poblacion  ? Math.round(Number(mejorB.poblacion.value))  : null,
+        altitud:    mejorB.altitud    ? Math.round(Number(mejorB.altitud.value))    : null,
+        superficie: mejorB.superficie ? Math.round(Number(mejorB.superficie.value)) : null,
+      };
+      if (typeof debug !== 'undefined') {
+        debug.log(
+          `POI municipio [${nombre}] (${filtroQ}): OK en ${dt}ms Jaccard ${mejorSim.toFixed(2)} · ` +
+          `${resultado.poblacion != null ? resultado.poblacion + ' hab' : ''}` +
+          `${resultado.altitud   != null ? ' · ' + resultado.altitud + 'm' : ''}`
+        );
+      }
+      return resultado;
+    }
+
+    async function obtenerDatosMunicipio(nombre, lat, lon) {
+      if (cacheMunicipio.has(nombre)) {
         if (typeof debug !== 'undefined') {
-          debug.log(`POI municipio [${nombre}]: sin match (${bindings.length} candidatos, mejor Jaccard ${mejorSim.toFixed(2)})`);
+          debug.log(`POI municipio [${nombre}]: caché OK`);
+        }
+        return cacheMunicipio.get(nombre);
+      }
+
+      let resultado = null;
+
+      // Capa 1: municipio oficial de España (Q2074737)
+      try {
+        resultado = await _buscarEnWikidata(nombre, lat, lon, 'Q2074737', JACCARD_MIN_MUNICIPIO);
+      } catch (e) {
+        if (typeof debug !== 'undefined') {
+          debug.log(`POI municipio [${nombre}] (Q2074737): fallo (${e.message})`);
         }
       }
+
+      // Capa 2 (pedanías): entidad singular de población de España (Q56061)
+      if (!resultado) {
+        try {
+          resultado = await _buscarEnWikidata(nombre, lat, lon, 'Q56061', JACCARD_MIN_PEDANIA);
+        } catch (e) {
+          if (typeof debug !== 'undefined') {
+            debug.log(`POI municipio [${nombre}] (Q56061): fallo (${e.message})`);
+          }
+        }
+      }
+
       cacheMunicipio.set(nombre, resultado);
       return resultado;
     }
