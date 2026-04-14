@@ -233,7 +233,7 @@
     // --- Paso 3a: Enriquecimiento vía Wikipedia REST ---
 
     async function consultarWikipedia(nombre) {
-      const url = `${WIKIPEDIA_ENDPOINT}/${encodeURIComponent(nombre)}`;
+      const url = `${WIKIPEDIA_ENDPOINT}/${encodeURIComponent(nombre)}?width=100`;
       const datos = await fetchConTimeout(url, {}, TIMEOUT_WIKIPEDIA_MS);
       if (datos.type === 'disambiguation') throw new Error('disambiguation');
       if (datos.type === 'no-extract' || !datos.extract) throw new Error('sin-texto');
@@ -332,7 +332,7 @@
     // Devuelve {nombre, poblacion, altitud, superficie} o null.
     async function _buscarEnWikidata(nombre, lat, lon, filtroQ, umbral) {
       const sparql = (
-        `SELECT ?item ?itemLabel ?poblacion ?altitud ?superficie WHERE {` +
+        `SELECT ?item ?itemLabel ?poblacion ?altitud ?superficie ?comarcaLabel WHERE {` +
         `  SERVICE wikibase:around {` +
         `    ?item wdt:P625 ?coords.` +
         `    bd:serviceParam wikibase:center "Point(${lon} ${lat})"^^geo:wktLiteral.` +
@@ -342,6 +342,7 @@
         `  OPTIONAL { ?item wdt:P1082 ?poblacion. }` +
         `  OPTIONAL { ?item wdt:P2044 ?altitud. }` +
         `  OPTIONAL { ?item wdt:P2046 ?superficie. }` +
+        `  OPTIONAL { ?item wdt:P131 ?comarca. }` +
         `  SERVICE wikibase:label { bd:serviceParam wikibase:language "es,en". }` +
         `} LIMIT 5`
       );
@@ -366,10 +367,11 @@
       }
 
       const resultado = {
-        nombre:     mejorB.itemLabel ? mejorB.itemLabel.value : nombre,
-        poblacion:  mejorB.poblacion  ? Math.round(Number(mejorB.poblacion.value))  : null,
-        altitud:    mejorB.altitud    ? Math.round(Number(mejorB.altitud.value))    : null,
-        superficie: mejorB.superficie ? Math.round(Number(mejorB.superficie.value)) : null,
+        nombre:     mejorB.itemLabel    ? mejorB.itemLabel.value                     : nombre,
+        poblacion:  mejorB.poblacion    ? Math.round(Number(mejorB.poblacion.value)) : null,
+        altitud:    mejorB.altitud      ? Math.round(Number(mejorB.altitud.value))   : null,
+        superficie: mejorB.superficie   ? Math.round(Number(mejorB.superficie.value)): null,
+        comarca:    mejorB.comarcaLabel ? mejorB.comarcaLabel.value                  : null,
       };
       if (typeof debug !== 'undefined') {
         debug.log(
@@ -411,6 +413,20 @@
             debug.log(`POI municipio [${nombre}] (Q56061): fallo (${e.message})`);
           }
           falloRed = true;
+        }
+      }
+
+      // Capa 3: descripción y foto vía Wikipedia REST (enriquecimiento, no crítico)
+      try {
+        const wiki = await consultarWikipedia(nombre);
+        if (wiki) {
+          if (!resultado) resultado = { nombre, poblacion: null, altitud: null, superficie: null, comarca: null };
+          resultado.descripcion = wiki.texto ? wiki.texto.split('. ')[0] + '.' : null;
+          resultado.foto = wiki.foto || null;
+        }
+      } catch (e) {
+        if (typeof debug !== 'undefined') {
+          debug.log(`POI municipio [${nombre}] Wikipedia: fallo (${e.message})`);
         }
       }
 

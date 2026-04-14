@@ -1,15 +1,6 @@
 {
 	"nodes": [
 		{
-			"id": "group-bugspr",
-			"type": "group",
-			"x": 1320,
-			"y": 0,
-			"width": 380,
-			"height": 1480,
-			"label": "Bugs prueba carretera"
-		},
-		{
 			"id": "group-poimod",
 			"type": "group",
 			"x": 880,
@@ -17,6 +8,15 @@
 			"width": 380,
 			"height": 1480,
 			"label": "POIModule"
+		},
+		{
+			"id": "group-bugspr",
+			"type": "group",
+			"x": 1320,
+			"y": 0,
+			"width": 380,
+			"height": 1480,
+			"label": "Bugs prueba carretera"
 		},
 		{
 			"id": "group-motorw",
@@ -35,6 +35,15 @@
 			"width": 380,
 			"height": 700,
 			"label": "Prueba en carretera"
+		},
+		{
+			"id": "group-uiexpe",
+			"type": "group",
+			"x": 1760,
+			"y": 0,
+			"width": 380,
+			"height": 700,
+			"label": "UI / Experiencia"
 		},
 		{
 			"id": "bacdcff7",
@@ -267,15 +276,6 @@
 			"color": "4"
 		},
 		{
-			"id": "group-uiexpe",
-			"type": "group",
-			"x": 1760,
-			"y": 0,
-			"width": 380,
-			"height": 700,
-			"label": "UI / Experiencia"
-		},
-		{
 			"id": "ea4ed845",
 			"type": "text",
 			"text": "## PO-06 PO-06 Descripción y foto del municipio actual\nEl bloque UBICACIÓN muestra solo población y altitud, a menudo vacíos. Reutilizar Wikipedia REST (ya en uso para POIs) para obtener extracto y foto del municipio actual. Mostrar una línea de texto histórico y miniatura en el bloque de ubicación. Misma cascada Wikipedia → Wikidata P18 ya implementada en enriquecerPOI.",
@@ -283,7 +283,7 @@
 			"y": 940,
 			"width": 280,
 			"height": 160,
-			"color": "6"
+			"color": "5"
 		},
 		{
 			"id": "44b69a83",
@@ -293,7 +293,7 @@
 			"y": 1120,
 			"width": 280,
 			"height": 160,
-			"color": "6"
+			"color": "5"
 		},
 		{
 			"id": "d3f36a58",
@@ -303,7 +303,7 @@
 			"y": 1300,
 			"width": 280,
 			"height": 160,
-			"color": "6"
+			"color": "5"
 		},
 		{
 			"id": "fcfa4b01",
@@ -318,12 +318,12 @@
 		{
 			"id": "8c503e62",
 			"type": "text",
-			"text": "## U/E-01 U/E-01 IU-01 Indicador de datos obsoletos\nSi el panel lleva más de 3 min sin recibir GPS válido (pantalla apagada, pérdida de señal, background throttling del navegador), los datos mostrados son antiguos pero nada lo indica. Fix: marcar visualmente los datos (opacity reducida o punto naranja junto a 'Última actualización') cuando el último tick tiene más de N segundos.",
+			"text": "## IU-01 Indicador de datos obsoletos\nSi el panel lleva más de 3 min sin recibir GPS válido (pantalla apagada, pérdida de señal, background throttling del navegador), los datos mostrados son antiguos pero nada lo indica. Fix: marcar visualmente los datos (opacity reducida o punto naranja junto a 'Última actualización') cuando el último tick tiene más de N segundos.",
 			"x": 1780,
 			"y": 40,
 			"width": 280,
 			"height": 160,
-			"color": "6"
+			"color": "5"
 		}
 	],
 	"edges": [

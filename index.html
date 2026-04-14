@@ -43,8 +43,9 @@
       margin-bottom: 16px;
     }
 
-    .estado.error { color: #ff5555; opacity: 1; }
-    .estado.ok    { color: #66ff99; opacity: 1; }
+    .estado.error  { color: #ff5555; opacity: 1; }
+    .estado.ok     { color: #66ff99; opacity: 1; }
+    .estado.aviso  { color: #ffaa44; opacity: 1; }
 
     .carretera {
       margin-bottom: 16px;
@@ -322,6 +323,30 @@
       margin-top: 2px;
       line-height: 1.5;
     }
+
+    /* Descripción + foto del municipio */
+    .municipio-info {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      margin-top: 6px;
+    }
+    .municipio-info img {
+      width: 52px;
+      height: 52px;
+      object-fit: cover;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+    .municipio-info .municipio-desc {
+      font-size: 12px;
+      opacity: 0.55;
+      line-height: 1.4;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+    }
   </style>
 </head>
 <body>
@@ -348,6 +373,10 @@
     <div id="municipio" class="municipio">—</div>
     <div id="admin" class="admin">—</div>
     <div id="datosMunicipio" class="datos-municipio"></div>
+    <div id="municipioInfo" class="municipio-info" style="display:none">
+      <img id="municipioFoto" src="" alt="">
+      <span id="municipioDesc" class="municipio-desc"></span>
+    </div>
   </div>
 
   <div class="meteo" id="meteoBloque">
@@ -409,6 +438,9 @@
     const $municipio        = document.getElementById('municipio');
     const $admin            = document.getElementById('admin');
     const $datosMunicipio   = document.getElementById('datosMunicipio');
+    const $municipioInfo    = document.getElementById('municipioInfo');
+    const $municipioFoto    = document.getElementById('municipioFoto');
+    const $municipioDesc    = document.getElementById('municipioDesc');
     const $poiBloque        = document.getElementById('poiBloque');
     const $poiScroll        = document.getElementById('poiScroll');
     const $meteoTemp        = document.getElementById('meteoTemp');
@@ -439,6 +471,8 @@
     // dato válido, aunque la clave de dedupe coincida con el último válido
     // anterior. Resuelve el "meteo fantasma" detectado en sesión 9.6.
     let meteoEnError            = false;
+    let ultimoTickGPS           = null;
+    const UMBRAL_GPS_OBSOLETO_MS = 3 * 60 * 1000; // 3 minutos
 
     function escapar(texto) {
       const div = document.createElement('div');
@@ -646,11 +680,26 @@
       const dm = resultado.datosMunicipio;
       if (dm) {
         const partes = [];
+        if (dm.comarca   != null) partes.push(dm.comarca);
         if (dm.poblacion != null) partes.push(dm.poblacion.toLocaleString('es') + ' hab');
         if (dm.altitud   != null) partes.push(dm.altitud + ' m');
         $datosMunicipio.textContent = partes.join(' · ');
+        // Descripción y foto del municipio
+        if (dm.descripcion || dm.foto) {
+          if (dm.foto) {
+            $municipioFoto.src = dm.foto;
+            $municipioFoto.style.display = '';
+          } else {
+            $municipioFoto.style.display = 'none';
+          }
+          $municipioDesc.textContent = dm.descripcion || '';
+          $municipioInfo.style.display = '';
+        } else {
+          $municipioInfo.style.display = 'none';
+        }
       } else {
         $datosMunicipio.textContent = '';
+        $municipioInfo.style.display = 'none';
       }
 
       // Tarjetas de todos los pueblos cercanos, tengan POIs o no.
@@ -787,6 +836,7 @@
         : 'no disponible';
       $hora.textContent = new Date().toTimeString().slice(0, 8);
 
+      ultimoTickGPS = Date.now();
       mostrarEstado('GPS activo', 'ok');
 
       let hayQueActualizar = false;
@@ -832,6 +882,19 @@
       mostrarEstado(`Error de GPS: ${motivo}`, 'error');
       debug.error(`GPS error ${err.code}: ${err.message}`);
     }
+
+    // Vigilante de datos obsoletos: si pasan más de 3 min sin tick de GPS,
+    // avisa al usuario con el tiempo transcurrido. Se comprueba cada 30 s.
+    setInterval(() => {
+      if (!ultimoTickGPS) return;
+      const hace = Date.now() - ultimoTickGPS;
+      if (hace > UMBRAL_GPS_OBSOLETO_MS) {
+        const min = Math.floor(hace / 60000);
+        const seg = Math.floor((hace % 60000) / 1000);
+        const texto = min > 0 ? `Datos de hace ${min} min` : `Datos de hace ${seg} s`;
+        mostrarEstado(texto, 'aviso');
+      }
+    }, 30000);
 
     // Arranque: elegir entre GPS real y simulador.
     // Si ?sim=<ruta> está en la URL, el simulador toma el mando y el GPS

@@ -500,7 +500,8 @@ def group_prefix(canvas, group):
 
     # Derive from group label
     label = group.get("label", "X")
-    words = label.split()
+    # Only use words that start with a letter (skip separators like "/")
+    words = [w for w in label.split() if w[:1].isalpha()]
     # Try initials
     if len(words) >= 2:
         prefix = "".join(w[0].upper() for w in words[:3])
