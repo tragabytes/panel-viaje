@@ -9,8 +9,8 @@
   "estado_actual": {
     "fase_actual": "Fase 3 — UI definitiva: tres vistas deslizables",
     "ultima_actualizacion": "14 de abril de 2026",
-    "siguiente_hito": "IU-03 Layout compacto Vista 1 (grid 2 columnas) + IU-04 Vista 2 Meteo + IU-05 Vista 3 POIs",
-    "bloqueos": "Ninguno. IU-02 en revision. IU-03/04/05/06/07 pendientes de aprobacion."
+    "siguiente_hito": "IU-04 Vista 2 Ubicacion+Meteo con gradientes + IU-05 Vista 3 POIs grid",
+    "bloqueos": "Ninguno. IU-03 en revision. IU-04/05/06/07/08 pendientes de aprobacion."
   },
   "fases": [
     {
@@ -1883,6 +1883,40 @@
         [
           "Pendientes",
           "IU-03: Layout compacto Vista 1 grid 2 columnas. IU-04: Vista 2 Ubicacion+Meteo con gradientes. IU-05: Vista 3 POIs grid. IU-06: Iconos SVG meteo. IU-07: Velocidad visible, GPS solo en debug. IU-08: Pulido final."
+        ]
+      ]
+    },
+    {
+      "n": 20,
+      "titulo": "IU-03 layout compacto Vista 1 grid 2 columnas",
+      "campos": [
+        [
+          "Fecha",
+          "14 de abril de 2026"
+        ],
+        [
+          "Fase trabajada",
+          "Fase 3 — UI definitiva: tres vistas deslizables"
+        ],
+        [
+          "Contexto de arranque",
+          "IU-02 completada y aprobada por Laureano (verde en el tablero). Laureano paso IU-03 a rojo para arrancar el layout compacto de Vista 1."
+        ],
+        [
+          "Lo que se ha hecho",
+          "Implementacion de IU-03: Vista 1 reestructurada con grid CSS 2 columnas (58/42). Columna izquierda: carretera, salida autovia, municipio, admin, datos municipio. Columna derecha: meteo completo. Fila inferior full-width: chips POI compactos (nombre+distancia, sin iconos ni fotos). Datos GPS (lat/lon/precision/rumbo) movidos a div oculto #v1-gps de cara a IU-07. Labels Ubicacion y Meteo eliminados del markup. overflow:hidden en #vista1 — sin scroll vertical. Verificado: scrollHeight === clientHeight === 360px incluso con salida de autovia visible y chips POI."
+        ],
+        [
+          "Decisiones tomadas",
+          "El grid usa 58/42 para dar mas espacio al nombre del municipio. Los chips POI de V1 ocultan iconos y fotos (solo nombre+km) para caber en una linea. municipio-info (foto+descripcion) oculta en V1 (demasiado apretado, coherente con el plan). Datos GPS pre-ocultos en #v1-gps, IU-07 los mostrara con ?debug=1."
+        ],
+        [
+          "Problemas encontrados",
+          "El simulador resetea el estado de la salida en cada tick, lo que dificultaba la verificacion visual. Solucionado verificando con metricas JS (scrollHeight === clientHeight) en lugar de screenshot."
+        ],
+        [
+          "Pendientes",
+          "IU-04: Vista 2 Ubicacion+Meteo con gradientes. IU-05: Vista 3 POIs grid. IU-06: Iconos SVG meteo. IU-07: Velocidad visible, GPS solo en debug. IU-08: Pulido final."
         ]
       ]
     }
