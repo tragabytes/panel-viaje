@@ -395,7 +395,7 @@
         const diff = Overpass.diferenciaAngular(rumbo, rumboJ);
         if (diff > TOLERANCIA_ANGULAR_GRADOS) continue;
       }
-      candidatos.push({ ref: j.ref, distanciaKm: distM / 1000 });
+      candidatos.push({ id: j.id, ref: j.ref, distanciaKm: distM / 1000 });
     }
 
     if (candidatos.length === 0) {
