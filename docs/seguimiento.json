@@ -7,10 +7,10 @@
     "nota_pie": "Actualizar al final de cada sesión de trabajo"
   },
   "estado_actual": {
-    "fase_actual": "Fase 2 — POIModule (PO-06/07/08 e IU-01 en revisión)",
+    "fase_actual": "Fase 2 — MotorwayExitModule (MO-05 en revisión) + POIModule/IU estables",
     "ultima_actualizacion": "14 de abril de 2026",
-    "siguiente_hito": "Aprobar PO-06/07/08 e IU-01 y avanzar a PEC-03 (prueba en carretera real del bloque POI).",
-    "bloqueos": "PEC-03 sigue pendiente y desbloquea BPC-04 y BPC-05."
+    "siguiente_hito": "Laureano aprueba MO-05 (destinos legibles) y avanza a PEC-03 (prueba en carretera real del bloque POI).",
+    "bloqueos": "PEC-03 pendiente de aprobación. BPC-04 y BPC-05 bloqueadas hasta PEC-03."
   },
   "fases": [
     {
@@ -1815,6 +1815,40 @@
         [
           "Pendiente al cerrar la sesión",
           "PO-06/07/08 e IU-01 en cian pendientes de revisión de Laureano en el móvil. PEC-03 (prueba en carretera real del bloque POI completo) sigue pendiente y desbloquea BPC-04 y BPC-05."
+        ]
+      ]
+    },
+    {
+      "n": 18,
+      "titulo": "MO-05 — destinos legibles en próxima salida de autovía",
+      "campos": [
+        [
+          "Fecha",
+          "14 de abril de 2026"
+        ],
+        [
+          "Fase trabajada",
+          "Fase 2 — MotorwayExitModule (MO-05)"
+        ],
+        [
+          "Contexto de arranque",
+          "Una única tarjeta roja en el tablero: MO-05. El módulo solo mostraba el número de salida. La tarjeta pedía consultar los tags destination de los ways motorway_link adyacentes al nodo junction para mostrar el texto del cartel real."
+        ],
+        [
+          "Lo que se ha hecho",
+          "Investigación: verificada la query Overpass «node(id); way(bn)[highway=motorway_link]; out tags;» con el nodo 21678538 (salida 26 A-6 Torrelodones). Devuelve destination: Las Matas;Los Peñascales;vía de servicio. Los mirrors estaban saturados pero la query es correcta. | motorwayexit.js: parsearJunctions ahora guarda el id OSM del nodo (además de ref, lat, lon). Nueva constante UMBRAL_DESTINOS_KM=2.0. Nueva caché destinosPorJunction por node ID. Nueva función consultarDestinos(junctionId) que lanza la query extra solo una vez por salida y guarda el resultado. Nueva función formatearDestinos() que normaliza el separador «;» de OSM a «·». actualizar() dispara consultarDestinos cuando proxima.distanciaKm ≤ 2.0 y expone proxima.destinos en el retorno. reset() limpia también destinosPorJunction. | index.html: .salida-pastilla pasa a flex-direction:column. Nueva clase .salida-fila agrupa label/número/distancia en horizontal. Nuevo #salidaDestinos (clase salida-destinos) se muestra debajo si hay texto. Lógica de renderizado actualizada para escribir y limpiar #salidaDestinos. Limpieza defensiva de la clase visible en el else del bloque de salida."
+        ],
+        [
+          "Decisiones tomadas",
+          "Umbral de 2 km para disparar la consulta: da tiempo suficiente de carga sin gastar datos innecesariamente. Caché por node ID en memoria (no localStorage): las salidas no cambian y el módulo ya reinicia al recargar. Solo se toma el primer way motorway_link con destination (en práctica solo hay uno por salida)."
+        ],
+        [
+          "Problemas encontrados",
+          "Los tres mirrors Overpass estuvieron saturados durante toda la sesión de prueba (504 y timeouts). Esto impidió verificar el flujo end-to-end con el simulador en tiempo real. El código fue verificado: (a) la query funciona correctamente con datos reales de curl, (b) la estructura DOM y CSS fue verificada inyectando datos manualmente en el browser."
+        ],
+        [
+          "Pendientes",
+          "MO-05 en cian (revisión). Laureano debe verificar que los destinos aparecen al conducir cerca de una salida real. PEC-03 sigue bloqueando BPC-04 y BPC-05."
         ]
       ]
     }
