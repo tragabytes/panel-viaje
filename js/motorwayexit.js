@@ -69,6 +69,10 @@
   const VELOCIDAD_MIN_KMH = 50;
   const HISTERESIS_VELOCIDAD_MS = 30000;
 
+  // Distancia a la que se lanza la consulta de destinos del cartel.
+  // 2 km da tiempo de sobra para que llegue la respuesta antes de llegar.
+  const UMBRAL_DESTINOS_KM = 2.0;
+
   // Tiempo máximo que toleramos sin roadRef antes de vaciar la caché.
   // Cubre fallos transitorios de mirrors (1-2 ticks, ~3-6 s). Si el ref
   // lleva más de 30 s ausente, asumimos cambio real de vía o parada.
@@ -81,8 +85,14 @@
   // --- Estado interno ---
 
   // Caché de junctions para la vía actual.
-  // { ref: "A-6", centroLat, centroLon, junctions: [{ref, lat, lon}], cargando: bool }
+  // { ref: "A-6", centroLat, centroLon, junctions: [{id, ref, lat, lon}], cargando: bool }
   let cache = null;
+
+  // Caché de destinos por node ID de junction.
+  // { [nodeId]: { destinos: string|null, cargando: bool } }
+  // null = sin datos (la salida no tiene destination en OSM).
+  // string = texto formateado listo para mostrar.
+  let destinosPorJunction = {};
 
   // Control de histéresis: marca temporal del último momento en que la
   // velocidad CRUZÓ el umbral. Mientras no hayan pasado HISTERESIS_VELOCIDAD_MS,
@@ -140,7 +150,7 @@
         descartados++;
         continue;
       }
-      lista.push({ ref: refLimpia, lat: el.lat, lon: el.lon });
+      lista.push({ id: el.id, ref: refLimpia, lat: el.lat, lon: el.lon });
     }
     return { lista, descartados };
   }
@@ -153,6 +163,52 @@
       debug.log(`MotorwayExit · ${lista.length} junctions válidos · ${descartados} descartados`);
     }
     return { lista };
+  }
+
+  // --- Destinos del cartel ---
+
+  // Formatea el valor del tag destination de OSM en texto legible.
+  // OSM usa ";" como separador de destinos múltiples.
+  // Ejemplo: "Las Matas;Los Peñascales;vía de servicio" → "Las Matas · Los Peñascales · vía de servicio"
+  function formatearDestinos(destinationTag, destinationRefTag) {
+    const partes = [];
+    if (destinationRefTag) {
+      partes.push(destinationRefTag.split(';').map(s => s.trim()).filter(Boolean).join(' / '));
+    }
+    if (destinationTag) {
+      partes.push(...destinationTag.split(';').map(s => s.trim()).filter(Boolean));
+    }
+    return partes.length ? partes.join(' · ') : null;
+  }
+
+  // Consulta los ways motorway_link que contienen el nodo junction dado
+  // y extrae su tag destination. Resultado cacheado en destinosPorJunction.
+  // Solo se lanza una vez por junction ID; si ya está en caché no hace nada.
+  function consultarDestinos(junctionId) {
+    if (destinosPorJunction[junctionId]) return; // ya está en caché (incluso si es cargando)
+    destinosPorJunction[junctionId] = { destinos: null, cargando: true };
+    const queryQL = `[out:json][timeout:10];node(${junctionId});way(bn)[highway=motorway_link];out tags;`;
+    Overpass.query(queryQL, 'MotorwayDestinos').then(({ datos }) => {
+      let mejorDestino = null;
+      if (datos && Array.isArray(datos.elements)) {
+        for (const el of datos.elements) {
+          const tags = el.tags || {};
+          const d = formatearDestinos(tags['destination'], tags['destination:ref']);
+          if (d) { mejorDestino = d; break; } // tomamos el primer way con destination
+        }
+      }
+      destinosPorJunction[junctionId] = { destinos: mejorDestino, cargando: false };
+      if (typeof debug !== 'undefined') {
+        debug.log(`MotorwayDestinos: junction ${junctionId} → ${mejorDestino || '(sin destination)'}`);
+      }
+    }).catch(() => {
+      // En caso de error de red, dejamos cargando=false y destinos=null.
+      // El cartel sigue mostrando el número sin destinos; no es crítico.
+      destinosPorJunction[junctionId] = { destinos: null, cargando: false };
+      if (typeof debug !== 'undefined') {
+        debug.log(`MotorwayDestinos: fallo al consultar junction ${junctionId}`);
+      }
+    });
   }
 
   // --- Gestión de caché ---
@@ -349,6 +405,7 @@
     candidatos.sort((a, b) => a.distanciaKm - b.distanciaKm);
 
     const proxima = {
+      id: candidatos[0].id,
       ref: candidatos[0].ref,
       distanciaKm: Math.round(candidatos[0].distanciaKm * 10) / 10,
     };
@@ -357,11 +414,19 @@
       distanciaKm: Math.round(candidatos[1].distanciaKm * 10) / 10,
     } : null;
 
+    // Si estamos a ≤ UMBRAL_DESTINOS_KM, lanzar consulta de destinos (una sola vez por junction).
+    if (proxima.distanciaKm <= UMBRAL_DESTINOS_KM && proxima.id) {
+      consultarDestinos(proxima.id);
+    }
+    const entradaDestinos = proxima.id ? destinosPorJunction[proxima.id] : null;
+    proxima.destinos = (entradaDestinos && !entradaDestinos.cargando) ? entradaDestinos.destinos : null;
+
     return { activo: true, proxima, siguiente, estado: 'ok' };
   }
 
   function reset() {
     cache = null;
+    destinosPorJunction = {};
     enMovimiento = false;
     tsUltimoCruceVelocidad = 0;
     ultimaVelocidadSobreUmbral = false;

@@ -194,12 +194,19 @@
 
     .salida-pastilla {
       display: inline-flex;
-      align-items: baseline;
-      gap: 10px;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 2px;
       background: #1a7a35;
       color: #fff;
       padding: 6px 14px;
       border-radius: 6px;
+    }
+
+    .salida-fila {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
     }
 
     .salida-label {
@@ -224,6 +231,17 @@
     .salida-sig {
       font-size: 13px;
       opacity: 0.45;
+    }
+
+    .salida-destinos {
+      font-size: 12px;
+      opacity: 0.9;
+      letter-spacing: 0.3px;
+      display: none;
+    }
+
+    .salida-destinos.visible {
+      display: block;
     }
     /* ---- Fin bloque próxima salida ---- */
 
@@ -361,9 +379,12 @@
 
   <div id="salidaBloque" class="salida">
     <div class="salida-pastilla">
-      <span class="salida-label">Salida</span>
-      <span id="salidaNum" class="salida-num">—</span>
-      <span id="salidaDist" class="salida-dist">—</span>
+      <div class="salida-fila">
+        <span class="salida-label">Salida</span>
+        <span id="salidaNum" class="salida-num">—</span>
+        <span id="salidaDist" class="salida-dist">—</span>
+      </div>
+      <span id="salidaDestinos" class="salida-destinos"></span>
     </div>
     <span id="salidaSig" class="salida-sig"></span>
   </div>
@@ -435,6 +456,7 @@
     const $salidaNum        = document.getElementById('salidaNum');
     const $salidaDist       = document.getElementById('salidaDist');
     const $salidaSig        = document.getElementById('salidaSig');
+    const $salidaDestinos   = document.getElementById('salidaDestinos');
     const $municipio        = document.getElementById('municipio');
     const $admin            = document.getElementById('admin');
     const $datosMunicipio   = document.getElementById('datosMunicipio');
@@ -814,8 +836,17 @@
           $salidaNum.textContent  = r.proxima.ref;
           $salidaDist.textContent = r.proxima.distanciaKm + ' km';
           $salidaSig.textContent  = r.siguiente ? 'luego ' + r.siguiente.ref : '';
+          if (r.proxima.destinos) {
+            $salidaDestinos.textContent = r.proxima.destinos;
+            $salidaDestinos.classList.add('visible');
+          } else {
+            $salidaDestinos.textContent = '';
+            $salidaDestinos.classList.remove('visible');
+          }
           $salidaBloque.classList.add('visible');
         } else {
+          $salidaDestinos.textContent = '';
+          $salidaDestinos.classList.remove('visible');
           $salidaBloque.classList.remove('visible');
         }
       } catch (err) {
