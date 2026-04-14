@@ -7,10 +7,10 @@
     "nota_pie": "Actualizar al final de cada sesión de trabajo"
   },
   "estado_actual": {
-    "fase_actual": "Fase 2 — POIModule (PO-04 en revisión, prueba en carretera pendiente)",
+    "fase_actual": "Fase 2 — POIModule (BPC-06/07/08 en revisión)",
     "ultima_actualizacion": "14 de abril de 2026",
-    "siguiente_hito": "PEC-03 primera prueba en carretera del bloque POI. Cuando pase a verde: BPC-04 indicador de carga y BPC-05 timeout global de POIModule.",
-    "bloqueos": "BPC-04 y BPC-05 bloqueados hasta que PEC-03 (prueba en carretera) pase a verde."
+    "siguiente_hito": "Aprobar BPC-06/07/08 y PEC-03 (prueba en carretera real del bloque POI).",
+    "bloqueos": "BPC-04 y BPC-05 bloqueados hasta PEC-03."
   },
   "fases": [
     {
@@ -1747,6 +1747,40 @@
         [
           "Pendiente al cerrar la sesión",
           "PO-04 en cian pendiente de aprobación. BPC-04 y BPC-05 bloqueados hasta PEC-03 (prueba en carretera real)."
+        ]
+      ]
+    },
+    {
+      "n": 16,
+      "titulo": "BPC-06/07/08 — resiliencia POIModule ante fallos de API",
+      "campos": [
+        [
+          "Fecha",
+          "14 de abril de 2026"
+        ],
+        [
+          "Fase trabajada",
+          "Fase 2 — POIModule (BPC-06, BPC-07, BPC-08)"
+        ],
+        [
+          "Contexto de arranque",
+          "Prueba de simulación pedania-maragata reveló que cuando Overpass está saturado la sección POI queda completamente vacía aunque se sepa que hay pueblos cercanos. Laureano pidió analizar el problema y proponer tarjetas. Se propusieron BPC-06/07/08 y se implementaron en la misma sesión."
+        ],
+        [
+          "Lo que se ha hecho",
+          "BPC-06: eliminado el filtro pois.length > 0 en pintarPOIs. La sección «Qué ver por la zona» ahora muestra todos los pueblos cercanos aunque no tengan POIs enriquecidos; la tarjeta muestra solo nombre+distancia en ese caso. La sección solo se oculta si no hay pueblos en absoluto. Verificado con datos reales: 5 tarjetas visibles con 2 pueblos con POIs y 3 sin ellos. BPC-07: análisis reveló que el código ya era correcto (el throw de Overpass.query propaga antes de cachePOIs.set, así que fallos de red no envenenan la caché). Documentado con comentario en el código. Log mejorado: «0 POIs reales en Xms (ninguno en OSM)» distingue el caso genuino del fallo de red. BPC-08: obtenerDatosMunicipio añade flag falloRed; solo cachea null cuando al menos una de las dos capas Wikidata completó la query sin resultados (null legítimo). Si ambas fallaron por red, no cachea para permitir reintento en el próximo ciclo fuera del radio de caché."
+        ],
+        [
+          "Decisiones tomadas",
+          "BPC-07 cerrado sin cambio de lógica tras confirmar que el comportamiento ya era correcto. Se optó por documentar en código en lugar de añadir complejidad innecesaria. Para BPC-08 se usó un flag falloRed sencillo en lugar de dos flags separados (uno por capa); la regla «si resultado null Y falloRed, no cachear» es ligeramente over-conservative (podría reintentar una capa que ya respondió sin datos) pero es segura y simple."
+        ],
+        [
+          "Problemas encontrados durante la sesión",
+          "Los tres mirrors de Overpass estuvieron saturados (429/504/timeout) durante toda la sesión de prueba, impidiendo verificar la carga natural de pueblos. BPC-06 se verificó inyectando datos mock vía preview_eval y después con resultados reales de un ciclo posterior cuando los mirrors se recuperaron parcialmente."
+        ],
+        [
+          "Pendiente al cerrar la sesión",
+          "BPC-06/07/08 en cian pendientes de aprobación de Laureano. PEC-03 (prueba en carretera real del bloque POI completo) sigue pendiente y desbloquea BPC-04 y BPC-05."
         ]
       ]
     }
