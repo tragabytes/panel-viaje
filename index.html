@@ -653,8 +653,10 @@
         $datosMunicipio.textContent = '';
       }
 
-      // Tarjetas de pueblos con POIs
-      const pueblos = (resultado.pueblosCercanos || []).filter(p => p.pois.length > 0);
+      // Tarjetas de todos los pueblos cercanos, tengan POIs o no.
+      // Una tarjeta con solo nombre+distancia ya es info útil para el conductor.
+      // La sección solo se oculta si no hay ningún pueblo en absoluto.
+      const pueblos = resultado.pueblosCercanos || [];
       if (pueblos.length === 0) {
         $poiBloque.style.display = 'none';
         return;

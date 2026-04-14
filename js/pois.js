@@ -216,12 +216,16 @@
         }
         return cached;
       }
+      // Si Overpass.query() lanza (todos_mirrors_fallaron u otro error de red),
+      // la excepción se propaga SIN llegar a cachePOIs.set(). El caller recibe
+      // el error, no cachea nada, y el próximo ciclo reintentará esta query.
+      // Solo se cachea cuando Overpass responde correctamente (aunque sea con 0 elementos).
       const { datos, dt } = await Overpass.query(construirQueryPOIs(lat, lon), `POI-${nombre}`);
       const pois = parsearPOIs(datos);
       cachePOIs.set(nombre, pois);
       if (typeof debug !== 'undefined') {
         const top = pois.slice(0, 3).map(p => `${p.tipo}:${p.nombre}`).join(', ');
-        debug.log(`POI [${nombre}]: ${pois.length} POIs en ${dt}ms${pois.length ? ' · ' + top : ''}`);
+        debug.log(`POI [${nombre}]: ${pois.length} POIs reales en ${dt}ms${pois.length ? ' · ' + top : ' (ninguno en OSM)'}`);
       }
       return pois;
     }
@@ -386,6 +390,7 @@
       }
 
       let resultado = null;
+      let falloRed = false;
 
       // Capa 1: municipio oficial de España (Q2074737)
       try {
@@ -394,6 +399,7 @@
         if (typeof debug !== 'undefined') {
           debug.log(`POI municipio [${nombre}] (Q2074737): fallo (${e.message})`);
         }
+        falloRed = true;
       }
 
       // Capa 2 (pedanías): entidad singular de población de España (Q56061)
@@ -404,10 +410,17 @@
           if (typeof debug !== 'undefined') {
             debug.log(`POI municipio [${nombre}] (Q56061): fallo (${e.message})`);
           }
+          falloRed = true;
         }
       }
 
-      cacheMunicipio.set(nombre, resultado);
+      // Solo cachear si tenemos un resultado, O si ninguna capa falló por red
+      // (resultado null legítimo = Wikidata respondió pero no hay datos).
+      // Si al menos una capa falló por red con resultado null, no cachear:
+      // el próximo tick fuera del radio de caché lo reintentará.
+      if (resultado !== null || !falloRed) {
+        cacheMunicipio.set(nombre, resultado);
+      }
       return resultado;
     }
 
