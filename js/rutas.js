@@ -128,6 +128,47 @@ const Rutas = (() => {
     },
 
     // ========================================================================
+    // pedania-maragata — Camino de Santiago por la Maragatería (León)
+    //   Astorga → El Ganso, ~25 km por la LE-142.
+    //
+    // Objetivo principal: verificar PO-04 (soporte de pedanías).
+    //   - La zona tiene 69 nodos place=hamlet en un radio de 15 km desde
+    //     cualquier punto de la ruta (confirmado con Overpass, sesión 15).
+    //   - Con el código anterior a PO-04, los 69 hamlets eran invisibles.
+    //   - Con PO-04, deben aparecer en la sección "Qué ver por la zona".
+    //   - Los primeros que esperar ver: Murias de Rechivaldo, El Ganso,
+    //     Santa Catalina de Somoza, Castrillo de los Polvazares, Valdeviejas.
+    //
+    // Qué devuelve Nominatim (verificado en sesión 15):
+    //   - Cuando el punto cae en un hamlet, Nominatim zoom=14 devuelve
+    //     address.hamlet = "<nombre del hamlet>" Y
+    //     address.village = "<municipio padre>".
+    //   - municipioActual toma el campo village (tiene prioridad sobre hamlet
+    //     en normalizarUbicacion). Por tanto, la capa Q56061 de PO-04 no se
+    //     ejercita aquí — la capa Q2074737 resuelve el municipio padre.
+    //   - Los municipios esperados: Santa Colomba de Somoza, Castrillo de los
+    //     Polvazares (municipio autónomo), Rabanal del Camino.
+    //
+    // Coordenadas: aproximadas sobre la LE-142 / Camino rural. No extraídas
+    // de OSM con el notebook (no hay carretera con ref para esa ruta), pero
+    // son suficientemente precisas para activar el módulo POI en la zona
+    // correcta con los POIs y hamlets de la Maragatería.
+    // ========================================================================
+    'pedania-maragata': {
+      descripcion: 'Camino de Santiago · Astorga → El Ganso ~25 km · Maragatería (León)',
+      puntos: [
+        { lat: 42.4558, lon: -6.0700, nota: 'Astorga, salida oeste (LE-142)' },
+        { lat: 42.4547, lon: -6.1200, nota: 'tramo Astorga-Murias, ~4 km' },
+        { lat: 42.4537, lon: -6.1870, nota: 'cerca de Murias de Rechivaldo, ~8 km' },
+        { lat: 42.4502, lon: -6.2070, nota: 'cerca de Castrillo de los Polvazares, ~11 km' },
+        { lat: 42.4585, lon: -6.2395, nota: 'cerca de Santa Catalina de Somoza, ~15 km' },
+        { lat: 42.4570, lon: -6.2510, nota: 'cerca de El Ganso, ~17 km' },
+        { lat: 42.4680, lon: -6.2850, nota: 'tramo El Ganso - Rabanal, ~21 km' },
+        { lat: 42.4815, lon: -6.3155, nota: 'Rabanal del Camino, ~25 km' }
+      ]
+    },
+
+    // ========================================================================
     // a6-salidas — tramo A-6 con pre-roll + 4 salidas numeradas (24, 26, 27, 29)
     // Objetivo: probar MotorwayExitModule desde casa sin conducir.
     //
