@@ -141,24 +141,24 @@
 
   // --- Overpass ---
 
-  // Pedimos todos los nodos highway=motorway_junction con la misma ref
-  // que la vía actual, dentro de un radio de 50 km. Filtramos por la ref
-  // de la vía en Overpass para no colar salidas de autovías cruzadas.
+  // Pedimos los nodos highway=motorway_junction de la vía actual.
+  // Estrategia en tres pasos para evitar falsos positivos de autovías
+  // cruzadas (problema P24, sesión 13):
+  //   1) Nodos motorway_junction en radio 50 km → .todos (rápido: índice espacial)
+  //   2) Ways con ref=<refVia> que contienen esos nodos → .via_actual (rápido:
+  //      lookup por set pre-filtrado, no escaneo de área)
+  //   3) Nodos motorway_junction de esas vías → resultado final limpio
+  // Así M-40, AP-6, etc. quedan excluidos cuando vamos por A-6.
   function construirQuery(lat, lon, refVia) {
     const radioMetros = RADIO_CONSULTA_KM * 1000;
-    // Escapamos comillas dobles en refVia por si acaso (no debería haber,
-    // pero los códigos de carretera vienen de datos externos).
     const refEscapada = String(refVia).replace(/"/g, '');
     return (
-      `[out:json][timeout:15];` +
-      `node(around:${radioMetros},${lat},${lon})[highway=motorway_junction]["ref"](if:t["ref"]!="0");` +
+      `[out:json][timeout:25];` +
+      `node(around:${radioMetros},${lat},${lon})[highway=motorway_junction]["ref"](if:t["ref"]!="0")->.todos;` +
+      `way[ref="${refEscapada}"][highway~"motorway"](bn.todos)->.via_actual;` +
+      `node(w.via_actual)[highway=motorway_junction]["ref"](if:t["ref"]!="0");` +
       `out body;`
     );
-    // Nota: filtrar por ref de la vía padre requiere una query más
-    // compleja (buscar ways con esa ref y luego sus junctions). Por ahora
-    // filtramos en local: si el junction cercano no tiene ref parecida,
-    // ya cae por distancia/ángulo. Si en pruebas reales vemos falsos
-    // positivos (salidas de otra autovía cruzada), endurecemos la query.
   }
 
   async function llamarMirror(url, query) {

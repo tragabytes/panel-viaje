@@ -7,10 +7,10 @@
     "nota_pie": "Actualizar al final de cada sesión de trabajo"
   },
   "estado_actual": {
-    "fase_actual": "Fase 2 — Modulos de datos (en curso). LocationModule, WeatherModule, Wake Lock, Simulator, carreteras, RoadRef y MotorwayExitModule operativos. MO-01, MO-02 y MO-03 en cian pendientes de validacion en carretera. Cartel verde de proxima salida visible en simulador. Fix de reintento tras error de mirrors implementado.",
-    "ultima_actualizacion": "Sesion 12 — MO-01, MO-02 y MO-03 completados. BPC-01/02/03 confirmados en simulador. Nuevo problema P24: falsos positivos de salidas de vias cruzadas. Tarjeta MO-04 propuesta. Proxima prueba en carretera real.",
-    "siguiente_hito": "Laureano valida MO-01..03 y BPC-01..03 en carretera real. Si todo OK: aprobar MO-04 y arrancar POIModule (PO-01).",
-    "bloqueos": "Ninguno tecnico. MO-04 en purpura pendiente de aprobacion."
+    "fase_actual": "Fase 2 — Módulos de datos (en curso). LocationModule, WeatherModule, Wake Lock, Simulator, carreteras, RoadRef y MotorwayExitModule operativos y validados. MO-04 completado: query Overpass filtra junctions por vía padre (23 vs 157). POIModule pendiente de arrancar.",
+    "ultima_actualizacion": "Sesión 13 — BPC-01/02/03, MO-03, PEC-02 validados con simulador. MO-04 implementado y verificado: query tres pasos elimina falsos positivos P24.",
+    "siguiente_hito": "Laureano valida MO-04 en carretera real. Arrancar POIModule con PO-01 (revisar decisión 13).",
+    "bloqueos": "Ninguno. MotorwayExitModule completo. POIModule en morado pendiente de arranque."
   },
   "fases": [
     {
@@ -1651,6 +1651,40 @@
           "MO-01 (ruta a6-salidas), MO-02 (verificacion modulo + pre-roll), MO-03 (cartel verde UI) completados. Prueba con simulador: cartel aparecio correctamente (bingo). BPC-01/02/03 confirmados funcionando. Bug nuevo P24 registrado: falsos positivos de salidas de vias cruzadas (M-40 mostrando salidas 82/83 como A-6). Fix de reintento tras error total de mirrors (REINTENTO_ERROR_MS=120s) implementado y desplegado. Tarjeta MO-04 propuesta en kanvas. Todos los commits pusheados a GitHub Pages."
         ]
       ]
+    },
+    {
+      "n": "13",
+      "titulo": "Validación simulador BPC/MO-03/PEC-02 + fix MO-04 query Overpass tres pasos",
+      "campos": [
+        [
+          "Fecha",
+          "14 de abril de 2026"
+        ],
+        [
+          "Fase trabajada",
+          "Fase 2 — Validación en simulador y corrección P24 (MotorwayExitModule)."
+        ],
+        [
+          "Contexto de arranque",
+          "Primera sesión desde la app de escritorio de Claude Code. Tablero sincronizado desde repo principal (Obsidian). BPC-01/02/03, MO-03, PEC-02 pendientes de validación."
+        ],
+        [
+          "Lo que se ha hecho",
+          "(1) Validación completa en simulador (ruta a6-salidas) de BPC-01 (out body → 157 junctions válidos), BPC-02 (Weather caché reusada en múltiples ticks), BPC-03 (fallback a A-6 cuando RoadRef falla transitoriamente), MO-03 (cartel verde SALIDA 33 visible), PEC-02 (criterio de segunda prueba cumplido). Todas pasadas a verde por Laureano. (2) MO-04 arrancado: fix de P24 (falsos positivos junctions de vías cruzadas). Query Overpass reescrita en tres pasos: nodos en radio 50km → ways con ref=A-6 que contienen esos nodos → junctions de esas vías. Resultado: 23 junctions A-6 en lugar de 157 de toda el área. (3) Verificado en simulador: kumi.systems OK en 4669ms · 23 junctions · próxima 33 a 2km."
+        ],
+        [
+          "Problemas encontrados durante la sesión",
+          "Servidor preview bloqueado en puerto 8765 (proceso sin permisos para matar). Resuelto usando puerto 8766. overpass-api.de devolvió HTTP 504 y errores XML durante toda la sesión (mirror caído); la cascada de mirrors funcionó correctamente usando kumi.systems. Primera versión del fix (way(around:50km)) causó timeout de Overpass: query de ways por área es 5-10x más costosa que de nodos. Resuelto con estrategia inversa: nodos primero (índice espacial), luego ways por pertenencia."
+        ],
+        [
+          "Decisiones tomadas",
+          "Query Overpass de tres pasos en lugar de dos: la estrategia way(around) es demasiado costosa para Overpass. Empezar siempre por nodos (rápido) y filtrar ways por el set resultante (bn.todos) es el patrón correcto para este tipo de consulta."
+        ],
+        [
+          "Pendiente al cerrar la sesión",
+          "MO-04 en cian, pendiente de validación en carretera real. Grupo MotorwayExitModule completo. Siguiente: PO-01 (revisar decisión 13 y arrancar POIModule)."
+        ]
+      ]
     }
   ],
   "problemas_abiertos": [
@@ -2314,6 +2348,32 @@
         [
           "Estado",
           "cerrado (sesión 11)"
+        ]
+      ]
+    },
+    {
+      "id": "P25",
+      "titulo": "Timeout Overpass con query way(around:50km) en MO-04",
+      "campos": [
+        [
+          "Fecha de aparición",
+          "sesión 13 (14 abril 2026)"
+        ],
+        [
+          "Síntoma",
+          "Primera implementación de MO-04 usó way(around:50000,...) para buscar vías con ref=A-6 antes de buscar nodos. Overpass tardaba >20s y devolvía timeout o HTTP 504."
+        ],
+        [
+          "Causa",
+          "La operación way(around:radio) requiere escanear geometrías de todos los ways del área, sin índice espacial eficiente. Es 5-10x más costosa que node(around:radio), que sí usa índice espacial."
+        ],
+        [
+          "Resolución",
+          "Query de tres pasos: (1) node(around:50000)->.todos (rápido, índice espacial); (2) way[ref=...][highway~motorway](bn.todos)->.via_actual (busca ways que contienen esos nodos, no escaneo de área); (3) node(w.via_actual) (nodos de esas vías). Latencia resultante: ~4.7s en kumi.systems. Junctions A-6: 23 (antes 157 de toda el área)."
+        ],
+        [
+          "Estado",
+          "cerrado (sesión 13)"
         ]
       ]
     }
