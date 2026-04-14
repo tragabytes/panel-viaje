@@ -7,10 +7,10 @@
     "nota_pie": "Actualizar al final de cada sesión de trabajo"
   },
   "estado_actual": {
-    "fase_actual": "Fase 2 — POIModule en curso (PO-04 pendiente)",
+    "fase_actual": "Fase 2 — POIModule (PO-04 en revisión, prueba en carretera pendiente)",
     "ultima_actualizacion": "14 de abril de 2026",
-    "siguiente_hito": "PO-04 soporte de pedanías en POIModule + prueba en carretera real del módulo POI",
-    "bloqueos": "Ninguno. PO-04 disponible para iniciar."
+    "siguiente_hito": "PEC-03 primera prueba en carretera del bloque POI. Cuando pase a verde: BPC-04 indicador de carga y BPC-05 timeout global de POIModule.",
+    "bloqueos": "BPC-04 y BPC-05 bloqueados hasta que PEC-03 (prueba en carretera) pase a verde."
   },
   "fases": [
     {
@@ -1717,6 +1717,36 @@
         [
           "Pendiente al cerrar la sesión",
           "PO-03 en cian, pendiente de aprobación de Laureano. PO-04 (soporte de pedanías) desbloqueado una vez PO-03 pase a verde. Prueba en carretera real del bloque POI pendiente."
+        ]
+      ]
+    },
+    {
+      "n": 15,
+      "titulo": "PO-04 soporte de pedanías en POIModule",
+      "campos": [
+        [
+          "Fecha",
+          "14 de abril de 2026"
+        ],
+        [
+          "Fase trabajada",
+          "Fase 2 — POIModule (PO-04)"
+        ],
+        [
+          "Contexto de arranque",
+          "Continuación de la sesión anterior. PO-03 aprobado y en verde. PO-04 desbloqueado. Tablero: también se añadieron las tarjetas PEC-03, BPC-04 y BPC-05 propuestas al final de la sesión anterior. Push a GitHub realizado."
+        ],
+        [
+          "Lo que se ha hecho",
+          "Implementado soporte de pedanías en POIModule en dos frentes: (1) Overpass query de pueblos cercanos ampliada de village|town|city a village|town|city|hamlet para que las pedanías etiquetadas como hamlet en OSM aparezcan en la lista; (2) obtenerDatosMunicipio refactorizado en dos capas: capa 1 busca en Wikidata con filtro Q2074737 (municipio oficial de España, Jaccard ≥ 0.3) como antes; capa 2, solo si capa 1 falla, busca con Q56061 (entidad singular de población de España, Jaccard ≥ 0.5). Para ello se extrajo el helper privado _buscarEnWikidata(nombre, lat, lon, filtroQ, umbral) que encapsula la query SPARQL, la llamada y el matching por Jaccard. Añadida constante JACCARD_MIN_PEDANIA = 0.5. Verificado que pois.js pasa node --check sin errores."
+        ],
+        [
+          "Decisiones tomadas",
+          "Se eligió Q56061 (entidad singular de población de España) sobre Q532 (village genérico mundial) para el fallback de pedanías porque Q56061 es la clasificación específica del INE español, reduce falsos positivos y es el tipo que Wikidata usa para pedanías, aldeas y barrios españoles. Se usó umbral Jaccard 0.5 para Q56061 (más estricto que 0.3 de Q2074737) para compensar que Q56061 cubre entidades más diversas."
+        ],
+        [
+          "Pendiente al cerrar la sesión",
+          "PO-04 en cian pendiente de aprobación. BPC-04 y BPC-05 bloqueados hasta PEC-03 (prueba en carretera real)."
         ]
       ]
     }
