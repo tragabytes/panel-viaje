@@ -96,6 +96,98 @@
     let ultimoResultado = null;
     let enActualizacion = false;
 
+    // --- IndexedDB: caché persistente (RA-03, sesión 22) ---
+
+    const IDB_NOMBRE   = 'panel-viaje-cache';
+    const IDB_STORE     = 'pois';
+    const IDB_VERSION   = 1;
+    const TTL_CACHE_IDB_MS = 14 * 24 * 60 * 60 * 1000; // 14 días
+
+    let dbPromise = null;
+    let idbDisponible = true;
+
+    function abrirIDB() {
+      if (!idbDisponible) return Promise.resolve(null);
+      if (dbPromise) return dbPromise;
+      dbPromise = new Promise((resolve) => {
+        try {
+          const req = indexedDB.open(IDB_NOMBRE, IDB_VERSION);
+          req.onupgradeneeded = () => {
+            const db = req.result;
+            if (!db.objectStoreNames.contains(IDB_STORE)) {
+              db.createObjectStore(IDB_STORE);
+            }
+          };
+          req.onsuccess = () => {
+            if (typeof debug !== 'undefined') debug.log('IDB: abierta OK');
+            // Limpieza best-effort de entradas expiradas, sin bloquear
+            setTimeout(() => limpiarExpiradas(req.result), 5000);
+            resolve(req.result);
+          };
+          req.onerror = () => {
+            if (typeof debug !== 'undefined') debug.warn('IDB: fallo al abrir');
+            idbDisponible = false;
+            resolve(null);
+          };
+        } catch (e) {
+          idbDisponible = false;
+          resolve(null);
+        }
+      });
+      return dbPromise;
+    }
+
+    async function idbLeer(key) {
+      try {
+        const db = await abrirIDB();
+        if (!db) return null;
+        return new Promise((resolve) => {
+          const tx = db.transaction(IDB_STORE, 'readonly');
+          const req = tx.objectStore(IDB_STORE).get(key);
+          req.onsuccess = () => {
+            const entry = req.result;
+            if (!entry || !entry.ts) { resolve(null); return; }
+            if (Date.now() - entry.ts > TTL_CACHE_IDB_MS) { resolve(null); return; }
+            resolve(entry.datos);
+          };
+          req.onerror = () => resolve(null);
+        });
+      } catch (e) { return null; }
+    }
+
+    async function idbGuardar(key, datos) {
+      try {
+        const db = await abrirIDB();
+        if (!db) return;
+        const tx = db.transaction(IDB_STORE, 'readwrite');
+        tx.objectStore(IDB_STORE).put({ datos, ts: Date.now() }, key);
+      } catch (e) { /* silencioso */ }
+    }
+
+    function limpiarExpiradas(db) {
+      try {
+        const tx = db.transaction(IDB_STORE, 'readwrite');
+        const store = tx.objectStore(IDB_STORE);
+        const req = store.openCursor();
+        let borradas = 0;
+        req.onsuccess = () => {
+          const cursor = req.result;
+          if (!cursor) {
+            if (borradas > 0 && typeof debug !== 'undefined') {
+              debug.log(`IDB: limpieza — ${borradas} entradas expiradas borradas`);
+            }
+            return;
+          }
+          const entry = cursor.value;
+          if (entry && entry.ts && Date.now() - entry.ts > TTL_CACHE_IDB_MS) {
+            cursor.delete();
+            borradas++;
+          }
+          cursor.continue();
+        };
+      } catch (e) { /* silencioso */ }
+    }
+
     // --- Utilidades ---
 
     function jaccardSim(a, b) {
@@ -132,6 +224,9 @@
       }
     }
 
+    // Filtro para Wikipedia geosearch: títulos que no son pueblos
+    const EXCLUIR_GEOSEARCH = /\b(Estaci[oó]n|Embalse|Arroyo|R[ií]o|Autov[ií]a|Autopista|Aeropuerto|Pol[ií]gono|Hospital|Universidad|Centro comercial|Pantano|Presa)\b|\(empresa\)|\(compañía\)|\(revista\)|^[A-Z]{1,3}-\d/i;
+
     // --- Paso 1: Pueblos cercanos (Overpass) ---
 
     function construirQueryPueblos(lat, lon) {
@@ -141,6 +236,30 @@
         `[place~"^(village|town|city|hamlet)$"]["name"];` +
         `out body;`
       );
+    }
+
+    // Fallback Wikipedia geosearch: infraestructura Wikimedia independiente
+    // de Overpass. Radio 10 km, hasta 50 resultados, filtrados por EXCLUIR_GEOSEARCH.
+    // RA-01, sesión 22.
+    async function obtenerPueblosWikipedia(lat, lon) {
+      const url = `https://es.wikipedia.org/w/api.php?action=query&list=geosearch` +
+        `&gscoord=${lat}|${lon}&gsradius=10000&gslimit=50&format=json&origin=*`;
+      const datos = await fetchConTimeout(url, {}, TIMEOUT_WIKIPEDIA_MS);
+      const resultados = (datos.query && datos.query.geosearch) || [];
+      const pueblos = resultados
+        .filter(r => !EXCLUIR_GEOSEARCH.test(r.title))
+        .map(r => ({
+          nombre: r.title,
+          lat: r.lat,
+          lon: r.lon,
+          distKm: r.dist / 1000,
+        }))
+        .sort((a, b) => a.distKm - b.distKm)
+        .slice(0, MAX_PUEBLOS);
+      if (typeof debug !== 'undefined') {
+        debug.log(`POI pueblos [Wikipedia]: ${pueblos.length} de ${resultados.length} resultados · más cercano: ${pueblos[0] ? pueblos[0].nombre + ' (' + pueblos[0].distKm.toFixed(1) + 'km)' : 'ninguno'}`);
+      }
+      return pueblos;
     }
 
     async function obtenerPueblosCercanos(lat, lon) {
@@ -156,21 +275,48 @@
           return cachePueblosCercanos.pueblos;
         }
       }
-      const { datos, dt } = await Overpass.query(construirQueryPueblos(lat, lon), 'POI-pueblos');
-      const pueblos = (datos.elements || [])
-        .filter(el => el.tags && el.tags.name && typeof el.lat === 'number')
-        .map(el => ({
-          nombre: el.tags.name,
-          lat: el.lat,
-          lon: el.lon,
-          distKm: Overpass.distanciaMetros(lat, lon, el.lat, el.lon) / 1000,
-        }))
-        .sort((a, b) => a.distKm - b.distKm)
-        .slice(0, MAX_PUEBLOS);
-      cachePueblosCercanos = { centroLat: lat, centroLon: lon, pueblos };
-      if (typeof debug !== 'undefined') {
-        debug.log(`POI pueblos: ${pueblos.length} en ${dt}ms · más cercano: ${pueblos[0] ? pueblos[0].nombre + ' (' + pueblos[0].distKm.toFixed(1) + 'km)' : 'ninguno'}`);
+
+      // IDB: buscar por coordenadas redondeadas a 2 decimales (~1km)
+      const idbKey = `pueblos:${lat.toFixed(2)}:${lon.toFixed(2)}`;
+      const idbDatos = await idbLeer(idbKey);
+      if (idbDatos) {
+        // Recalcular distancias desde la posición actual
+        const pueblosIdb = idbDatos.map(p => ({
+          ...p,
+          distKm: Overpass.distanciaMetros(lat, lon, p.lat, p.lon) / 1000,
+        })).sort((a, b) => a.distKm - b.distKm);
+        cachePueblosCercanos = { centroLat: lat, centroLon: lon, pueblos: pueblosIdb };
+        if (typeof debug !== 'undefined') {
+          debug.log(`POI pueblos [IDB]: ${pueblosIdb.length} pueblos · más cercano: ${pueblosIdb[0] ? pueblosIdb[0].nombre : 'ninguno'}`);
+        }
+        return pueblosIdb;
       }
+
+      let pueblos;
+      try {
+        const { datos, dt } = await Overpass.query(construirQueryPueblos(lat, lon), 'POI-pueblos');
+        pueblos = (datos.elements || [])
+          .filter(el => el.tags && el.tags.name && typeof el.lat === 'number')
+          .map(el => ({
+            nombre: el.tags.name,
+            lat: el.lat,
+            lon: el.lon,
+            distKm: Overpass.distanciaMetros(lat, lon, el.lat, el.lon) / 1000,
+          }))
+          .sort((a, b) => a.distKm - b.distKm)
+          .slice(0, MAX_PUEBLOS);
+        if (typeof debug !== 'undefined') {
+          debug.log(`POI pueblos: ${pueblos.length} en ${dt}ms · más cercano: ${pueblos[0] ? pueblos[0].nombre + ' (' + pueblos[0].distKm.toFixed(1) + 'km)' : 'ninguno'}`);
+        }
+      } catch (e) {
+        if (typeof debug !== 'undefined') {
+          debug.warn(`POI pueblos: Overpass falló (${e.message}), probando Wikipedia geosearch`);
+        }
+        pueblos = await obtenerPueblosWikipedia(lat, lon);
+      }
+
+      cachePueblosCercanos = { centroLat: lat, centroLon: lon, pueblos };
+      idbGuardar(idbKey, pueblos);
       return pueblos;
     }
 
@@ -208,6 +354,26 @@
         });
     }
 
+    // Fallback Wikipedia geosearch para POIs de un pueblo. Radio 2 km,
+    // 10 resultados. Excluye el propio pueblo y ruido via EXCLUIR_GEOSEARCH.
+    // Devuelve objetos con pageid para enriquecimiento directo. RA-02, sesión 22.
+    async function obtenerPOIsWikipedia(nombre, lat, lon) {
+      const url = `https://es.wikipedia.org/w/api.php?action=query&list=geosearch` +
+        `&gscoord=${lat}|${lon}&gsradius=2000&gslimit=10&format=json&origin=*`;
+      const datos = await fetchConTimeout(url, {}, TIMEOUT_WIKIPEDIA_MS);
+      const resultados = (datos.query && datos.query.geosearch) || [];
+      const nombreLower = nombre.toLowerCase();
+      const pois = resultados
+        .filter(r => r.title.toLowerCase() !== nombreLower && !EXCLUIR_GEOSEARCH.test(r.title))
+        .map(r => ({ nombre: r.title, tipo: 'attraction', lat: r.lat, lon: r.lon, pageid: r.pageid }))
+        .slice(0, MAX_POIS_POR_PUEBLO);
+      if (typeof debug !== 'undefined') {
+        const top = pois.map(p => p.nombre).join(', ');
+        debug.log(`POI [${nombre}] [Wikipedia]: ${pois.length} de ${resultados.length} resultados${pois.length ? ' · ' + top : ''}`);
+      }
+      return pois;
+    }
+
     async function obtenerPOIsPueblo(nombre, lat, lon) {
       if (cachePOIs.has(nombre)) {
         const cached = cachePOIs.get(nombre);
@@ -216,17 +382,34 @@
         }
         return cached;
       }
-      // Si Overpass.query() lanza (todos_mirrors_fallaron u otro error de red),
-      // la excepción se propaga SIN llegar a cachePOIs.set(). El caller recibe
-      // el error, no cachea nada, y el próximo ciclo reintentará esta query.
-      // Solo se cachea cuando Overpass responde correctamente (aunque sea con 0 elementos).
-      const { datos, dt } = await Overpass.query(construirQueryPOIs(lat, lon), `POI-${nombre}`);
-      const pois = parsearPOIs(datos);
-      cachePOIs.set(nombre, pois);
-      if (typeof debug !== 'undefined') {
-        const top = pois.slice(0, 3).map(p => `${p.tipo}:${p.nombre}`).join(', ');
-        debug.log(`POI [${nombre}]: ${pois.length} POIs reales en ${dt}ms${pois.length ? ' · ' + top : ' (ninguno en OSM)'}`);
+
+      const idbKey = `pois:${nombre}`;
+      const idbDatos = await idbLeer(idbKey);
+      if (idbDatos) {
+        cachePOIs.set(nombre, idbDatos);
+        if (typeof debug !== 'undefined') {
+          debug.log(`POI [${nombre}] [IDB]: ${idbDatos.length} POIs`);
+        }
+        return idbDatos;
       }
+
+      let pois;
+      try {
+        const { datos, dt } = await Overpass.query(construirQueryPOIs(lat, lon), `POI-${nombre}`);
+        pois = parsearPOIs(datos);
+        if (typeof debug !== 'undefined') {
+          const top = pois.slice(0, 3).map(p => `${p.tipo}:${p.nombre}`).join(', ');
+          debug.log(`POI [${nombre}]: ${pois.length} POIs reales en ${dt}ms${pois.length ? ' · ' + top : ' (ninguno en OSM)'}`);
+        }
+      } catch (e) {
+        if (typeof debug !== 'undefined') {
+          debug.warn(`POI [${nombre}]: Overpass falló (${e.message}), probando Wikipedia`);
+        }
+        pois = await obtenerPOIsWikipedia(nombre, lat, lon);
+      }
+
+      cachePOIs.set(nombre, pois);
+      idbGuardar(idbKey, pois);
       return pois;
     }
 
@@ -280,13 +463,50 @@
         return { ...poi, ...cacheEnriq.get(key) };
       }
 
+      const idbKey = `enriq:${key}`;
+      const idbDatos = await idbLeer(idbKey);
+      if (idbDatos) {
+        cacheEnriq.set(key, idbDatos);
+        return { ...poi, ...idbDatos };
+      }
+
       const base = { foto: null, texto: null, icono: iconoPorTipo(poi.tipo), fuente: 'icono' };
 
-      // Intento 1: Wikipedia REST
+      // Intento 0: si el POI trae pageid (fallback Wikipedia, RA-02), pedir
+      // extracto+foto directamente por pageid. Más fiable que por título.
+      if (poi.pageid) {
+        try {
+          const url = `https://es.wikipedia.org/w/api.php?action=query&pageids=${poi.pageid}` +
+            `&prop=extracts|pageimages&exintro&explaintext&pithumbsize=100&format=json&origin=*`;
+          const datos = await fetchConTimeout(url, {}, TIMEOUT_WIKIPEDIA_MS);
+          const page = datos.query && datos.query.pages && datos.query.pages[poi.pageid];
+          if (page && (page.extract || page.thumbnail)) {
+            const enriq = {
+              foto: page.thumbnail ? page.thumbnail.source : null,
+              texto: page.extract || null,
+              icono: iconoPorTipo(poi.tipo),
+              fuente: 'wikipedia-pageid',
+            };
+            cacheEnriq.set(key, enriq);
+            idbGuardar(idbKey, enriq);
+            if (typeof debug !== 'undefined') {
+              debug.log(`POI enriq [${poi.nombre}]: pageid ${poi.pageid} OK${enriq.foto ? ' + foto' : ''}`);
+            }
+            return { ...poi, ...enriq };
+          }
+        } catch (e) {
+          if (typeof debug !== 'undefined') {
+            debug.log(`POI enriq [${poi.nombre}]: pageid fallo (${e.message})`);
+          }
+        }
+      }
+
+      // Intento 1: Wikipedia REST por título
       try {
         const wiki = await consultarWikipedia(poi.nombre);
         const enriq = { foto: wiki.foto, texto: wiki.texto, icono: iconoPorTipo(poi.tipo), fuente: 'wikipedia' };
         cacheEnriq.set(key, enriq);
+        idbGuardar(idbKey, enriq);
         if (typeof debug !== 'undefined') {
           debug.log(`POI enriq [${poi.nombre}]: Wikipedia OK${wiki.foto ? ' + foto' : ''}`);
         }
@@ -304,6 +524,7 @@
           if (wd) {
             const enriq = { foto: wd.foto, texto: null, icono: iconoPorTipo(poi.tipo), fuente: 'wikidata' };
             cacheEnriq.set(key, enriq);
+            idbGuardar(idbKey, enriq);
             if (typeof debug !== 'undefined') {
               debug.log(`POI enriq [${poi.nombre}]: Wikidata OK (Jaccard ${wd.sim.toFixed(2)})${wd.foto ? ' + foto' : ''}`);
             }
@@ -321,6 +542,7 @@
 
       // Fallback final: solo icono
       cacheEnriq.set(key, base);
+      idbGuardar(idbKey, base);
       return { ...poi, ...base };
     }
 
@@ -391,6 +613,16 @@
         return cacheMunicipio.get(nombre);
       }
 
+      const idbKey = `muni:${nombre}`;
+      const idbDatos = await idbLeer(idbKey);
+      if (idbDatos !== null) {
+        cacheMunicipio.set(nombre, idbDatos);
+        if (typeof debug !== 'undefined') {
+          debug.log(`POI municipio [${nombre}] [IDB]: OK`);
+        }
+        return idbDatos;
+      }
+
       let resultado = null;
       let falloRed = false;
 
@@ -436,6 +668,7 @@
       // el próximo tick fuera del radio de caché lo reintentará.
       if (resultado !== null || !falloRed) {
         cacheMunicipio.set(nombre, resultado);
+        idbGuardar(idbKey, resultado);
       }
       return resultado;
     }
