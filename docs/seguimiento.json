@@ -9,8 +9,8 @@
   "estado_actual": {
     "fase_actual": "Fase 3 — UI definitiva: tres vistas deslizables",
     "ultima_actualizacion": "16 de abril de 2026",
-    "siguiente_hito": "IU-07 Velocidad visible + IU-08 Pulido visual y prueba con simulador",
-    "bloqueos": "Ninguno. IU-04, IU-05, IU-06 en revision. IU-07, IU-08 propuestas pendientes de aprobacion."
+    "siguiente_hito": "Cerrar Fase 3 (todas las IU completadas). Siguiente: aprobar tarjetas de resiliencia API (RA-01/02/03) o PEC-03 prueba carretera POI.",
+    "bloqueos": "Ninguno. IU-04 a IU-08 en revision. Fase 3 lista para cerrar tras aprobacion."
   },
   "fases": [
     {
@@ -40,8 +40,8 @@
     {
       "id": "3",
       "nombre": "UI estática",
-      "estado": "Pendiente",
-      "notas": ""
+      "estado": "En curso",
+      "notas": "Todas las tarjetas UI completadas (IU-01 a IU-08). Tres vistas landscape con swipe horizontal: V1 grid compacto, V2 glanceable ubicacion+meteo con gradientes, V3 POIs grid. Iconos SVG meteo (sprite 3.2KB). Velocidad visible en V1 y V2. Datos GPS solo con ?debug=1. Verificada con 3 rutas del simulador a 640x360. Pendiente aprobacion final de Laureano para cerrar fase."
     },
     {
       "id": "4",
@@ -1951,6 +1951,40 @@
         [
           "Pendientes",
           "IU-07: Velocidad visible + datos GPS solo en debug. IU-08: Pulido visual y prueba completa con simulador. 3 tarjetas de resiliencia API (RA-01/02/03) y PEC-03 (prueba carretera POI) pendientes de aprobacion."
+        ]
+      ]
+    },
+    {
+      "n": 22,
+      "titulo": "IU-07 velocidad + IU-08 pulido final — Fase 3 completa",
+      "campos": [
+        [
+          "Fecha",
+          "16 de abril de 2026"
+        ],
+        [
+          "Fase trabajada",
+          "Fase 3 — UI definitiva: tres vistas deslizables"
+        ],
+        [
+          "Contexto de arranque",
+          "Continuacion directa de la sesion 21. IU-04/05/06 en cian. IU-07 unica tarjeta roja lista."
+        ],
+        [
+          "Lo que se ha hecho",
+          "IU-07: Velocidad visible en V1 (20px bold en .v1-estado con margin-left:auto) y V2 (18px esquina inferior, ya existia). Datos GPS (lat/lon/precision/rumbo/hora) movidos de display:none inline a CSS condicionado por body.debug-activo: overlay fijo (position:fixed, top:8px, right:8px, z-index:9998) visible desde cualquier vista con ?debug=1. Verificado sin y con debug. | IU-08: Pulido visual y prueba con simulador. Checklist sistematico: 3 rutas (a6-salidas, m505, cruce-a6-m505) x 3 vistas a 640x360. Checks transversales: body overflow:hidden, scroll-snap x mandatory, sin scroll vertical en V1 (scrollHeight===clientHeight), sin emojis en meteo (solo SVG), debug panel funcional. Resultado: todo limpio, sin ajustes necesarios. Fase 3 lista para cerrar."
+        ],
+        [
+          "Decisiones tomadas",
+          "Datos GPS como overlay fixed en esquina superior derecha en vez de integrarlos en una vista concreta: asi son visibles desde cualquier vista y no rompen ningun layout. Se aprovecha la clase body.debug-activo que debug.js ya anade, sin tocar debug.js. | Cache-bust ?v=2 en meteo_codigos.js necesario durante desarrollo por cache agresiva del preview browser; retirado antes de commit (no es problema en produccion)."
+        ],
+        [
+          "Problemas encontrados",
+          "Cache del navegador del preview sigue sirviendo meteo_codigos.js viejo incluso tras reiniciar el servidor Python. Workaround: query string ?v=2 temporal en el script tag. No afecta a produccion (GitHub Pages)."
+        ],
+        [
+          "Pendientes",
+          "Aprobar IU-04 a IU-08 y cerrar Fase 3. Siguiente bloque: resiliencia API (RA-01/02/03) o PEC-03 prueba carretera con POIs."
         ]
       ]
     }
