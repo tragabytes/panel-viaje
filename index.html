@@ -95,7 +95,7 @@
     #vista1 .meteo { margin: 0; padding: 0; border: none; }
     #vista1 .meteo .temp { font-size: 20px; margin-bottom: 2px; }
     #vista1 .meteo .descripcion { font-size: 13px; margin-bottom: 2px; }
-    #vista1 .meteo .descripcion .icono { font-size: 16px; }
+    #vista1 .meteo .descripcion .icono { width: 16px; height: 16px; }
     #vista1 .meteo .sub { font-size: 11px; }
     #vista1 .meteo .prevision { font-size: 11px; margin-top: 4px; padding-top: 4px; }
 
@@ -210,8 +210,9 @@
     }
 
     .meteo .descripcion .icono {
-      font-size: 22px;
-      line-height: 1;
+      width: 22px;
+      height: 22px;
+      flex-shrink: 0;
     }
 
     .meteo .descripcion .texto {
@@ -235,6 +236,12 @@
       display: flex;
       align-items: center;
       gap: 6px;
+    }
+    .meteo .prevision svg,
+    .meteo .descripcion svg {
+      width: 1em;
+      height: 1em;
+      vertical-align: -0.1em;
     }
     /* ---- Fin bloque meteo ---- */
 
@@ -439,9 +446,242 @@
       -webkit-line-clamp: 3;
       -webkit-box-orient: vertical;
     }
+
+    /* ---- Vista 2: Ubicación + Meteo glanceable ---- */
+    #vista2 {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 16px 20px;
+      position: relative;
+      transition: background 1.5s ease;
+    }
+
+    /* Gradientes por categoría meteo */
+    #vista2[data-meteo-cat="despejado"] { background: linear-gradient(135deg, #0a1628 0%, #1a3a5c 50%, #0f2035 100%); }
+    #vista2[data-meteo-cat="nublado"]   { background: linear-gradient(135deg, #1a1d24 0%, #2e3440 50%, #1a1d24 100%); }
+    #vista2[data-meteo-cat="niebla"]    { background: linear-gradient(135deg, #1c1f26 0%, #3a3d44 50%, #28292e 100%); }
+    #vista2[data-meteo-cat="lluvia"]    { background: linear-gradient(135deg, #0d1520 0%, #1a2a3e 50%, #0f1925 100%); }
+    #vista2[data-meteo-cat="nieve"]     { background: linear-gradient(135deg, #1a1e2e 0%, #2a3048 50%, #1e2236 100%); }
+    #vista2[data-meteo-cat="tormenta"]  { background: linear-gradient(135deg, #0f0a18 0%, #261830 50%, #140e1e 100%); }
+
+    .v2-ubicacion { text-align: center; margin-bottom: 16px; }
+    .v2-municipio { font-size: 28px; font-weight: 400; }
+    .v2-admin     { font-size: 14px; opacity: 0.55; margin-top: 2px; }
+
+    .v2-meteo { text-align: center; }
+    .v2-temp-fila {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 4px;
+    }
+    .v2-icono { width: 40px; height: 40px; flex-shrink: 0; }
+    .v2-icono svg { width: 100%; height: 100%; }
+    .v2-temp  { font-size: 36px; font-weight: 300; }
+    .v2-desc  { font-size: 16px; opacity: 0.85; margin-bottom: 8px; }
+    .v2-sub-fila {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-size: 13px;
+      opacity: 0.6;
+      margin-bottom: 4px;
+    }
+    .v2-sub-sep { opacity: 0.4; }
+    .v2-prevision {
+      font-size: 13px;
+      opacity: 0.6;
+      margin-top: 6px;
+    }
+    .v2-prevision svg {
+      width: 1em;
+      height: 1em;
+      vertical-align: -0.1em;
+    }
+
+    .v2-velocidad {
+      position: absolute;
+      bottom: 12px;
+      right: 16px;
+      font-size: 18px;
+      opacity: 0.7;
+    }
+    /* ---- Fin Vista 2 ---- */
+
+    /* ---- Vista 3: POIs grid a pantalla completa ---- */
+    #vista3 {
+      display: flex;
+      flex-direction: column;
+      padding: 8px 10px;
+      overflow: hidden;
+    }
+
+    .v3-cabecera {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      height: 30px;
+      flex-shrink: 0;
+      margin-bottom: 8px;
+    }
+
+    .v3-carretera { font-size: 13px; font-weight: 700; }
+    .v3-carretera .pastilla {
+      display: inline-block;
+      font-size: 12px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: #1e5fb8;
+      color: #fff;
+      font-weight: 700;
+    }
+    .v3-carretera .pastilla.autonomica { background: #7a1f2b; }
+    .v3-ubicacion {
+      font-size: 13px;
+      opacity: 0.6;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .v3-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 8px;
+      overflow-y: auto;
+      flex: 1;
+      min-height: 0;
+    }
+    .v3-grid::-webkit-scrollbar { display: none; }
+    .v3-grid { scrollbar-width: none; }
+
+    .v3-pueblo {
+      background: rgba(255,255,255,0.06);
+      border-radius: 8px;
+      padding: 8px 10px;
+    }
+
+    .v3-pueblo-cab {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 4px;
+      margin-bottom: 6px;
+    }
+
+    .v3-pueblo-nombre {
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .v3-pueblo-dist {
+      font-size: 11px;
+      opacity: 0.45;
+      flex-shrink: 0;
+    }
+
+    .v3-poi {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 3px;
+    }
+
+    .v3-poi-icono { font-size: 14px; flex-shrink: 0; }
+    .v3-poi-nombre {
+      font-size: 11px;
+      opacity: 0.75;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    /* ---- Fin Vista 3 ---- */
   </style>
 </head>
 <body>
+<!-- Sprite SVG meteo: 8 símbolos, ~3 KB. IU-06. -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
+  <!-- Sol -->
+  <symbol id="meteo-sol" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="5" fill="#fbbf24" />
+    <g stroke="#fbbf24" stroke-width="2" stroke-linecap="round">
+      <line x1="12" y1="1" x2="12" y2="4"/>
+      <line x1="12" y1="20" x2="12" y2="23"/>
+      <line x1="4.22" y1="4.22" x2="6.34" y2="6.34"/>
+      <line x1="17.66" y1="17.66" x2="19.78" y2="19.78"/>
+      <line x1="1" y1="12" x2="4" y2="12"/>
+      <line x1="20" y1="12" x2="23" y2="12"/>
+      <line x1="4.22" y1="19.78" x2="6.34" y2="17.66"/>
+      <line x1="17.66" y1="6.34" x2="19.78" y2="4.22"/>
+    </g>
+  </symbol>
+  <!-- Luna -->
+  <symbol id="meteo-luna" viewBox="0 0 24 24">
+    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="#94a3b8"/>
+  </symbol>
+  <!-- Nube -->
+  <symbol id="meteo-nube" viewBox="0 0 24 24">
+    <path d="M6.5 19a4.5 4.5 0 0 1-.42-8.98A7 7 0 0 1 19 10.5 3.5 3.5 0 0 1 18.5 17H6.5z" fill="#94a3b8" opacity="0.85"/>
+  </symbol>
+  <!-- Sol+nube (parcialmente nublado día) -->
+  <symbol id="meteo-sol-nube" viewBox="0 0 24 24">
+    <circle cx="10" cy="7" r="3.5" fill="#fbbf24"/>
+    <g stroke="#fbbf24" stroke-width="1.5" stroke-linecap="round">
+      <line x1="10" y1="1" x2="10" y2="2.5"/>
+      <line x1="4.4" y1="3.4" x2="5.5" y2="4.5"/>
+      <line x1="2" y1="7" x2="3.5" y2="7"/>
+      <line x1="15.6" y1="3.4" x2="14.5" y2="4.5"/>
+      <line x1="18" y1="7" x2="16.5" y2="7"/>
+    </g>
+    <path d="M6.5 20a4 4 0 0 1-.37-7.98A6 6 0 0 1 18 13.5 3 3 0 0 1 17.5 19H6.5z" fill="#94a3b8" opacity="0.85"/>
+  </symbol>
+  <!-- Niebla -->
+  <symbol id="meteo-niebla" viewBox="0 0 24 24">
+    <g stroke="#94a3b8" stroke-width="2" stroke-linecap="round" opacity="0.7">
+      <line x1="3" y1="8" x2="21" y2="8"/>
+      <line x1="5" y1="12" x2="19" y2="12"/>
+      <line x1="3" y1="16" x2="21" y2="16"/>
+    </g>
+  </symbol>
+  <!-- Lluvia -->
+  <symbol id="meteo-lluvia" viewBox="0 0 24 24">
+    <path d="M6.5 14a4 4 0 0 1-.37-7.98A6 6 0 0 1 18 8.5 3 3 0 0 1 17.5 14H6.5z" fill="#64748b"/>
+    <g stroke="#60a5fa" stroke-width="1.5" stroke-linecap="round">
+      <line x1="8" y1="17" x2="7" y2="20"/>
+      <line x1="12" y1="17" x2="11" y2="20"/>
+      <line x1="16" y1="17" x2="15" y2="20"/>
+    </g>
+  </symbol>
+  <!-- Nieve -->
+  <symbol id="meteo-nieve" viewBox="0 0 24 24">
+    <path d="M6.5 14a4 4 0 0 1-.37-7.98A6 6 0 0 1 18 8.5 3 3 0 0 1 17.5 14H6.5z" fill="#64748b"/>
+    <g fill="#e2e8f0">
+      <circle cx="8" cy="17.5" r="1.2"/>
+      <circle cx="12" cy="19" r="1.2"/>
+      <circle cx="16" cy="17.5" r="1.2"/>
+    </g>
+  </symbol>
+  <!-- Tormenta -->
+  <symbol id="meteo-tormenta" viewBox="0 0 24 24">
+    <path d="M6.5 13a4 4 0 0 1-.37-7.98A6 6 0 0 1 18 7.5 3 3 0 0 1 17.5 13H6.5z" fill="#475569"/>
+    <polygon points="13,14 10,19 12,19 11,23 16,17 13.5,17 15,14" fill="#facc15"/>
+  </symbol>
+  <!-- Desconocido -->
+  <symbol id="meteo-desconocido" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="10" fill="none" stroke="#64748b" stroke-width="1.5"/>
+    <text x="12" y="16" text-anchor="middle" font-size="12" fill="#94a3b8" font-family="sans-serif">?</text>
+  </symbol>
+</svg>
+
 <div id="visor" class="visor">
   <section class="vista" id="vista1">
 
@@ -510,12 +750,33 @@
 
   </section><!-- /vista1 -->
 
-  <section class="vista" id="vista2" style="display:flex;align-items:center;justify-content:center;opacity:0.25;font-size:14px">
-    Vista 2 — Ubicación + Meteo (próximamente)
+  <section class="vista" id="vista2" data-meteo-cat="despejado">
+    <div class="v2-ubicacion">
+      <div id="v2Municipio" class="v2-municipio">—</div>
+      <div id="v2Admin" class="v2-admin">—</div>
+    </div>
+    <div class="v2-meteo">
+      <div class="v2-temp-fila">
+        <span id="v2MeteoIcono" class="v2-icono">—</span>
+        <span id="v2MeteoTemp" class="v2-temp">—</span>
+      </div>
+      <div id="v2MeteoDesc" class="v2-desc">—</div>
+      <div class="v2-sub-fila">
+        <span id="v2MeteoViento" class="v2-sub">—</span>
+        <span class="v2-sub-sep">·</span>
+        <span id="v2MeteoHumedad" class="v2-sub">—</span>
+      </div>
+      <div id="v2MeteoPrevision" class="v2-prevision">—</div>
+    </div>
+    <div id="v2Velocidad" class="v2-velocidad"></div>
   </section>
 
-  <section class="vista" id="vista3" style="display:flex;align-items:center;justify-content:center;opacity:0.25;font-size:14px">
-    Vista 3 — POIs (próximamente)
+  <section class="vista" id="vista3">
+    <div class="v3-cabecera">
+      <span id="v3Carretera" class="v3-carretera"></span>
+      <span id="v3Ubicacion" class="v3-ubicacion">—</span>
+    </div>
+    <div id="v3Grid" class="v3-grid"></div>
   </section>
 </div><!-- /visor -->
 
@@ -566,6 +827,23 @@
     const $velocidad        = document.getElementById('velocidad');
     const $rumbo            = document.getElementById('rumbo');
     const $hora             = document.getElementById('hora');
+
+    // Vista 2 elements
+    const $vista2           = document.getElementById('vista2');
+    const $v2Municipio      = document.getElementById('v2Municipio');
+    const $v2Admin          = document.getElementById('v2Admin');
+    const $v2MeteoIcono     = document.getElementById('v2MeteoIcono');
+    const $v2MeteoTemp      = document.getElementById('v2MeteoTemp');
+    const $v2MeteoDesc      = document.getElementById('v2MeteoDesc');
+    const $v2MeteoViento    = document.getElementById('v2MeteoViento');
+    const $v2MeteoHumedad   = document.getElementById('v2MeteoHumedad');
+    const $v2MeteoPrevision = document.getElementById('v2MeteoPrevision');
+    const $v2Velocidad      = document.getElementById('v2Velocidad');
+
+    // Vista 3 elements
+    const $v3Carretera      = document.getElementById('v3Carretera');
+    const $v3Ubicacion      = document.getElementById('v3Ubicacion');
+    const $v3Grid           = document.getElementById('v3Grid');
 
     const UMBRAL_DESPLAZAMIENTO_M = 50;
 
@@ -618,17 +896,20 @@
 
     function pintarCarretera(info) {
       if (info && info.codigo) {
-        // Pastilla azul (estatal) o granate (autonómica). Si por algún motivo
-        // tipo viniera vacío, defaulteamos a azul para no romper el aspecto.
         const claseExtra = info.tipo === 'autonomica' ? ' autonomica' : '';
         $carreteraBloque.innerHTML =
+          `<span class="pastilla${claseExtra}">${escapar(info.codigo)}</span>`;
+        // V3 cabecera: pastilla mini
+        $v3Carretera.innerHTML =
           `<span class="pastilla${claseExtra}">${escapar(info.codigo)}</span>`;
       } else if (info && info.textoCrudo) {
         $carreteraBloque.innerHTML =
           `<span class="calle">${escapar(info.textoCrudo)}</span>`;
+        $v3Carretera.textContent = info.textoCrudo;
       } else {
         $carreteraBloque.innerHTML =
           `<span class="sin-carretera">Sin vía identificada</span>`;
+        $v3Carretera.textContent = '';
       }
     }
 
@@ -642,6 +923,14 @@
         municipioActual = info.municipio || null;
         $municipio.textContent = info.municipio || '(municipio desconocido)';
         $admin.textContent = formatearAdmin(info);
+        // V2
+        $v2Municipio.textContent = info.municipio || '(municipio desconocido)';
+        $v2Admin.textContent = formatearAdmin(info);
+        // V3 cabecera
+        const adminCorto = info.provincia || info.ccaa || '';
+        $v3Ubicacion.textContent = adminCorto
+          ? `${info.municipio || '—'} · ${adminCorto}`
+          : info.municipio || '—';
         debug.log(`Ubicación [${info.fuente}]: ${info.municipio} · ${formatearAdmin(info)}`);
       } catch (err) {
         debug.error(`LocationModule.ubicacion: ${err.message}`);
@@ -714,7 +1003,7 @@
     // más severa del tramo y texto de min→max de temperatura + lluvia.
     function construirResumenPrevision(horas) {
       if (!horas || horas.length === 0) {
-        return { icono: '❓', texto: 'Sin previsión' };
+        return { icono: 'meteo-desconocido', texto: 'Sin previsión' };
       }
       const n = horas.length;
       const tempInicio = Math.round(horas[0].temperatura);
@@ -752,9 +1041,9 @@
         $meteoTemp.textContent =
           `${Math.round(meteo.temperatura)}${meteo.temperaturaUnidad} · sensación ${Math.round(meteo.sensacion)}${meteo.sensacionUnidad}`;
 
-        // Descripción con icono y texto
+        // Descripción con icono SVG y texto
         $meteoDescripcion.innerHTML =
-          `<span class="icono">${meteo.icono}</span><span class="texto">${escapar(meteo.descripcion)}</span>`;
+          `<span class="icono">${MeteoCodigos.iconoSVG(meteo.icono)}</span><span class="texto">${escapar(meteo.descripcion)}</span>`;
 
         $meteoViento.className = 'sub';
         $meteoViento.textContent =
@@ -765,7 +1054,18 @@
 
         const resumen = construirResumenPrevision(meteo.previsionHoraria);
         $meteoPrevision.innerHTML =
-          `<span>${resumen.icono}</span><span>${escapar(resumen.texto)}</span>`;
+          `<span>${MeteoCodigos.iconoSVG(resumen.icono)}</span><span>${escapar(resumen.texto)}</span>`;
+
+        // V2: meteo glanceable
+        $v2MeteoIcono.innerHTML = MeteoCodigos.iconoSVG(meteo.icono);
+        $v2MeteoTemp.textContent = `${Math.round(meteo.temperatura)}${meteo.temperaturaUnidad}`;
+        $v2MeteoDesc.textContent = meteo.descripcion;
+        $v2MeteoViento.textContent = `Viento ${Math.round(meteo.vientoVelocidad)} ${meteo.vientoUnidad}`;
+        $v2MeteoHumedad.textContent = `Humedad ${meteo.humedad}${meteo.humedadUnidad}`;
+        $v2MeteoPrevision.innerHTML =
+          `${MeteoCodigos.iconoSVG(resumen.icono)} ${escapar(resumen.texto)}`;
+        // Gradiente de fondo según categoría
+        $vista2.setAttribute('data-meteo-cat', meteo.categoria || 'despejado');
 
         const nHoras = meteo.previsionHoraria ? meteo.previsionHoraria.length : 0;
         const etiqueta = meteo.deCache ? ' [cache]' : '';
@@ -857,6 +1157,28 @@
       }).join('');
 
       $poiBloque.style.display = '';
+
+      // V3: grid de tarjetas de pueblo con hasta 2 POIs cada una
+      $v3Grid.innerHTML = pueblos.map(pueblo => {
+        const dist = pueblo.distKm < 1
+          ? Math.round(pueblo.distKm * 1000) + ' m'
+          : pueblo.distKm.toFixed(1) + ' km';
+
+        const poisV3 = pueblo.pois.slice(0, 2).map(poi =>
+          `<div class="v3-poi">
+            <span class="v3-poi-icono">${escapar(poi.icono)}</span>
+            <span class="v3-poi-nombre">${escapar(poi.nombre)}</span>
+          </div>`
+        ).join('');
+
+        return `<div class="v3-pueblo">
+          <div class="v3-pueblo-cab">
+            <span class="v3-pueblo-nombre">${escapar(pueblo.nombre)}</span>
+            <span class="v3-pueblo-dist">${escapar(dist)}</span>
+          </div>
+          ${poisV3}
+        </div>`;
+      }).join('');
     }
 
     let poiChequeado = false;
@@ -956,6 +1278,11 @@
         ? `${c.heading.toFixed(0)}°`
         : 'no disponible';
       $hora.textContent = new Date().toTimeString().slice(0, 8);
+
+      // V2: velocidad en esquina inferior derecha
+      $v2Velocidad.textContent = c.speed != null
+        ? `${Math.round(c.speed * 3.6)} km/h`
+        : '';
 
       ultimoTickGPS = Date.now();
       mostrarEstado('GPS activo', 'ok');
