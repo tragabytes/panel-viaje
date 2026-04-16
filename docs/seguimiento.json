@@ -7,10 +7,10 @@
     "nota_pie": "Actualizar al final de cada sesión de trabajo"
   },
   "estado_actual": {
-    "fase_actual": "Fase 3 — UI definitiva (completa). Resiliencia API completa. Bugs prueba carretera en curso.",
+    "fase_actual": "Fase 3 — UI definitiva (completa). Resiliencia API completa. Bugs prueba carretera en curso. FN-02 (logs persistidos) implementada en tres hijas en sesion 25.",
     "ultima_actualizacion": "16 de abril de 2026",
-    "siguiente_hito": "Definir alcance de FN-02 (logs de trayecto persistidos y exportables) e implementarla. Después: PEC-04 (validar BPC-09/10/11/12 en carretera) y PEC-05 (validar FN-02 en carretera). Pendientes moradas BPC-05, IU-09, FN-01, PEC-03.",
-    "bloqueos": "Ninguno. BPC-04, BPC-09, BPC-10, BPC-11 y BPC-12 en revision (cyan) tras sesión 24."
+    "siguiente_hito": "PEC-04 (validar BPC-09/10/11/12 en carretera) y PEC-05 (validar FN-02 en carretera). Pendientes moradas: BPC-05, IU-09, FN-01.",
+    "bloqueos": "Ninguno. BPC-04 y FN-04 en revision (cyan) tras sesion 25. FN-02 paraguas queda gris hasta que FN-04 se apruebe en verde."
   },
   "fases": [
     {
@@ -1101,6 +1101,36 @@
       ]
     },
     {
+      "id": 27,
+      "titulo": "Arquitectura del sistema de logs de trayecto persistidos y exportables (FN-02)",
+      "campos": [
+        [
+          "Fecha",
+          "16 de abril de 2026, sesión 25"
+        ],
+        [
+          "Decisión",
+          "Los logs del panel se agrupan por 'trayecto' (cada arranque del panel crea uno con id=Date.now()). Un módulo nuevo js/trayectos.js guarda todo en IndexedDB (base panel-viaje-trayectos, stores separados 'trayectos', 'mensajes', 'track' con índices por trayectoId). debug.js llama a Trayectos.log en cada escritura, independiente de ?debug=1. Un track GPS ligero {ts, lat, lon, speedKmh} se agrega cada 30 s o cada 500 m (lo que llegue antes). Rotación automática: al iniciar un trayecto nuevo, si hay más de 10 se borran los más antiguos con sus mensajes y track. Una UI en el propio index.html, activada con ?logs=1, muestra la lista de trayectos con botones Descargar y Borrar, más un botón global Borrar todos. La descarga genera un .txt formateado con Trayectos.exportarTxt(id): cabecera automática (fecha, duración, conteo por nivel, puntos de track, distancia aproximada, posiciones inicial y final, primeros errores y avisos, user-agent) + log completo con compresión de mensajes repetidos consecutivos (colapsa runs de ≥3 en una línea con rango temporal y multiplicador)."
+        ],
+        [
+          "Contexto",
+          "Objetivo definido por Laureano en sesión 24 tras la primera prueba real PEC-01: que al llegar a casa tras un trayecto pueda rescatar los logs del panel y pasarlos a Claude para análisis post-viaje. Hoy el panel solo tiene buffer en memoria de 500 mensajes y un botón 'copiar' que requiere tener el panel de debug abierto — inviable durante la conducción. El diseño se acordó al principio de la sesión 25 con cuatro preguntas explícitas (rotación, formato, compresión, UI de acceso); Laureano aprobó la propuesta."
+        ],
+        [
+          "Alternativas consideradas",
+          "(A) Guardar solo eventos 'de interés' seleccionados a mano vs todo lo que pasa por debug.js: elegido todo. El panel ya tiene buen criterio de qué loguear, reinventarlo es esfuerzo perdido. La compresión automática en el exportador resuelve el volumen. (B) Rotación por tiempo (última semana) o por tamaño (10 MB) vs por trayectos (10 últimos): elegido por trayectos. Es la unidad natural — un trayecto = una prueba o un viaje = un archivo que Laureano me pasa. (C) JSON estructurado vs texto plano en la exportación: elegido texto plano. Es lo que ya sé leer rápido, soporta mejor pegado manual (sin problemas de comillas ni escapes) y deja a la compresión hacer el trabajo de densidad. (D) Pantalla separada /logs.html vs modo ?logs=1 en la misma página: elegido ?logs=1. Menor superficie (ningún archivo HTML nuevo), reusa el carga de trayectos.js, y un bloque etiquetado panelBlock: { ... } corta limpiamente el arranque del panel normal sin restructurar el script. (E) Un único store en IDB vs tres stores: elegidos tres (meta + mensajes + track con índices). Simplifica add() atómico sin rewrite del trayecto completo, y permite contar/leer mensajes por trayecto con índice eficiente."
+        ],
+        [
+          "Parámetros operativos",
+          "(1) MAX_TRAYECTOS = 10. (2) TRACK_MIN_INTERVALO_MS = 30000 (30 s) o TRACK_MIN_DISTANCIA_M = 500 m. Lo que llegue primero dispara el append al track. (3) Buffer en memoria con flush cada 3 s o cuando haya 20 mensajes / 5 puntos de track acumulados. Flush adicional en visibilitychange=hidden y pagehide para no perder buffer al cerrar pestaña o apagar pantalla. (4) Compresión del exportador activa siempre, sin toggle: colapsa runs de ≥3 mensajes idénticos consecutivos a '[HH:MM:SS–HH:MM:SS] texto (×N)'. Umbral 3 evita ruido y mantiene runs de 1-2 como líneas normales. (5) El exportador lista los primeros 5 errores y primeros 3 avisos en la cabecera como resumen rápido. El log completo se incluye después con todos los mensajes."
+        ],
+        [
+          "Consecuencias",
+          "(1) Nuevo archivo js/trayectos.js (~320 líneas). (2) Cambio mínimo en js/debug.js: escribir() llama a Trayectos.log fuera del guard de ?debug=1, para persistir SIEMPRE. (3) Cambios en index.html: cargar trayectos.js antes de debug.js, llamar Trayectos.iniciar() antes del primer debug.log, llamar Trayectos.agregarTrack en alRecibirPosicion, nuevo <section id='vistaLogs'> oculto por defecto, script del panel envuelto en bloque etiquetado panelBlock: { ... } con break panelBlock en modo logs para cortar la inicialización normal. (4) IDB usage esperado: ~60 KB por hora de conducción (con 1 mensaje/s medio). 10 trayectos típicos = <1 MB. (5) Validación fin-a-fin se hará en PEC-05 (prueba en carretera con logs persistidos) cuando Laureano apruebe FN-03/04/05 y FN-02 en verde."
+        ]
+      ]
+    },
+    {
       "id": 26,
       "titulo": "Altura de vista vía variable CSS --app-height poblada por JS para sobreponer a 100dvh",
       "campos": [
@@ -2177,6 +2207,44 @@
         [
           "Pendientes",
           "Verificación humana de las 5 tarjetas en cyan + PEC-03 marcada hoy. Definir alcance de FN-02 (logs del trayecto) con Laureano antes de implementar. Siguiente: FN-02, PEC-04 y PEC-05. Moradas en espera: BPC-05, FN-01, IU-09."
+        ]
+      ]
+    },
+    {
+      "n": 25,
+      "titulo": "FN-02 logs persistidos y exportables — implementacion en tres hijas (FN-03/05/04)",
+      "campos": [
+        [
+          "Fecha",
+          "16 de abril de 2026"
+        ],
+        [
+          "Fase trabajada",
+          "Funciones nuevas — FN-02 (paraguas) y sus tres sub-tarjetas FN-03, FN-05, FN-04."
+        ],
+        [
+          "Contexto de arranque",
+          "Sesion encadenada tras sesion 24. Laureano aprobo los 5 bugs cerrados (BPC-09/10/11/12 verificados, BPC-04 aun en cyan) y pidio definir y ejecutar FN-02 antes de otra prueba en carretera. Se acordo la arquitectura (modulo Trayectos + IDB + UI ?logs=1 + exportador txt con compresion) con cuatro preguntas explicitas a las que Laureano dio visto bueno."
+        ],
+        [
+          "Lo que se ha hecho",
+          "(A) Reorganizacion del tablero: se propusieron y aprobaron FN-03/FN-04/FN-05 como hijas de FN-02; se anadieron dependencias FN-03 -> FN-02, FN-04 -> FN-02, FN-05 -> FN-02 para que FN-02 quedara gris (bloqueada) hasta cerrar las tres. Texto del batch sin acentos tras verificacion con Grep Ã. (B) FN-03 persistencia: nuevo js/trayectos.js (~320 lineas) con tres stores en IndexedDB (trayectos meta, mensajes con indice trayectoId, track con indice trayectoId), buffer en memoria con flush cada 3 s o 20 msg / 5 track, flush oportunista en visibilitychange=hidden y pagehide, rotacion a 10 trayectos, API completa iniciar/log/agregarTrack/listar/leer/borrar/borrarTodos. debug.js llama a Trayectos.log en cada escritura, fuera del guard de ?debug=1, para persistir siempre. index.html carga trayectos.js antes de debug.js, llama iniciar() antes del primer log y agregarTrack(lat, lon, velEfectivaKmh) en cada fix GPS. Verificado con simulador: track acumula puntos, log persiste mensajes cuando el hook esta activo. (C) FN-05 exportador: nueva funcion Trayectos.exportarTxt(id) en trayectos.js. Produce .txt con cabecera automatica (fecha, duracion, conteo por nivel, puntos de track, distancia aprox sumando segmentos, posiciones inicial y final, primeros 5 errores y 3 avisos, user-agent) + log con compresion de runs >=3 mensajes identicos consecutivos a una linea con rango temporal y multiplicador (xN). Verificado con trayecto real: txt de 20 KB, cabecera completa, compresion correcta. (D) FN-04 UI ?logs=1: nueva <section id='vistaLogs'> oculta por defecto. Script del panel envuelto en bloque etiquetado 'panelBlock: { ... }' para permitir break limpio en modo logs sin throw ni exception. Con ?logs=1 se oculta #visor, se pinta lista de trayectos (fecha, nMensajes, nTrack) con botones Descargar y Borrar por tarjeta y Borrar todos global. Descarga via Blob + URL.createObjectURL + <a download> dinamico. Verificado: tarjetas listadas desde IDB, descarga genera blob text/plain correcto, volver a ./ restablece el panel normal arrancando GPS. (E) Commit y push git final con cambios de codigo y seguimiento."
+        ],
+        [
+          "Decisiones tomadas",
+          "D27 (arquitectura del sistema de logs persistidos: IDB tres stores, rotacion 10, track 30 s/500 m, UI ?logs=1 con bloque etiquetado, exportador con compresion de runs >=3)."
+        ],
+        [
+          "Problemas encontrados",
+          "(1) El navegador headless del preview de Claude sigue cacheando bundles JS agresivamente entre reinicios del servidor: debug.js en disco tenia el hook a Trayectos pero el runtime ejecutaba version vieja. Verificacion fin-a-fin de la rama completa se hizo con monkey-patch en runtime para simular el hook. La lectura del archivo servido confirmo el patch correcto. El Chrome del movil real hara la primera carga sin cache. (2) Primer intento para cortar el arranque del panel en modo logs uso 'throw new Error(\\\"__logs_mode__\\\")' que funciona pero ensucia la consola con un error visible en cada carga ?logs=1. Se refactorizo a bloque etiquetado panelBlock: { ... } con break panelBlock;, que es JS valido y limpio."
+        ],
+        [
+          "Metricas de la sesion",
+          "3 tarjetas cerradas (FN-03, FN-05, FN-04), todas en cyan esperando verificacion. FN-02 paraguas queda gris bloqueada por FN-04. Nuevas dependencias explicitas en el tablero entre FN-02 y sus tres hijas. Codigo: ~320 lineas nuevas (trayectos.js), ~110 lineas en index.html (vista de logs + bootstrap), ~5 lineas en debug.js."
+        ],
+        [
+          "Pendientes",
+          "Verificacion humana de BPC-04, FN-03, FN-04 y FN-05 (y, cuando las tres FN esten verdes, FN-02 paraguas). Tras ello PEC-04 y PEC-05 quedaran desbloqueadas. Moradas restantes sin trabajar: BPC-05, IU-09, FN-01."
         ]
       ]
     }
