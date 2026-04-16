@@ -8,9 +8,9 @@
   },
   "estado_actual": {
     "fase_actual": "Fase 3 — UI definitiva: tres vistas deslizables",
-    "ultima_actualizacion": "14 de abril de 2026",
-    "siguiente_hito": "IU-04 Vista 2 Ubicacion+Meteo con gradientes + IU-05 Vista 3 POIs grid",
-    "bloqueos": "Ninguno. IU-03 en revision. IU-04/05/06/07/08 pendientes de aprobacion."
+    "ultima_actualizacion": "16 de abril de 2026",
+    "siguiente_hito": "IU-07 Velocidad visible + IU-08 Pulido visual y prueba con simulador",
+    "bloqueos": "Ninguno. IU-04, IU-05, IU-06 en revision. IU-07, IU-08 propuestas pendientes de aprobacion."
   },
   "fases": [
     {
@@ -1917,6 +1917,40 @@
         [
           "Pendientes",
           "IU-04: Vista 2 Ubicacion+Meteo con gradientes. IU-05: Vista 3 POIs grid. IU-06: Iconos SVG meteo. IU-07: Velocidad visible, GPS solo en debug. IU-08: Pulido final."
+        ]
+      ]
+    },
+    {
+      "n": 21,
+      "titulo": "IU-04 Vista 2 + IU-05 Vista 3 POIs + IU-06 Iconos SVG meteo",
+      "campos": [
+        [
+          "Fecha",
+          "16 de abril de 2026"
+        ],
+        [
+          "Fase trabajada",
+          "Fase 3 — UI definitiva: tres vistas deslizables"
+        ],
+        [
+          "Contexto de arranque",
+          "IU-03 completada (verde). Tres tarjetas rojas listas en el tablero: IU-04 (Vista 2), IU-05 (Vista 3 POIs) e IU-06 (Iconos SVG). Se ejecutaron las tres secuencialmente en una sola sesion."
+        ],
+        [
+          "Lo que se ha hecho",
+          "IU-04: Vista 2 implementada — layout centrado glanceable con municipio 28px, provincia 14px, temperatura 36px con icono 40px, descripcion 16px, viento/humedad 13px, prevision 13px, velocidad 18px en esquina inferior derecha. 6 gradientes CSS por categoria meteo (despejado, nublado, niebla, lluvia, nieve, tormenta) controlados via data-attribute data-meteo-cat seteado desde JS. Funciones render actualizadas para escribir tanto a V1 como a V2. Verificado con datos vivos del simulador y cambio de gradiente entre categorias. | IU-05: Vista 3 implementada — cabecera compacta de 30px con pastilla carretera mini + municipio + provincia. Grid CSS repeat(auto-fill, minmax(140px, 1fr)) con tarjetas de pueblo que muestran nombre, distancia y hasta 2 POIs con icono y nombre. Funciones pintarCarretera y pintarPOIs actualizadas para escribir tambien a V3. Verificado: 5 tarjetas grid vivas con datos del simulador. | IU-06: Sprite SVG inline con 9 simbolos (sol, luna, sol-nube, nube, niebla, lluvia, nieve, tormenta, desconocido) — 3.2 KB total. TABLA de meteo_codigos.js actualizada de emojis a IDs de simbolo SVG. Nueva funcion MeteoCodigos.iconoSVG(id) genera markup <svg><use>. Renders de V1, V2 y prevision actualizados. Unico emoji restante: warning en error meteo (no es icono meteo). Verificado SVG en V1 (16/22px) y V2 (40px)."
+        ],
+        [
+          "Decisiones tomadas",
+          "Los gradientes de V2 son sutiles (tonos oscuros) para no distraer conduciendo — transicion CSS de 1.5s. V3 usa overflow-y:auto en el grid por si hay mas pueblos de los que caben en pantalla. Los sprites SVG son minimalistas tipo Meteocons, colores coherentes: amarillo para sol, gris-slate para nubes, azul para lluvia, blanco para nieve, amarillo rayo para tormenta. Las lloviznas heladas usan icono de nieve por coherencia visual."
+        ],
+        [
+          "Problemas encontrados",
+          "Cache agresiva del navegador del preview al modificar meteo_codigos.js: el servidor Python servia el archivo nuevo pero el browser cacheaba el viejo. Resuelto temporalmente con query string ?v=2 en el script tag, retirado tras verificacion. No es un problema de produccion (GitHub Pages tiene cache distinta)."
+        ],
+        [
+          "Pendientes",
+          "IU-07: Velocidad visible + datos GPS solo en debug. IU-08: Pulido visual y prueba completa con simulador. 3 tarjetas de resiliencia API (RA-01/02/03) y PEC-03 (prueba carretera POI) pendientes de aprobacion."
         ]
       ]
     }
