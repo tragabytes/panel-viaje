@@ -7,10 +7,10 @@
     "nota_pie": "Actualizar al final de cada sesión de trabajo"
   },
   "estado_actual": {
-    "fase_actual": "Fase 3 — UI definitiva (completa). Resiliencia API en curso.",
+    "fase_actual": "Fase 3 — UI definitiva (completa). Resiliencia API completa. Bugs prueba carretera en curso.",
     "ultima_actualizacion": "16 de abril de 2026",
-    "siguiente_hito": "Cerrar Fase 3 (IU aprobadas). Bloque Resiliencia API completado (RA-01/02/03). Siguiente: BPC-04/05 o PEC-03 prueba carretera POI.",
-    "bloqueos": "Ninguno. RA-01/02/03 en revision. IU-04 a IU-08 pendientes de aprobacion final."
+    "siguiente_hito": "Definir alcance de FN-02 (logs de trayecto persistidos y exportables) e implementarla. Después: PEC-04 (validar BPC-09/10/11/12 en carretera) y PEC-05 (validar FN-02 en carretera). Pendientes moradas BPC-05, IU-09, FN-01, PEC-03.",
+    "bloqueos": "Ninguno. BPC-04, BPC-09, BPC-10, BPC-11 y BPC-12 en revision (cyan) tras sesión 24."
   },
   "fases": [
     {
@@ -1007,6 +1007,126 @@
         [
           "Consecuencias",
           "(1) Nuevo archivo js/roadref.js con API pública window.RoadRef.consultar(lat, lon) → Promise<string|null>. Expuesto a window siguiendo el patrón de wakelock.js y simulator.js (un const top-level no se engancha a window en scripts clásicos, lección aprendida dos veces ya en sesiones 9.7 y 9.8). (2) index.html llama a RoadRef como fallback dentro de actualizarCarretera: tres casos diferenciados A (Nominatim da código), B (fallback a Overpass), C (ninguno da código). (3) Este módulo adelanta trabajo del MotorwayExitModule: el patrón de consulta a Overpass con cascada de mirrors, caché por proximidad y timeout por mirror queda validado en producción con datos reales. MotorwayExitModule reutilizará el mismo esqueleto. (4) Queda como observación para la prueba en carretera real: medir cuántas llamadas efectivas a Overpass dispara el fallback en un viaje típico de 60 min. Predicción inicial 5-15 llamadas, despreciables en datos móviles. (5) El radio de caché de RoadRef (300 m) es configurable y se puede subir si en pruebas reales se ve que genera más llamadas de las necesarias"
+        ]
+      ]
+    },
+    {
+      "id": 23,
+      "titulo": "Histéresis por proximidad para la pastilla de carretera",
+      "campos": [
+        [
+          "Fecha",
+          "16 de abril de 2026, sesión 24"
+        ],
+        [
+          "Decisión",
+          "Cuando Nominatim no devuelve código y Overpass tampoco lo rescata (caso C de actualizarCarretera), el panel NO sobrescribe la pastilla actual si el último punto con código válido está a menos de 1500 m. En ese rango, la pastilla se mantiene y se loguea 'Carretera [histéresis]: mantengo M-505 (a Xm del último código, Nominatim dio Y)'. Solo si el coche se aleja >1500 m sin recuperar código, se procede al texto discreto o 'sin vía'. Se guarda roadRefActualPos={lat,lon} cada vez que se asienta un código (casos A y B) como referencia."
+        ],
+        [
+          "Contexto",
+          "En la prueba en carretera PEC-01 Laureano reportó que por la M-505 la pastilla alternaba entre la forma correcta 'M-505' y el texto largo 'Carretera de El Escorial'. La causa: cada 80 m la caché de LocationModule invalida y se vuelve a pedir Nominatim; unas veces Nominatim devuelve ref, otras no. Cuando no devuelve ref, se llama a RoadRef; si Overpass falla puntualmente (timeout, 429) o no encuentra way con ref en los 25 m, se cae al caso C y el panel pinta textoCrudo, oscilando la UI."
+        ],
+        [
+          "Alternativas consideradas",
+          "(A) Mantener la pastilla solo si el textoCrudo actual parece nombre popular (contiene 'Carretera de', 'Avenida', etc.): frágil y difícil de mantener. (B) Histéresis temporal (p.ej. mantener durante 30 s sin código nuevo): menos robusto porque si hay un atasco con Nominatim fallando durante mucho tiempo, la pastilla se borraría pese a seguir en la M-505. (C) Histéresis por proximidad (elegida): se basa en la geometría real del viaje, lo cual es más natural para una carretera interurbana larga. El radio 1500 m es generoso (la M-505 tiene 28 km) para absorber fallos aislados sin permitir que la pastilla persista tras una salida real."
+        ],
+        [
+          "Parámetros operativos",
+          "RADIO_HISTERESIS_PASTILLA_M = 1500 m. Umbral escogido como compromiso: suficientemente grande para que errores transitorios de Nominatim+Overpass (unos segundos) no rompan la pastilla aunque el coche avance >100 m en ese tiempo, y suficientemente pequeño para que el cambio de carretera real (entre nudos cercanos) se detecte en no más de 1-2 ticks. Si en PEC-04 aparece que salidas cortas a otra vía (p.ej. enlace a M-503) no se detectan, bajar a 800-1000 m."
+        ],
+        [
+          "Consecuencias",
+          "(1) Dos nuevas variables en el scope del módulo de index.html: roadRefActualPos={lat,lon} y RADIO_HISTERESIS_PASTILLA_M. (2) El caso C tiene ahora una rama temprana que puede hacer early return sin repintar, evitando que la pastilla oscile. (3) Cuando se agota la histéresis (>1500 m sin código) se resetean tanto roadRefActual como roadRefActualPos. (4) Log nuevo 'Carretera [histéresis]' para diagnóstico en pruebas reales. (5) La lógica se valida en PEC-04."
+        ]
+      ]
+    },
+    {
+      "id": 24,
+      "titulo": "Fallback de velocidad calculada desde distancias cuando el GPS no reporta coords.speed",
+      "campos": [
+        [
+          "Fecha",
+          "16 de abril de 2026, sesión 24"
+        ],
+        [
+          "Decisión",
+          "Cuando navigator.geolocation.watchPosition entrega un fix con coords.speed=null o NaN (común en Android antiguos), el panel estima la velocidad en km/h dividiendo la distancia al fix anterior entre el tiempo transcurrido. Se guarda ultimoFixVelocidad={lat,lon,ts} cada tick y, si hay fix previo, la velocidad efectiva se calcula con Haversine. Se aplican guardas: Δt<1s (ruido) y Δt>60s (pestaña oculta) descartan el cálculo. La velocidad efectiva se propaga a la UI (con prefijo '~') y a MotorwayExitModule en vez de c.speed crudo."
+        ],
+        [
+          "Contexto",
+          "En la prueba en carretera PEC-01 MotorwayExitModule quedó 'inactivo' durante 8+ minutos en la M-50 pese a velocidades sostenidas >80 km/h. El análisis del código (motorwayexit.js:279) reveló que la activación exige velocidadKmh>50 sostenida durante 30s y el módulo la recibe desde index.html (línea 1337) como c.speed*3.6. Si c.speed llega null, velocidadKmh=null y el módulo nunca se activa. El GPS del móvil viejo (Android 10, Chrome 146) puede estar no reportando speed por hardware o por política del proveedor de ubicación."
+        ],
+        [
+          "Alternativas consideradas",
+          "(A) Calcularlo dentro de MotorwayExitModule: se descartó porque otros módulos (y la UI) también podrían querer velocidad; centralizarlo en index.html beneficia a todos. (B) Mostrar 'no disponible' en la UI y no activar MotorwayExit: rechazada porque tira al suelo una funcionalidad central (cartel de salidas) en el hardware objetivo. (C) Fallback calculado en index.html (elegida): single source of truth, barato, y devuelve la velocidad real del coche con margen de error aceptable en ticks separados ~3s y ~70m."
+        ],
+        [
+          "Parámetros operativos",
+          "(1) Guardas de Δt: descarta cálculos con <1s (ruido de GPS) o >60s (pestaña oculta o watcher pausado). (2) La UI muestra la velocidad calculada con prefijo '~' para indicar que es estimada, no reportada por GPS. (3) El bloque debug del panel muestra 'X km/h (calc)' para identificar la fuente. (4) Logs de diagnóstico: 'GPS fix inicial: c.speed=X c.heading=Y' una sola vez al primer fix, y 'Velocidad fallback activa (GPS no reporta speed): ~X km/h' la primera vez que se activa el fallback. Sirven para validar en PEC-04. (5) Nuevo flag de testing en el simulador: ?simSpeedNull=1 fuerza coords.speed=null para emular el comportamiento del móvil viejo en desarrollo."
+        ],
+        [
+          "Consecuencias",
+          "(1) Nuevas variables en index.html: ultimoFixVelocidad, logueadoPrimerFixSpeed, logueadoFallbackVelocidad. (2) MotorwayExitModule no cambia: sigue recibiendo un número o null. (3) La UI de V1 y V2 ahora puede mostrar velocidad donde antes quedaba en blanco, con la nota '~' de honestidad. (4) La función interna de distanciaMetros de index.html (ya existente) se reusa — sin dependencias nuevas. (5) Query param ?simSpeedNull=1 añadido al simulator.js."
+        ]
+      ]
+    },
+    {
+      "id": 25,
+      "titulo": "Recálculo de distancias a pueblos en cada llamada a POIModule (cache hit y rama bloqueada)",
+      "campos": [
+        [
+          "Fecha",
+          "16 de abril de 2026, sesión 24"
+        ],
+        [
+          "Decisión",
+          "En POIModule (pois.js) se aplican dos fixes para que la barra de pueblos cercanos refleje siempre distancias desde la posición actual, aunque la caché interna esté vigente: (1) En obtenerPueblosCercanos, la rama de cache hit ahora mapea los pueblos recalculando distKm con la lat/lon actual y reordena por distancia. (2) En actualizar, cuando enActualizacion=true (hay enriquecimiento en curso de 15-30s), el early-return devuelve ultimoResultado con los pueblosCercanos también recalculados desde la nueva lat/lon, en vez de devolver la referencia con distancias congeladas."
+        ],
+        [
+          "Contexto",
+          "En PEC-01 Laureano reportó que la barra de pueblos mostraba distancias estáticas mientras el coche avanzaba de Las Rozas a Majadahonda. El análisis reveló dos rutas muertas: (i) el cache en memoria devolvía distancias relativas al centro cacheado, y (ii) el bloqueo por enActualizacion durante el enriquecimiento POI devolvía ultimoResultado sin tocar las distancias. Como cada tick del GPS suele coincidir con un enriquecimiento en curso, la barra quedaba congelada la mayor parte del tiempo."
+        ],
+        [
+          "Alternativas consideradas",
+          "(A) Forzar repintado en cada tick desde index.html: no resuelve el problema porque el resultado devuelto tiene las distancias malas. (B) Invalidar caches más agresivamente: desperdicia trabajo de red, y la caché ya funcionaba bien para el contenido (qué pueblos hay); el problema era solo las distancias. (C) Recalcular distancias en el momento de servir, tanto en cache hit como en bloqueo (elegida): barato (5 cálculos de Haversine por tick), no invalida nada, corrige el problema en ambos caminos."
+        ],
+        [
+          "Parámetros operativos",
+          "Sin parámetros nuevos. Reusa Overpass.distanciaMetros ya disponible. Orden de los pueblos se mantiene 'más cercano primero' tras el sort local. El log 'POI pueblos: caché OK (centro a Xkm) · N pueblos' sigue funcionando igual."
+        ],
+        [
+          "Consecuencias",
+          "(1) Dos cambios puntuales en pois.js sin nuevas dependencias ni constantes. (2) El coste es despreciable: Haversine x5 pueblos por tick, ~0.01 ms. (3) El orden de los pueblos puede invertirse si el coche pasa un punto donde dos pueblos cambian su posición relativa (bueno para la UI). (4) Esperada validación final en PEC-04."
+        ]
+      ]
+    },
+    {
+      "id": 26,
+      "titulo": "Altura de vista vía variable CSS --app-height poblada por JS para sobreponer a 100dvh",
+      "campos": [
+        [
+          "Fecha",
+          "16 de abril de 2026, sesión 24"
+        ],
+        [
+          "Decisión",
+          "La altura del contenedor .visor y de cada .vista pasa a ser var(--app-height, 100dvh), con --app-height sincronizada desde JS a window.innerHeight en los eventos resize, orientationchange y visibilitychange. Además se añade scroll-snap-stop:always a .vista y overscroll-behavior:contain al visor, y se realinea scrollLeft al múltiplo más cercano de clientWidth tras cada resize por si el usuario quedó a medias entre dos vistas cuando cambió la altura."
+        ],
+        [
+          "Contexto",
+          "En PEC-01 Laureano observó que al deslizar a V2 o V3 y volver a V1, el layout de V1 se cortaba y perdía información. La app ya usaba 100dvh desde la sesión 20 (P25 original), pero en Chrome Mobile la barra de direcciones aparece/desaparece al deslizar y hay casos donde 100dvh no se recalcula a tiempo, dejando las vistas con altura obsoleta."
+        ],
+        [
+          "Alternativas consideradas",
+          "(A) Mantener solo 100dvh y esperar que Chrome se porte bien: no funciona (PEC-01 lo demuestra). (B) Usar window.matchMedia para detectar barra: frágil y específico de Chrome. (C) JS que actualiza una variable CSS con innerHeight (elegida): funciona siempre, tiene fallback a 100dvh para navegadores sin setProperty raro, y además permite re-alinear el scroll cuando la altura cambia. (D) Fullscreen API: respuesta a otra demanda de Laureano y se crea como tarjeta independiente IU-09, no reemplaza a este fix — siempre habrá sesiones sin fullscreen."
+        ],
+        [
+          "Parámetros operativos",
+          "(1) --app-height se actualiza en: carga inicial, resize, orientationchange, visibilitychange (al volver del background). (2) realinearScrollVisor() redondea scrollLeft al múltiplo más próximo de clientWidth y corrige si hay más de 1 px de desviación. (3) scroll-snap-stop:always fuerza que cada swipe pare exactamente en una vista, sin puntos intermedios. (4) overscroll-behavior:contain limita el bounce iOS/Chrome a dentro del visor."
+        ],
+        [
+          "Consecuencias",
+          "(1) Cambios solo en index.html: bloque CSS del .visor y .vista, bloque JS nuevo con las funciones y listeners, referencia $visor. (2) La variable --app-height cae en cascada con fallback a 100dvh, por lo que cualquier navegador sin JS (improbable en este proyecto) sigue viendo layout razonable. (3) La validación fin-a-fin se hace en PEC-04 en el móvil viejo real, donde se reproduce Chrome Mobile con la barra dinámica."
         ]
       ]
     }
@@ -2021,6 +2141,44 @@
           "Aprobar IU-04 a IU-08 y cerrar Fase 3. Aprobar RA-01/02/03. Siguiente bloque: BPC-04 (indicador de carga POI), BPC-05 (timeout global POIModule), PEC-03 (prueba carretera con POIs)."
         ]
       ]
+    },
+    {
+      "n": 24,
+      "titulo": "Prueba carretera PEC-01 — bugs BPC-09/10/11/12 + BPC-04 resueltos + 7 tarjetas nuevas propuestas",
+      "campos": [
+        [
+          "Fecha",
+          "16 de abril de 2026"
+        ],
+        [
+          "Fase trabajada",
+          "Bugs prueba carretera + UI / Experiencia + Funciones nuevas"
+        ],
+        [
+          "Contexto de arranque",
+          "Laureano realizó la prueba en carretera real PEC-01 (Las Rozas → Majadahonda → Pozuelo por M-50 y carretera de El Escorial). Aportó tres fragmentos de log y cuatro quejas concretas: pastilla M-505 oscilaba con 'Carretera de El Escorial', MotorwayExit no se activó nunca en la M-50, barra de pueblos con distancias estáticas, y layout de V1 cortado al volver tras deslizar. Además propuso dos ideas nuevas abiertas sin definición (próximas gasolineras, logs del trayecto persistidos y exportables)."
+        ],
+        [
+          "Lo que se ha hecho",
+          "Sesión extensa con: (A) Triage y plan: proponer 6 tarjetas nuevas (4 bugs + 1 UI + 1 PEC), + 2 ideas abiertas + PEC adicional dependiente de logs. Crear 9 tarjetas purple + 1 grupo 'Funciones nuevas' con batch del canvas-tool.py. Fix del mojibake introducido por el batch (regla ya conocida en memoria). (B) BPC-10 MotorwayExit no se activa: fix en index.html añadiendo ultimoFixVelocidad + cálculo Haversine cuando c.speed=null, con guardas Δt<1s y >60s. Nuevo flag ?simSpeedNull=1 en simulator.js para emular el comportamiento del móvil viejo. UI de V1/V2 muestra '~X km/h' cuando la velocidad es estimada. Logs de diagnóstico. (C) BPC-11 Distancias de pueblos congeladas: dos fixes en pois.js. Uno en obtenerPueblosCercanos (cache hit recalcula distKm desde lat/lon actual). Otro en actualizar (rama enActualizacion devuelve ultimoResultado con distancias frescas, no congeladas). Este segundo era la causa raíz real — cada tick del GPS caía en esa rama durante los 15-30s del enriquecimiento. (D) BPC-09 Pastilla M-505 oscilante: histéresis por proximidad en index.html. Nueva variable roadRefActualPos y RADIO_HISTERESIS_PASTILLA_M=1500m. En caso C, si estamos a <1500m del último punto con código, NO sobrescribir la pastilla. Log distintivo 'Carretera [histéresis]'. (E) BPC-04 Indicador de carga POI: nueva función pintarPlaceholderPOI con texto 'Buscando pueblos cercanos…' discreto en V1 y V3, mostrado al primer tick con POIModule cargado y reemplazado cuando pintarPOIs recibe datos. Flag poiPrimerResultadoPintado. CSS .poi-cargando (italic, opacity 0.55). Verificado: placeholder apareció ~60s antes de ser reemplazado. (F) BPC-12 Layout cortado tras deslizar: variable CSS --app-height sincronizada por JS con window.innerHeight en resize/orientationchange/visibilitychange. scroll-snap-stop:always en .vista. overscroll-behavior:contain en .visor. Función realinearScrollVisor que redondea scrollLeft al múltiplo de clientWidth tras cada resize. Verificado: scroll intermedio (16px) → tras resize realinea a 0 perfecto; vista1 a 360px sin overflow. (G) Commit y push git con el código y el seguimiento."
+        ],
+        [
+          "Decisiones tomadas",
+          "D23 (histéresis pastilla), D24 (fallback velocidad GPS), D25 (recálculo de distancias en cada llamada POIModule), D26 (altura vía --app-height)."
+        ],
+        [
+          "Problemas encontrados",
+          "(1) El Chrome headless del preview mantiene bundles JS y HTML cacheados agresivamente entre reinicios del servidor: el archivo en disco contenía los fixes (verificado con fetch) pero POIModule.actualizar.toString() seguía mostrando la versión vieja. La verificación fin-a-fin de la rama fallback de BPC-10 y la cache-hit de BPC-11 se hizo aritméticamente inline. Para cambios visibles (BPC-04, BPC-12) el reinicio sí recargó. (2) En el primer batch de tarjetas del día se reprodujo el bug de mojibake UTF-8→cp1252 del canvas-tool.py en Windows. Detectado por Laureano desde su pantalla. Corregido con Edit directo sobre tablero.canvas. La regla en memoria se reforzó con 'correr Grep Ã después de cada batch'."
+        ],
+        [
+          "Métricas de la sesión",
+          "5 tarjetas cerradas (BPC-10, BPC-11, BPC-09, BPC-04, BPC-12) todas en cyan esperando verificación de Laureano. 7 tarjetas nuevas propuestas (FN-01, FN-02, BPC-09..12, IU-09, PEC-04, PEC-05) — moradas en el tablero al inicio. Un grupo nuevo 'Funciones nuevas' creado."
+        ],
+        [
+          "Pendientes",
+          "Verificación humana de las 5 tarjetas en cyan + PEC-03 marcada hoy. Definir alcance de FN-02 (logs del trayecto) con Laureano antes de implementar. Siguiente: FN-02, PEC-04 y PEC-05. Moradas en espera: BPC-05, FN-01, IU-09."
+        ]
+      ]
     }
   ],
   "problemas_abiertos": [],
@@ -2734,6 +2892,136 @@
         [
           "Estado",
           "Resuelto en sesion 20"
+        ]
+      ]
+    },
+    {
+      "id": "P26",
+      "titulo": "Pastilla de carretera oscilaba entre M-505 y 'Carretera de El Escorial'",
+      "campos": [
+        [
+          "Fecha de aparicion",
+          "16 de abril de 2026 (PEC-01)"
+        ],
+        [
+          "Sintoma",
+          "Circulando por la M-505 hacia El Escorial, el panel alternaba entre la pastilla granate 'M-505' y el texto largo 'Carretera de El Escorial'. La oscilación se producía cada 80 m aproximadamente (radio de caché de LocationModule)."
+        ],
+        [
+          "Causa",
+          "Cada 80 m la caché de LocationModule invalida y se pide Nominatim z17. Unas veces el campo ref viene con 'M-505' (caso A, pastilla OK), otras no viene (caso B). En el caso B se llama a RoadRef.consultar. Si Overpass responde con ref M-505, se pinta la pastilla OK. Pero si Overpass falla puntualmente (HTTP 429, timeout en mirror) o no encuentra way con ref en 25m, el panel cae al caso C y pinta textoCrudo 'Carretera de El Escorial'. Resultado: la UI parpadea mientras el coche recorre la misma carretera."
+        ],
+        [
+          "Resolucion",
+          "Histéresis por proximidad al último punto con código válido (decisión D23). En caso C, si roadRefActual existe y el coche está a <1500m de roadRefActualPos, el panel NO sobrescribe la pastilla. Se loguea 'Carretera [histéresis]: mantengo X'. Solo si la distancia supera el umbral, se procede al texto discreto. Implementado en index.html. Valido en PEC-04."
+        ],
+        [
+          "Estado",
+          "Resuelto en sesión 24, pendiente de verificación en PEC-04."
+        ]
+      ]
+    },
+    {
+      "id": "P27",
+      "titulo": "MotorwayExitModule no se activaba porque el GPS no reporta coords.speed",
+      "campos": [
+        [
+          "Fecha de aparicion",
+          "16 de abril de 2026 (PEC-01)"
+        ],
+        [
+          "Sintoma",
+          "Durante 8+ minutos circulando por la M-50 a ~80-90 km/h, MotorwayExitModule permaneció en estado 'inactivo' sin emitir un solo log más allá del 'primer tick recibido'. No salió ningún cartel verde de próxima salida pese a que la M-50 es autovía y tiene salidas numeradas en OSM."
+        ],
+        [
+          "Causa",
+          "motorwayexit.js:279 activa el módulo solo si velocidadKmh > 50 sostenida durante 30s (histéresis). La velocidad se recibe desde index.html (línea 1337) como c.speed*3.6. En Android antiguos (el móvil del panel es Android 10 con Chrome 146), coords.speed puede llegar null o NaN incluso a alta velocidad real, probablemente por limitaciones del proveedor de ubicación. Con velocidadKmh=null, sobreUmbral es siempre false y el módulo queda inactivo indefinidamente."
+        ],
+        [
+          "Resolucion",
+          "Fallback de velocidad calculada (decisión D24). Se guarda ultimoFixVelocidad={lat,lon,ts} y, si c.speed es null/NaN y hay fix previo, se estima km/h desde distancia/tiempo. Guardas Δt<1s y >60s. La velocidad efectiva se usa para la UI y para MotorwayExit. Nuevo flag ?simSpeedNull=1 en simulator.js para testing. Logs de diagnóstico para validar en PEC-04."
+        ],
+        [
+          "Estado",
+          "Resuelto en sesión 24, pendiente de verificación en PEC-04."
+        ]
+      ]
+    },
+    {
+      "id": "P28",
+      "titulo": "Distancias de los pueblos cercanos permanecían estáticas aunque el coche avanzara",
+      "campos": [
+        [
+          "Fecha de aparicion",
+          "16 de abril de 2026 (PEC-01)"
+        ],
+        [
+          "Sintoma",
+          "Circulando de Las Rozas a Majadahonda por la M-50, la barra inferior de pueblos cercanos mostraba los mismos nombres y las mismas distancias durante minutos, como si el coche estuviera quieto. La velocidad del coche y las coordenadas GPS sí cambiaban, pero las distancias a los pueblos no."
+        ],
+        [
+          "Causa",
+          "Dos rutas muertas en pois.js. (1) En obtenerPueblosCercanos, cuando la caché en memoria estaba vigente, se devolvía directamente cachePueblosCercanos.pueblos con los distKm calculados al momento de poblar la caché (desde el centro cacheado). (2) En la función actualizar, el early-return por enActualizacion=true devolvía ultimoResultado con las distancias del cálculo anterior; como el enriquecimiento POI+Wikidata tarda 15-30s, la mayoría de ticks del GPS caían en esta rama y servían distancias obsoletas. El código del path IDB sí recalculaba (línea 283-286), pero esos dos paths no."
+        ],
+        [
+          "Resolucion",
+          "Recálculo de distancias en ambos paths (decisión D25). En cache hit: map+sort+return. En enActualizacion: devolver {...ultimoResultado, pueblosCercanos: pueblosCercanosRecalculados}. Coste despreciable (Haversine x5 por tick). Implementado en pois.js."
+        ],
+        [
+          "Estado",
+          "Resuelto en sesión 24, pendiente de verificación en PEC-04."
+        ]
+      ]
+    },
+    {
+      "id": "P29",
+      "titulo": "Sección POI permanecía oculta 15-120s sin feedback al usuario",
+      "campos": [
+        [
+          "Fecha de aparicion",
+          "16 de abril de 2026 (PEC-01, BPC-04 propuesta en sesión anterior)"
+        ],
+        [
+          "Sintoma",
+          "En el primer arranque sin caché IDB, la sección POI (V1 y V3) permanecía completamente oculta mientras POIModule cargaba pueblos + POIs + enriquecimiento Wikipedia/Wikidata + datos municipio. El usuario no tenía señal de que el panel estaba trabajando, podía dar la impresión de que la sección no funcionaba."
+        ],
+        [
+          "Causa",
+          "El elemento #poiBloque tenía display:none de inicio en el HTML y solo cambiaba a '' dentro de pintarPOIs(). Hasta que llegaba el primer resultado completo, nada se mostraba. Sin indicador de carga."
+        ],
+        [
+          "Resolucion",
+          "Nueva función pintarPlaceholderPOI() que inyecta un texto discreto 'Buscando pueblos cercanos…' en #poiScroll y #v3Grid con CSS .poi-cargando (cursiva, opacidad 0.55). Se dispara al primer tick donde POIModule esté cargado. pintarPOIs() reemplaza el placeholder con los datos reales. Flag poiPrimerResultadoPintado. Verificado en preview: placeholder apareció ~60s antes de ser reemplazado por los 5 pueblos reales."
+        ],
+        [
+          "Estado",
+          "Resuelto en sesión 24 (BPC-04)."
+        ]
+      ]
+    },
+    {
+      "id": "P30",
+      "titulo": "Layout de la vista principal se cortaba al volver tras deslizar a V2 o V3",
+      "campos": [
+        [
+          "Fecha de aparicion",
+          "16 de abril de 2026 (PEC-01)"
+        ],
+        [
+          "Sintoma",
+          "Al deslizar a vista 2 o vista 3 y volver a vista 1 en Chrome para Android, la vista 1 aparecía cortada, con información perdida por los bordes. El efecto era visible durante la prueba en carretera con la barra del navegador mostrada."
+        ],
+        [
+          "Causa",
+          "100dvh en Chrome Mobile no siempre se recalcula a tiempo cuando la barra de direcciones aparece/desaparece durante el swipe horizontal. Además, scroll-snap sin scroll-snap-stop:always permite que el swipe quede a medias entre vistas, empeorando la percepción. El fix de sesión 20 (100dvh) resolvió el caso estático pero no el dinámico."
+        ],
+        [
+          "Resolucion",
+          "Fix combinado (decisión D26): (1) Variable CSS --app-height poblada por JS con window.innerHeight en resize/orientationchange/visibilitychange. (2) .visor y .vista usan var(--app-height, 100dvh). (3) scroll-snap-stop:always en .vista. (4) overscroll-behavior:contain en .visor. (5) Función realinearScrollVisor que redondea scrollLeft al múltiplo más cercano de clientWidth tras cada resize. Verificado en preview con resize a 640x360: vista1 a 360px sin overflow, scroll intermedio realinea a 0 perfecto."
+        ],
+        [
+          "Estado",
+          "Resuelto en sesión 24, pendiente de verificación definitiva en PEC-04 con el móvil viejo real."
         ]
       ]
     }
