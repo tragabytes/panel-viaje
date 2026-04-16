@@ -55,6 +55,7 @@
     }
 
     .v1-estado { grid-area: estado; display: flex; align-items: center; }
+    .v1-velocidad { font-size: 20px; font-weight: 700; margin-left: auto; }
 
     .v1-izq {
       grid-area: izq;
@@ -605,6 +606,21 @@
       text-overflow: ellipsis;
     }
     /* ---- Fin Vista 3 ---- */
+
+    /* Datos GPS: ocultos por defecto, overlay fijo con ?debug=1 */
+    #v1-gps { display: none; }
+    body.debug-activo #v1-gps {
+      display: block;
+      position: fixed;
+      top: 8px;
+      right: 8px;
+      background: rgba(0,0,0,0.85);
+      padding: 6px 10px;
+      border-radius: 6px;
+      font-size: 11px;
+      opacity: 0.8;
+      z-index: 9998;
+    }
   </style>
 </head>
 <body>
@@ -687,6 +703,7 @@
 
   <div class="v1-estado">
     <div id="estado" class="estado">Esperando permiso de GPS…</div>
+    <span id="v1Velocidad" class="v1-velocidad"></span>
   </div>
 
   <div class="v1-izq">
@@ -735,7 +752,7 @@
   </div>
 
   <!-- Datos GPS: ocultos aquí, visibles con ?debug=1 (IU-07) -->
-  <div id="v1-gps" style="display:none">
+  <div id="v1-gps">
     <div class="coordenadas">
       <div>Latitud: <b id="lat">—</b></div>
       <div>Longitud: <b id="lon">—</b></div>
@@ -839,6 +856,8 @@
     const $v2MeteoHumedad   = document.getElementById('v2MeteoHumedad');
     const $v2MeteoPrevision = document.getElementById('v2MeteoPrevision');
     const $v2Velocidad      = document.getElementById('v2Velocidad');
+
+    const $v1Velocidad      = document.getElementById('v1Velocidad');
 
     // Vista 3 elements
     const $v3Carretera      = document.getElementById('v3Carretera');
@@ -1279,10 +1298,10 @@
         : 'no disponible';
       $hora.textContent = new Date().toTimeString().slice(0, 8);
 
-      // V2: velocidad en esquina inferior derecha
-      $v2Velocidad.textContent = c.speed != null
-        ? `${Math.round(c.speed * 3.6)} km/h`
-        : '';
+      // Velocidad en V1 y V2
+      const velTexto = c.speed != null ? `${Math.round(c.speed * 3.6)} km/h` : '';
+      $v1Velocidad.textContent = velTexto;
+      $v2Velocidad.textContent = velTexto;
 
       ultimoTickGPS = Date.now();
       mostrarEstado('GPS activo', 'ok');
