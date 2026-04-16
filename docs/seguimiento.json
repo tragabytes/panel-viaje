@@ -7,10 +7,10 @@
     "nota_pie": "Actualizar al final de cada sesión de trabajo"
   },
   "estado_actual": {
-    "fase_actual": "Fase 3 — UI definitiva: tres vistas deslizables",
+    "fase_actual": "Fase 3 — UI definitiva (completa). Resiliencia API en curso.",
     "ultima_actualizacion": "16 de abril de 2026",
-    "siguiente_hito": "Cerrar Fase 3 (todas las IU completadas). Siguiente: aprobar tarjetas de resiliencia API (RA-01/02/03) o PEC-03 prueba carretera POI.",
-    "bloqueos": "Ninguno. IU-04 a IU-08 en revision. Fase 3 lista para cerrar tras aprobacion."
+    "siguiente_hito": "Cerrar Fase 3 (IU aprobadas). Bloque Resiliencia API completado (RA-01/02/03). Siguiente: BPC-04/05 o PEC-03 prueba carretera POI.",
+    "bloqueos": "Ninguno. RA-01/02/03 en revision. IU-04 a IU-08 pendientes de aprobacion final."
   },
   "fases": [
     {
@@ -1985,6 +1985,40 @@
         [
           "Pendientes",
           "Aprobar IU-04 a IU-08 y cerrar Fase 3. Siguiente bloque: resiliencia API (RA-01/02/03) o PEC-03 prueba carretera con POIs."
+        ]
+      ]
+    },
+    {
+      "n": 23,
+      "titulo": "IU-07/08 + RA-01/02/03 — Fase 3 UI completa + resiliencia API",
+      "campos": [
+        [
+          "Fecha",
+          "16 de abril de 2026"
+        ],
+        [
+          "Fase trabajada",
+          "Fase 3 — UI definitiva + Resiliencia API"
+        ],
+        [
+          "Contexto de arranque",
+          "Continuacion de sesion 21. IU-04/05/06 en revision. Sesion productiva con 7 tarjetas completadas en total (IU-04 a IU-08 en sesion 21-22, RA-01 a RA-03 en esta sesion)."
+        ],
+        [
+          "Lo que se ha hecho",
+          "IU-07: Velocidad 20px bold en V1 (en .v1-estado con margin-left:auto). Datos GPS (lat/lon/precision/rumbo/hora) como overlay fijo (position:fixed, top:8px, right:8px) visible solo con ?debug=1 via clase body.debug-activo. Sin tocar debug.js. | IU-08: Pulido visual y verificacion sistematica con 3 rutas (a6-salidas, m505, cruce-a6-m505) x 3 vistas a 640x360. Checks: body overflow:hidden, scroll-snap x mandatory, sin scroll vertical en V1, sin emojis en meteo, debug funcional. Todo limpio, sin ajustes necesarios. | RA-01: Fallback Wikipedia geosearch para pueblos cercanos. Nueva funcion obtenerPueblosWikipedia() en pois.js: es.wikipedia.org geosearch radio 10km, 50 resultados, filtro EXCLUIR_GEOSEARCH (estaciones, embalses, rios, empresas, etc). Integrado en obtenerPueblosCercanos() via try/catch. Verificado con Overpass simulando caida total: 5 pueblos de Wikipedia aparecen en V1 y V3. | RA-02: Fallback Wikipedia geosearch para POIs por pueblo. Nueva funcion obtenerPOIsWikipedia() en pois.js: geosearch radio 2km, 10 resultados, excluye propio pueblo y ruido. POIs traen pageid para enriquecimiento directo. Nuevo intento 0 en enriquecerPOI(): pide extracto+foto por pageid (mas fiable que por titulo). Integrado en obtenerPOIsPueblo() via try/catch. Verificado: pueblos con POIs enriquecidos via pageid con fotos. | RA-03: Cache persistente en IndexedDB. Base panel-viaje-cache, store pois, TTL 14 dias. Helpers idbLeer/idbGuardar con apertura lazy y try/catch silencioso. Integrado en las 4 caches: pueblos, POIs, enriquecimiento, municipio. Limpieza best-effort de entradas expiradas al abrir. Verificado: 6 entradas persisten tras recarga, datos servidos de IDB sin peticiones de red."
+        ],
+        [
+          "Decisiones tomadas",
+          "Overlay GPS fijo en esquina superior derecha en vez de integrarlo en una vista: visible desde las 3 vistas sin romper layout. | Filtro EXCLUIR_GEOSEARCH ampliado con (empresa), (compania), (revista) tras detectar ruido en resultados Wikipedia. | Wikipedia geosearch para POIs usa radio 2km (mas amplio que Overpass 1.5km) porque los articulos Wikipedia correlacionan con POIs notables a escala de pueblo. | IndexedDB con un unico store y prefijos en las keys (pueblos:, pois:, enriq:, muni:) en vez de multiples stores: mas simple, misma funcionalidad. TTL 14 dias como compromiso entre frescura y ahorro de datos."
+        ],
+        [
+          "Problemas encontrados",
+          "Cache agresiva del navegador del preview para archivos JS: workaround con query string ?v=N temporal en script tags, retirado antes de cada commit. No afecta produccion. | Al simular fallo parcial de Overpass (solo POI-pueblos), las queries de POIs individuales iban al Overpass real y tardaban 8s cada una — pipeline total ~40s. Resuelto simulando fallo total para verificacion mas rapida."
+        ],
+        [
+          "Pendientes",
+          "Aprobar IU-04 a IU-08 y cerrar Fase 3. Aprobar RA-01/02/03. Siguiente bloque: BPC-04 (indicador de carga POI), BPC-05 (timeout global POIModule), PEC-03 (prueba carretera con POIs)."
         ]
       ]
     }
