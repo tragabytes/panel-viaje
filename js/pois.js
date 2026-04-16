@@ -269,10 +269,18 @@
           cachePueblosCercanos.centroLat, cachePueblosCercanos.centroLon
         );
         if (dist < UMBRAL_REFRESCO_PUEBLOS_KM * 1000) {
+          // Recalcular distancia desde la posición actual y reordenar.
+          // La lista cacheada es estable durante 5 km, pero las distancias
+          // deben reflejar al coche moviéndose para que la UI no se vea
+          // congelada (BPC-11).
+          const pueblosActualizados = cachePueblosCercanos.pueblos.map(p => ({
+            ...p,
+            distKm: Overpass.distanciaMetros(lat, lon, p.lat, p.lon) / 1000,
+          })).sort((a, b) => a.distKm - b.distKm);
           if (typeof debug !== 'undefined') {
-            debug.log(`POI pueblos: caché OK (centro a ${(dist / 1000).toFixed(1)}km) · ${cachePueblosCercanos.pueblos.length} pueblos`);
+            debug.log(`POI pueblos: caché OK (centro a ${(dist / 1000).toFixed(1)}km) · ${pueblosActualizados.length} pueblos`);
           }
-          return cachePueblosCercanos.pueblos;
+          return pueblosActualizados;
         }
       }
 
@@ -678,7 +686,19 @@
     async function actualizar(lat, lon, municipioActual) {
       // Evitar llamadas paralelas: si hay una en curso devolvemos el último
       // resultado conocido sin bloquear el tick del GPS.
-      if (enActualizacion) return ultimoResultado;
+      // Pero recalculamos las distancias desde la posición actual, para que
+      // la barra de pueblos no quede congelada mientras el enriquecimiento
+      // POI (Overpass+Wikidata) tarda varios segundos. BPC-11.
+      if (enActualizacion) {
+        if (ultimoResultado && ultimoResultado.pueblosCercanos) {
+          const pueblosFrescos = ultimoResultado.pueblosCercanos.map(p => ({
+            ...p,
+            distKm: Overpass.distanciaMetros(lat, lon, p.lat, p.lon) / 1000,
+          })).sort((a, b) => a.distKm - b.distKm);
+          return { ...ultimoResultado, pueblosCercanos: pueblosFrescos };
+        }
+        return ultimoResultado;
+      }
       enActualizacion = true;
 
       try {

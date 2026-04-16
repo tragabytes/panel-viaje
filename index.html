@@ -16,26 +16,34 @@
     }
 
     /* Visor: contenedor de las tres vistas con swipe horizontal.
-       dvh = dynamic viewport height: descuenta la barra del navegador
-       en Chrome móvil. Fallback a 100vh para navegadores sin dvh. */
+       --app-height lo setea JS con window.innerHeight en cada resize/
+       orientationchange/visibilitychange. Chrome Mobile no siempre
+       actualiza 100dvh cuando la barra del navegador aparece/desaparece
+       durante el swipe, y el layout queda cortado al volver a la vista
+       principal (BPC-12). La variable JS garantiza recálculo fiable. */
     .visor {
       display: flex;
       overflow-x: auto;
       scroll-snap-type: x mandatory;
+      overscroll-behavior: contain;
       -webkit-overflow-scrolling: touch;
       width: 100vw;
       height: 100vh;
       height: 100dvh;
+      height: var(--app-height, 100dvh);
       scrollbar-width: none;
     }
     .visor::-webkit-scrollbar { display: none; }
 
-    /* Cada vista ocupa la pantalla completa */
+    /* Cada vista ocupa la pantalla completa. scroll-snap-stop: always
+       evita que el swipe pare a medias entre dos vistas. */
     .vista {
       scroll-snap-align: start;
+      scroll-snap-stop: always;
       min-width: 100vw;
       height: 100vh;
       height: 100dvh;
+      height: var(--app-height, 100dvh);
       flex-shrink: 0;
       overflow: hidden;
     }
@@ -343,6 +351,13 @@
       -webkit-overflow-scrolling: touch;
     }
     .poi-scroll::-webkit-scrollbar { display: none; }
+
+    .poi-cargando {
+      padding: 8px 12px;
+      font-size: 13px;
+      color: rgba(255,255,255,0.55);
+      font-style: italic;
+    }
 
     .poi-pueblo {
       min-width: 175px;
@@ -874,6 +889,13 @@
     // caminos de actualizarCarretera() y lo consume MotorwayExitModule en
     // cada tick de GPS para saber en qué vía buscar próximas salidas.
     let roadRefActual           = null;
+    // Posición del último tick donde tuvimos código de vía. Se usa para
+    // aplicar histéresis a la pastilla: si Nominatim/Overpass fallan en un
+    // tick pero el coche sigue a menos de RADIO_HISTERESIS_PASTILLA_M del
+    // último punto con código, mantenemos la pastilla en vez de oscilar
+    // entre pastilla y texto largo (BPC-09).
+    let roadRefActualPos        = null; // { lat, lon }
+    const RADIO_HISTERESIS_PASTILLA_M = 1500;
     let municipioActual         = null;
     // Si el último pintado del bloque meteo fue un estado de error, lo
     // guardamos aquí para forzar el repintado en cuanto llegue cualquier
@@ -882,6 +904,13 @@
     let meteoEnError            = false;
     let ultimoTickGPS           = null;
     const UMBRAL_GPS_OBSOLETO_MS = 3 * 60 * 1000; // 3 minutos
+
+    // Fallback de velocidad para móviles cuyo GPS reporta coords.speed=null
+    // (común en Android antiguos). Guardamos el fix anterior y estimamos
+    // km/h por distancia/tiempo cuando el GPS no la entrega.
+    let ultimoFixVelocidad = null; // { lat, lon, ts }
+    let logueadoPrimerFixSpeed = false;
+    let logueadoFallbackVelocidad = false;
 
     function escapar(texto) {
       const div = document.createElement('div');
@@ -967,6 +996,7 @@
           if (clave === ultimaCarreteraMostrada) return;
           ultimaCarreteraMostrada = clave;
           roadRefActual = info.codigo;
+          roadRefActualPos = { lat, lon };
           pintarCarretera(info);
           debug.log(`Carretera [${info.fuente}]: ${info.codigo} (${info.tipo}, crudo: "${info.textoCrudo}")`);
           return;
@@ -993,6 +1023,7 @@
               if (clave === ultimaCarreteraMostrada) return;
               ultimaCarreteraMostrada = clave;
               roadRefActual = infoRescatada.codigo;
+              roadRefActualPos = { lat, lon };
               pintarCarretera(infoRescatada);
               debug.log(`Carretera [overpass]: ${infoRescatada.codigo} (${infoRescatada.tipo}, rescatada · crudo Nominatim: "${info.textoCrudo}")`);
               return;
@@ -1002,11 +1033,23 @@
         }
 
         // Caso C: ni Nominatim ni Overpass han dado código.
+        // Histéresis BPC-09: si el último punto con código está cerca, mantener
+        // la pastilla en vez de oscilar a "Carretera de El Escorial" cuando
+        // Nominatim o Overpass fallan puntualmente.
+        if (roadRefActual && roadRefActualPos) {
+          const d = distanciaMetros(lat, lon, roadRefActualPos.lat, roadRefActualPos.lon);
+          if (d < RADIO_HISTERESIS_PASTILLA_M) {
+            debug.log(`Carretera [histéresis]: mantengo ${roadRefActual} (a ${Math.round(d)}m del último código, Nominatim dio "${info.textoCrudo || 'nada'}")`);
+            return;
+          }
+        }
+
         // Pintamos textoCrudo en modo discreto o "sin vía".
         const clave = `${info.codigo}|${info.tipo}|${info.textoCrudo}`;
         if (clave === ultimaCarreteraMostrada) return;
         ultimaCarreteraMostrada = clave;
         roadRefActual = null;
+        roadRefActualPos = null;
         pintarCarretera(info);
         if (info.textoCrudo) {
           debug.log(`Vía [${info.fuente}]: "${info.textoCrudo}" (sin código ni en Nominatim ni en Overpass)`);
@@ -1107,6 +1150,7 @@
     // --- POIModule ---
 
     function pintarPOIs(resultado) {
+      poiPrimerResultadoPintado = true;
       // Datos del municipio actual (población, altitud)
       const dm = resultado.datosMunicipio;
       if (dm) {
@@ -1201,12 +1245,24 @@
     }
 
     let poiChequeado = false;
+    // Indicador de carga (BPC-04): antes de que llegue el primer resultado,
+    // mostrar un placeholder para que el usuario vea que la sección está
+    // trabajando (los ciclos iniciales con red pueden tardar 15-120 s).
+    let poiPrimerResultadoPintado = false;
+
+    function pintarPlaceholderPOI() {
+      const html = '<div class="poi-cargando">Buscando pueblos cercanos…</div>';
+      $poiScroll.innerHTML = html;
+      $poiBloque.style.display = '';
+      $v3Grid.innerHTML = html;
+    }
 
     function actualizarPOIs(lat, lon) {
       if (!poiChequeado) {
         poiChequeado = true;
         if (window.POIModule) {
           debug.log('POIModule: cargado, primer tick recibido');
+          if (!poiPrimerResultadoPintado) pintarPlaceholderPOI();
         } else {
           debug.error('POIModule: no disponible');
           return;
@@ -1287,11 +1343,41 @@
 
     function alRecibirPosicion(pos) {
       const c = pos.coords;
+      const ahora = Date.now();
+
+      if (!logueadoPrimerFixSpeed) {
+        debug.log(`GPS fix inicial: c.speed=${c.speed} c.heading=${c.heading}`);
+        logueadoPrimerFixSpeed = true;
+      }
+
+      // Velocidad efectiva: si el GPS no la reporta (Android viejos devuelven
+      // null), estimamos km/h desde distancia/tiempo entre fixes consecutivos.
+      // Descarta saltos temporales raros (<1s ruido, >60s pestaña oculta).
+      const velGpsKmh = (c.speed != null && !isNaN(c.speed)) ? c.speed * 3.6 : null;
+      let velEfectivaKmh = velGpsKmh;
+      let fuenteVelocidad = 'gps';
+      if (velGpsKmh == null && ultimoFixVelocidad) {
+        const dtS = (ahora - ultimoFixVelocidad.ts) / 1000;
+        if (dtS >= 1 && dtS <= 60) {
+          const distM = distanciaMetros(
+            c.latitude, c.longitude,
+            ultimoFixVelocidad.lat, ultimoFixVelocidad.lon
+          );
+          velEfectivaKmh = (distM / dtS) * 3.6;
+          fuenteVelocidad = 'fallback';
+          if (!logueadoFallbackVelocidad) {
+            debug.log(`Velocidad fallback activa (GPS no reporta speed): ~${Math.round(velEfectivaKmh)} km/h`);
+            logueadoFallbackVelocidad = true;
+          }
+        }
+      }
+      ultimoFixVelocidad = { lat: c.latitude, lon: c.longitude, ts: ahora };
+
       $lat.textContent = c.latitude.toFixed(6);
       $lon.textContent = c.longitude.toFixed(6);
       $precision.textContent = c.accuracy != null ? `${c.accuracy.toFixed(1)} m` : '—';
-      $velocidad.textContent = c.speed != null
-        ? `${(c.speed * 3.6).toFixed(1)} km/h`
+      $velocidad.textContent = velEfectivaKmh != null
+        ? `${velEfectivaKmh.toFixed(1)} km/h${fuenteVelocidad === 'fallback' ? ' (calc)' : ''}`
         : 'no disponible';
       $rumbo.textContent = c.heading != null && !isNaN(c.heading)
         ? `${c.heading.toFixed(0)}°`
@@ -1299,11 +1385,13 @@
       $hora.textContent = new Date().toTimeString().slice(0, 8);
 
       // Velocidad en V1 y V2
-      const velTexto = c.speed != null ? `${Math.round(c.speed * 3.6)} km/h` : '';
+      const velTexto = velEfectivaKmh != null
+        ? `${fuenteVelocidad === 'fallback' ? '~' : ''}${Math.round(velEfectivaKmh)} km/h`
+        : '';
       $v1Velocidad.textContent = velTexto;
       $v2Velocidad.textContent = velTexto;
 
-      ultimoTickGPS = Date.now();
+      ultimoTickGPS = ahora;
       mostrarEstado('GPS activo', 'ok');
 
       let hayQueActualizar = false;
@@ -1334,9 +1422,8 @@
       // distancia frescos para dar una próxima salida precisa. La consulta
       // a Overpass solo se dispara al entrar en vía nueva o refrescar a 35km,
       // gobernado por el propio módulo.
-      const velocidadKmh = (c.speed != null && !isNaN(c.speed)) ? c.speed * 3.6 : null;
       const rumboGrados  = (c.heading != null && !isNaN(c.heading)) ? c.heading : null;
-      actualizarProximasSalidas(c.latitude, c.longitude, rumboGrados, velocidadKmh);
+      actualizarProximasSalidas(c.latitude, c.longitude, rumboGrados, velEfectivaKmh);
     }
 
     function alFallarPosicion(err) {
@@ -1349,6 +1436,44 @@
       mostrarEstado(`Error de GPS: ${motivo}`, 'error');
       debug.error(`GPS error ${err.code}: ${err.message}`);
     }
+
+    // Control de altura real del viewport (BPC-12). Chrome Mobile puede no
+    // recalcular 100dvh a tiempo cuando la barra del navegador aparece/
+    // desaparece al deslizar entre vistas. Usamos window.innerHeight
+    // explícitamente y, tras cualquier cambio de tamaño, re-alineamos el
+    // scroll del visor a la vista actual por si quedó a medias.
+    const $visor = document.getElementById('visor');
+
+    function actualizarAppHeight() {
+      document.documentElement.style.setProperty('--app-height', window.innerHeight + 'px');
+    }
+
+    function realinearScrollVisor() {
+      if (!$visor) return;
+      const w = $visor.clientWidth;
+      if (w <= 0) return;
+      const idx = Math.round($visor.scrollLeft / w);
+      const objetivo = idx * w;
+      if (Math.abs($visor.scrollLeft - objetivo) > 1) {
+        $visor.scrollTo({ left: objetivo, behavior: 'instant' });
+      }
+    }
+
+    actualizarAppHeight();
+    window.addEventListener('resize', () => {
+      actualizarAppHeight();
+      realinearScrollVisor();
+    });
+    window.addEventListener('orientationchange', () => {
+      actualizarAppHeight();
+      realinearScrollVisor();
+    });
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) {
+        actualizarAppHeight();
+        realinearScrollVisor();
+      }
+    });
 
     // Vigilante de datos obsoletos: si pasan más de 3 min sin tick de GPS,
     // avisa al usuario con el tiempo transcurrido. Se comprueba cada 30 s.

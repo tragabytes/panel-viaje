@@ -34,6 +34,10 @@
   const speedParam = parseFloat(params.get('speed'));
   const factor = (isNaN(speedParam) || speedParam <= 0) ? 10 : speedParam;  // default x10
 
+  // Banco de pruebas: emula un GPS Android viejo que no reporta coords.speed.
+  // Activar con ?simSpeedNull=1 para validar el fallback de velocidad.
+  const forzarSpeedNull = params.get('simSpeedNull') === '1';
+
   // --- Configuración de tiempos ---
   //
   // Filosofía del intervalo entre ticks:
@@ -156,7 +160,9 @@
     // La velocidad reportada al panel es constante: la "velocidad del coche
     // simulado", no la del reloj acelerado. Así Maps/Nominatim ven un coche
     // circulando a 100 km/h, no a 1000.
-    const speed = esUltimo ? 0 : VELOCIDAD_OBJETIVO_MS;
+    const speed = forzarSpeedNull
+      ? null
+      : (esUltimo ? 0 : VELOCIDAD_OBJETIVO_MS);
 
     // Intervalo hasta el siguiente tick: tiempo real que tardaría un coche
     // a VELOCIDAD_OBJETIVO en recorrer esa distancia, DIVIDIDO por el factor

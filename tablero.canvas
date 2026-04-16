@@ -1,21 +1,12 @@
 {
 	"nodes": [
 		{
-			"id": "group-poimod",
-			"type": "group",
-			"x": 880,
-			"y": 0,
-			"width": 380,
-			"height": 1480,
-			"label": "POIModule"
-		},
-		{
 			"id": "group-bugspr",
 			"type": "group",
 			"x": 1320,
 			"y": 0,
 			"width": 380,
-			"height": 1480,
+			"height": 2200,
 			"label": "Bugs prueba carretera"
 		},
 		{
@@ -24,8 +15,17 @@
 			"x": 1760,
 			"y": 0,
 			"width": 380,
-			"height": 1480,
+			"height": 1660,
 			"label": "UI / Experiencia"
+		},
+		{
+			"id": "group-poimod",
+			"type": "group",
+			"x": 880,
+			"y": 0,
+			"width": 380,
+			"height": 1480,
+			"label": "POIModule"
 		},
 		{
 			"id": "group-motorw",
@@ -42,7 +42,7 @@
 			"x": 0,
 			"y": 0,
 			"width": 380,
-			"height": 700,
+			"height": 940,
 			"label": "Prueba en carretera"
 		},
 		{
@@ -55,11 +55,90 @@
 			"label": "Resiliencia API"
 		},
 		{
-			"id": "bacdcff7",
+			"id": "group-funcio",
+			"type": "group",
+			"x": 2640,
+			"y": 0,
+			"width": 380,
+			"height": 700,
+			"label": "Funciones nuevas"
+		},
+		{
+			"id": "3c6fb2c1",
 			"type": "text",
-			"text": "## MO-01 Añadir ruta con salidas de autovía al simulador\nUsar el notebook obtener_rutas_osm.ipynb para extraer una ruta por la A-6 (o AP-6) que pase por al menos 3-4 salidas conocidas, y añadirla al catálogo de rutas.js. Objetivo: poder probar MotorwayExitModule desde casa sin conducir, igual que se hizo con las rutas a6 y m505.",
-			"x": 460,
+			"text": "## BPC-01 BP-01 Fix out tags→out body en MotorwayExit\nconstruirQuery usa 'out tags' que no incluye lat/lon. Todos los junctions son descartados. Cambiar a 'out body'. Una línea. Validar en simulador.",
+			"x": 1340,
 			"y": 40,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "24da1a0b",
+			"type": "text",
+			"text": "## BPC-02 BP-02 Weather: guardia petición en vuelo\nSi el coche pasa el radio de 1000m mientras hay una petición en curso, se lanzan duplicadas. Añadir flag peticionEnCurso en weather.js.",
+			"x": 1340,
+			"y": 220,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "84fa0fde",
+			"type": "text",
+			"text": "## BPC-03 BP-03 MotorwayExit: no vaciar caché en fallo transitorio de RoadRef\nCuando RoadRef falla por un tick y vuelve, MotorwayExit vacía caché y relanza Overpass innecesariamente. Contribuye a 429. No vaciar si el fallo es transitorio.",
+			"x": 1340,
+			"y": 400,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "360e933c",
+			"type": "text",
+			"text": "## BPC-04 BPC-04 Indicador de carga en la sección POI\nLa sección POI permanece oculta entre 15 y 120 s mientras se cargan los datos. El usuario no recibe ningún feedback. Solución propuesta: mostrar 'Cargando...' desde el primer tick en que se sabe la posición, y reemplazar por el contenido real cuando llegue.",
+			"x": 1340,
+			"y": 580,
+			"width": 280,
+			"height": 160,
+			"color": "5"
+		},
+		{
+			"id": "f2e20e5d",
+			"type": "text",
+			"text": "## BPC-05 BPC-05 Timeout global de POIModule cuando los mirrors están caídos\nSi todos los mirrors de Overpass están caídos o saturados, enActualizacion=true bloquea el módulo unos 3 min (3 mirrors × 8 s × 3 queries). Solución propuesta: timeout global de 90 s en actualizar(); pasado ese tiempo, devolver resultados parciales y liberar el flag.",
+			"x": 1340,
+			"y": 760,
+			"width": 280,
+			"height": 160,
+			"color": "6"
+		},
+		{
+			"id": "9f5aa28c",
+			"type": "text",
+			"text": "## BPC-06 BPC-06 Mostrar pueblos cercanos aunque no tengan POIs\nLa sección POI se oculta completamente cuando ningún pueblo tiene POIs enriquecidos. Problema: pintarPOIs filtra pueblos con pois.length > 0, dejando la pantalla vacía aunque se sepan los pueblos cercanos. Fix: mostrar siempre la tarjeta con nombre y distancia; los POIs son enriquecimiento opcional sobre esa base. Así el conductor siempre sabe qué hay cerca aunque Overpass falle.",
+			"x": 1340,
+			"y": 940,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "d714129e",
+			"type": "text",
+			"text": "## BPC-07 BPC-07 No cachear fallo de red en obtenerPOIsPueblo\nCuando todos los mirrors Overpass fallan, obtenerPOIsPueblo guarda pois:[] en caché, idéntico a un pueblo sin POIs reales. El módulo no reintenta aunque el próximo ciclo tenga conexión. Fix: no cachear si el error fue de red (todos_mirrors_fallaron); cachear solo si Overpass respondió correctamente con 0 elementos.",
+			"x": 1340,
+			"y": 1120,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "8bff8c13",
+			"type": "text",
+			"text": "## BPC-08 BPC-08 No cachear fallo de red en obtenerDatosMunicipio\nMismo problema que BPC-07 pero en Wikidata: si la query falla por timeout o error de red, el módulo cachea null y no reintenta en ciclos siguientes. Fix: distinguir null-por-fallo-de-red (no cachear) de null-porque-Wikidata-no-tiene-datos (cachear). Así se reintenta al desplazarse fuera del radio de caché.",
+			"x": 1340,
+			"y": 1300,
 			"width": 280,
 			"height": 160,
 			"color": "4"
@@ -69,16 +148,6 @@
 			"type": "text",
 			"text": "## PO-01 Revisar decisión 13 y definir qué falta para arrancar POIModule\nLa arquitectura base de POIModule está consolidada en la decisión 13 del seguimiento (sesiones 06-07): Overpass como inventario en radio 1500 m, priorización por tipo (castle > cathedral > ... > viewpoint), enriquecimiento Wikipedia REST + fallback Wikidata SPARQL por proximidad, umbral Jaccard >= 0.5, stopwords del dominio, timeout 10 s con reintento, fallback a icono. Esta tarjeta consiste en releer esa decisión, contrastarla con el estado actual del código, e identificar qué parámetros necesitan ajuste, qué casos no cubre, o qué ha cambiado desde sesión 07. Output: lista de decisiones pendientes antes de escribir código.",
 			"x": 900,
-			"y": 40,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "3c6fb2c1",
-			"type": "text",
-			"text": "## BPC-01 BP-01 Fix out tags→out body en MotorwayExit\nconstruirQuery usa 'out tags' que no incluye lat/lon. Todos los junctions son descartados. Cambiar a 'out body'. Una línea. Validar en simulador.",
-			"x": 1340,
 			"y": 40,
 			"width": 280,
 			"height": 160,
@@ -125,236 +194,6 @@
 			"color": "4"
 		},
 		{
-			"id": "78221e08",
-			"type": "text",
-			"text": "## PO-02 Implementar POIModule (base)\nMódulo js/pois.js: pueblos cercanos en un radio dado + POI principal por pueblo desde Overpass y Wikidata. Fallback si un pueblo no tiene POIs. Caché con TTL largo (horas).",
-			"x": 900,
-			"y": 220,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "4a42b347",
-			"type": "text",
-			"text": "## PO-03 Vista Qué ver por la zona\nRejilla de pueblos con nombre, POI principal y foto (miniatura Wikipedia) en la vista 3 del panel. Deslizable horizontalmente como el resto de vistas.",
-			"x": 900,
-			"y": 400,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "24da1a0b",
-			"type": "text",
-			"text": "## BPC-02 BP-02 Weather: guardia petición en vuelo\nSi el coche pasa el radio de 1000m mientras hay una petición en curso, se lanzan duplicadas. Añadir flag peticionEnCurso en weather.js.",
-			"x": 1340,
-			"y": 220,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "84fa0fde",
-			"type": "text",
-			"text": "## BPC-03 BP-03 MotorwayExit: no vaciar caché en fallo transitorio de RoadRef\nCuando RoadRef falla por un tick y vuelve, MotorwayExit vacía caché y relanza Overpass innecesariamente. Contribuye a 429. No vaciar si el fallo es transitorio.",
-			"x": 1340,
-			"y": 400,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "89ae8a6c",
-			"type": "text",
-			"text": "## MO-02 Implementar MotorwayExitModule\nNuevo módulo js/motorwayexit.js. Query Overpass node[motorway_junction](around:N) con el mismo patrón ya validado en roadref.js: query minimalista, cascada de mirrors, caché por proximidad, timeout por mirror, debug.log completo. Salida: número de salida + distancia estimada.",
-			"x": 460,
-			"y": 220,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "f6b85293",
-			"type": "text",
-			"text": "## MO-03 Integrar próxima salida en el panel\nMostrar el resultado de MotorwayExitModule en vista 1 (el cartel verde de salida). Solo cuando estamos en autovía; silencioso en carreteras convencionales.",
-			"x": 460,
-			"y": 400,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "f5448431",
-			"type": "text",
-			"text": "## MO-04 MO-04 Filtrar junctions por vía en la query Overpass\nLa query actual devuelve todos los motorway_junction en 50 km sin filtrar por carretera. Resultado: salidas de vías cruzadas (M-40, AP-6, etc.) aparecen como próximas salidas cuando el filtro de ángulo no las descarta. Fix: cambiar la query para obtener solo nodos junction de las ways con ref igual a roadRef (way[ref=X] → node(w)[motorway_junction]). Detectado en prueba simulador sesión 12.",
-			"x": 460,
-			"y": 580,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "360e933c",
-			"type": "text",
-			"text": "## BPC-04 BPC-04 Indicador de carga en la sección POI\nLa sección POI permanece oculta entre 15 y 120 s mientras se cargan los datos. El usuario no recibe ningún feedback. Solución propuesta: mostrar 'Cargando...' desde el primer tick en que se sabe la posición, y reemplazar por el contenido real cuando llegue.",
-			"x": 1340,
-			"y": 580,
-			"width": 280,
-			"height": 160,
-			"color": "6"
-		},
-		{
-			"id": "fcfa4b01",
-			"type": "text",
-			"text": "## MO-05 MO-05 Destinos legibles en próxima salida\nAhora el módulo muestra solo el número de salida. Los ways motorway_link adyacentes llevan destination y destination:ref con el texto del cartel real (LUGO · A CORUÑA por A-6). Una query extra cuando estamos a ~2 km de una salida rescata esos destinos. Convierte el número en un cartel de autopista útil.",
-			"x": 460,
-			"y": 760,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "360b9f70",
-			"type": "text",
-			"text": "## PO-04 Soporte de pedanías en POIModule\nLas pedanías (ejemplo: Castrillo de los Polvazares aparece como parte de Astorga en SPARQL, no como municipio independiente) no salen en la búsqueda estándar de municipios. Añadir una segunda capa de búsqueda que incluya entidades singulares de población. Identificado en sesión 05 como idea parqueada para Fase 2.",
-			"x": 900,
-			"y": 580,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "24713d94",
-			"type": "text",
-			"text": "## PO-05 Extraer cascada de mirrors Overpass a overpass.js compartido\nmotorwayexit.js y roadref.js duplican la cascada de mirrors Overpass (URLs, timeout, reintentos). POIModule sería la tercera copia. Extraer a un módulo overpass.js con función overpassQuery(query) que encapsule: lista de mirrors, timeout por mirror, cascada con fallback, log de debug. Después refactorizar motorwayexit.js y roadref.js para usarlo. Reduce deuda técnica y simplifica mantenimiento.",
-			"x": 900,
-			"y": 760,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "f2e20e5d",
-			"type": "text",
-			"text": "## BPC-05 BPC-05 Timeout global de POIModule cuando los mirrors están caídos\nSi todos los mirrors de Overpass están caídos o saturados, enActualizacion=true bloquea el módulo unos 3 min (3 mirrors × 8 s × 3 queries). Solución propuesta: timeout global de 90 s en actualizar(); pasado ese tiempo, devolver resultados parciales y liberar el flag.",
-			"x": 1340,
-			"y": 760,
-			"width": 280,
-			"height": 160,
-			"color": "6"
-		},
-		{
-			"id": "9f5aa28c",
-			"type": "text",
-			"text": "## BPC-06 BPC-06 Mostrar pueblos cercanos aunque no tengan POIs\nLa sección POI se oculta completamente cuando ningún pueblo tiene POIs enriquecidos. Problema: pintarPOIs filtra pueblos con pois.length > 0, dejando la pantalla vacía aunque se sepan los pueblos cercanos. Fix: mostrar siempre la tarjeta con nombre y distancia; los POIs son enriquecimiento opcional sobre esa base. Así el conductor siempre sabe qué hay cerca aunque Overpass falle.",
-			"x": 1340,
-			"y": 940,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "d714129e",
-			"type": "text",
-			"text": "## BPC-07 BPC-07 No cachear fallo de red en obtenerPOIsPueblo\nCuando todos los mirrors Overpass fallan, obtenerPOIsPueblo guarda pois:[] en caché, idéntico a un pueblo sin POIs reales. El módulo no reintenta aunque el próximo ciclo tenga conexión. Fix: no cachear si el error fue de red (todos_mirrors_fallaron); cachear solo si Overpass respondió correctamente con 0 elementos.",
-			"x": 1340,
-			"y": 1120,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "8bff8c13",
-			"type": "text",
-			"text": "## BPC-08 BPC-08 No cachear fallo de red en obtenerDatosMunicipio\nMismo problema que BPC-07 pero en Wikidata: si la query falla por timeout o error de red, el módulo cachea null y no reintenta en ciclos siguientes. Fix: distinguir null-por-fallo-de-red (no cachear) de null-porque-Wikidata-no-tiene-datos (cachear). Así se reintenta al desplazarse fuera del radio de caché.",
-			"x": 1340,
-			"y": 1300,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "ea4ed845",
-			"type": "text",
-			"text": "## PO-06 PO-06 Descripción y foto del municipio actual\nEl bloque UBICACIÓN muestra solo población y altitud, a menudo vacíos. Reutilizar Wikipedia REST (ya en uso para POIs) para obtener extracto y foto del municipio actual. Mostrar una línea de texto histórico y miniatura en el bloque de ubicación. Misma cascada Wikipedia → Wikidata P18 ya implementada en enriquecerPOI.",
-			"x": 900,
-			"y": 940,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "44b69a83",
-			"type": "text",
-			"text": "## PO-07 PO-07 Miniaturas optimizadas (datos móviles)\nWikipedia REST devuelve fotos a 320px de ancho por defecto. Las tarjetas POI las muestran a 52×52px: estamos pidiendo imágenes 6x más grandes de lo necesario, desperdiciando ~75% de datos por foto. Fix: añadir width=100 a la URL de thumbnail. Cambio de una línea, ahorro real en ruta.",
-			"x": 900,
-			"y": 1120,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "d3f36a58",
-			"type": "text",
-			"text": "## PO-08 PO-08 Comarca en el bloque de ubicación\nAñadir P131 (localizado en entidad administrativa) a la query Wikidata del municipio para obtener la comarca. Mostrar como 'Maragatería · 11.169 hab · 868 m'. Da contexto geográfico que el conductor reconoce mejor que la provincia sola. Cambio menor en la SPARQL y en la línea de datos del municipio.",
-			"x": 900,
-			"y": 1300,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "9d3d196e",
-			"type": "text",
-			"text": "## PEC-01 Prueba en carretera real\nSalir a conducir con el móvil en el salpicadero y registrar: (1) pastillas azul/granate en movimiento con carreteras reales, (2) latencias de Nominatim y Overpass con datos móviles, (3) consumo de datos y batería en 30-60 min con Wake Lock activo, (4) cambios de vía entre estatales y autonómicas, (5) si el radio de caché de RoadRef (300 m) es suficiente o hay que ajustarlo. HECHA cuando: prueba realizada, mediciones registradas, docs/seguimiento.json actualizado con la sesión correspondiente, y commit del seguimiento hecho.",
-			"x": 20,
-			"y": 40,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "legend",
-			"type": "text",
-			"text": "## Legend\n🔴 **Red** = To Do (ready)\n⬜ **Gray** = Blocked\n🟠 **Orange** = Doing\n🔵 **Cyan** = Ready to review\n🟢 **Green** = Done\n🟣 **Purple** = Proposed by agent",
-			"x": -540,
-			"y": -310,
-			"width": 380,
-			"height": 230,
-			"color": "0"
-		},
-		{
-			"id": "074bb897",
-			"type": "text",
-			"text": "## RA-01 RE-01 Fallback Wikipedia geosearch para pueblos cercanos\nSi obtenerPueblosCercanos() falla en todos los mirrors de Overpass, intentar con es.wikipedia.org/w/api.php?action=query&list=geosearch (radio 10 km, límite 50 resultados). Filtrar en cliente: excluir títulos que contengan Estación de, Embalse, Arroyo, códigos de carretera, etc. Quedarse con los que parezcan municipios/pedanías. Infraestructura Wikimedia, completamente independiente de Overpass.",
-			"x": 2220,
-			"y": 40,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "5711fa1b",
-			"type": "text",
-			"text": "## RA-02 RE-02 Fallback Wikipedia geosearch para POIs por pueblo\nSi obtenerPOIsPueblo() falla en todos los mirrors de Overpass, intentar con Wikipedia geosearch centrado en las coordenadas del pueblo (radio 2 km). Los artículos de Wikipedia correlacionan bien con POIs notables (castillos, palacios, miradores). Ventaja extra: el pageid devuelto permite pedir el extracto de Wikipedia directamente, sin lookup adicional.",
-			"x": 2220,
-			"y": 220,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "a0faf2b1",
-			"type": "text",
-			"text": "## RA-03 RE-03 Caché persistente de POIs en IndexedDB\nLos POIs de un pueblo no cambian en meses. Guardar el resultado (venga de Overpass o de Wikipedia) en IndexedDB con TTL de 7-30 días. En la siguiente visita al mismo pueblo, leer de caché local sin ninguna petición de red. Elimina la dependencia de Overpass/Wikipedia para pueblos ya visitados y ahorra datos móviles.",
-			"x": 2220,
-			"y": 400,
-			"width": 280,
-			"height": 160,
-			"color": "5"
-		},
-		{
 			"id": "7823d897",
 			"type": "text",
 			"text": "## IU-03 Layout compacto Vista 1 (grid 2 columnas)\nDisenar Vista 1 (Completa, por defecto) como CSS Grid de dos columnas ~60/40 que encaje todo en 640x360: carretera + salida autovia + ubicacion + datos municipio a la izquierda, meteo + velocidad a la derecha, y POIs en lista compacta (1 linea por pueblo) abajo. Sin scroll vertical. Mover coordenadas/precision/rumbo a bloque solo-debug. Verificacion: todo visible a 640x360; velocidad 20px bold visible; sin scroll vertical.",
@@ -395,6 +234,196 @@
 			"color": "4"
 		},
 		{
+			"id": "78221e08",
+			"type": "text",
+			"text": "## PO-02 Implementar POIModule (base)\nMódulo js/pois.js: pueblos cercanos en un radio dado + POI principal por pueblo desde Overpass y Wikidata. Fallback si un pueblo no tiene POIs. Caché con TTL largo (horas).",
+			"x": 900,
+			"y": 220,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "4a42b347",
+			"type": "text",
+			"text": "## PO-03 Vista Qué ver por la zona\nRejilla de pueblos con nombre, POI principal y foto (miniatura Wikipedia) en la vista 3 del panel. Deslizable horizontalmente como el resto de vistas.",
+			"x": 900,
+			"y": 400,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "360b9f70",
+			"type": "text",
+			"text": "## PO-04 Soporte de pedanías en POIModule\nLas pedanías (ejemplo: Castrillo de los Polvazares aparece como parte de Astorga en SPARQL, no como municipio independiente) no salen en la búsqueda estándar de municipios. Añadir una segunda capa de búsqueda que incluya entidades singulares de población. Identificado en sesión 05 como idea parqueada para Fase 2.",
+			"x": 900,
+			"y": 580,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "24713d94",
+			"type": "text",
+			"text": "## PO-05 Extraer cascada de mirrors Overpass a overpass.js compartido\nmotorwayexit.js y roadref.js duplican la cascada de mirrors Overpass (URLs, timeout, reintentos). POIModule sería la tercera copia. Extraer a un módulo overpass.js con función overpassQuery(query) que encapsule: lista de mirrors, timeout por mirror, cascada con fallback, log de debug. Después refactorizar motorwayexit.js y roadref.js para usarlo. Reduce deuda técnica y simplifica mantenimiento.",
+			"x": 900,
+			"y": 760,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "ea4ed845",
+			"type": "text",
+			"text": "## PO-06 PO-06 Descripción y foto del municipio actual\nEl bloque UBICACIÓN muestra solo población y altitud, a menudo vacíos. Reutilizar Wikipedia REST (ya en uso para POIs) para obtener extracto y foto del municipio actual. Mostrar una línea de texto histórico y miniatura en el bloque de ubicación. Misma cascada Wikipedia → Wikidata P18 ya implementada en enriquecerPOI.",
+			"x": 900,
+			"y": 940,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "44b69a83",
+			"type": "text",
+			"text": "## PO-07 PO-07 Miniaturas optimizadas (datos móviles)\nWikipedia REST devuelve fotos a 320px de ancho por defecto. Las tarjetas POI las muestran a 52×52px: estamos pidiendo imágenes 6x más grandes de lo necesario, desperdiciando ~75% de datos por foto. Fix: añadir width=100 a la URL de thumbnail. Cambio de una línea, ahorro real en ruta.",
+			"x": 900,
+			"y": 1120,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "d3f36a58",
+			"type": "text",
+			"text": "## PO-08 PO-08 Comarca en el bloque de ubicación\nAñadir P131 (localizado en entidad administrativa) a la query Wikidata del municipio para obtener la comarca. Mostrar como 'Maragatería · 11.169 hab · 868 m'. Da contexto geográfico que el conductor reconoce mejor que la provincia sola. Cambio menor en la SPARQL y en la línea de datos del municipio.",
+			"x": 900,
+			"y": 1300,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "074bb897",
+			"type": "text",
+			"text": "## RA-01 RE-01 Fallback Wikipedia geosearch para pueblos cercanos\nSi obtenerPueblosCercanos() falla en todos los mirrors de Overpass, intentar con es.wikipedia.org/w/api.php?action=query&list=geosearch (radio 10 km, límite 50 resultados). Filtrar en cliente: excluir títulos que contengan Estación de, Embalse, Arroyo, códigos de carretera, etc. Quedarse con los que parezcan municipios/pedanías. Infraestructura Wikimedia, completamente independiente de Overpass.",
+			"x": 2220,
+			"y": 40,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "5711fa1b",
+			"type": "text",
+			"text": "## RA-02 RE-02 Fallback Wikipedia geosearch para POIs por pueblo\nSi obtenerPOIsPueblo() falla en todos los mirrors de Overpass, intentar con Wikipedia geosearch centrado en las coordenadas del pueblo (radio 2 km). Los artículos de Wikipedia correlacionan bien con POIs notables (castillos, palacios, miradores). Ventaja extra: el pageid devuelto permite pedir el extracto de Wikipedia directamente, sin lookup adicional.",
+			"x": 2220,
+			"y": 220,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "bacdcff7",
+			"type": "text",
+			"text": "## MO-01 Añadir ruta con salidas de autovía al simulador\nUsar el notebook obtener_rutas_osm.ipynb para extraer una ruta por la A-6 (o AP-6) que pase por al menos 3-4 salidas conocidas, y añadirla al catálogo de rutas.js. Objetivo: poder probar MotorwayExitModule desde casa sin conducir, igual que se hizo con las rutas a6 y m505.",
+			"x": 460,
+			"y": 40,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "89ae8a6c",
+			"type": "text",
+			"text": "## MO-02 Implementar MotorwayExitModule\nNuevo módulo js/motorwayexit.js. Query Overpass node[motorway_junction](around:N) con el mismo patrón ya validado en roadref.js: query minimalista, cascada de mirrors, caché por proximidad, timeout por mirror, debug.log completo. Salida: número de salida + distancia estimada.",
+			"x": 460,
+			"y": 220,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "f6b85293",
+			"type": "text",
+			"text": "## MO-03 Integrar próxima salida en el panel\nMostrar el resultado de MotorwayExitModule en vista 1 (el cartel verde de salida). Solo cuando estamos en autovía; silencioso en carreteras convencionales.",
+			"x": 460,
+			"y": 400,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "f5448431",
+			"type": "text",
+			"text": "## MO-04 MO-04 Filtrar junctions por vía en la query Overpass\nLa query actual devuelve todos los motorway_junction en 50 km sin filtrar por carretera. Resultado: salidas de vías cruzadas (M-40, AP-6, etc.) aparecen como próximas salidas cuando el filtro de ángulo no las descarta. Fix: cambiar la query para obtener solo nodos junction de las ways con ref igual a roadRef (way[ref=X] → node(w)[motorway_junction]). Detectado en prueba simulador sesión 12.",
+			"x": 460,
+			"y": 580,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "fcfa4b01",
+			"type": "text",
+			"text": "## MO-05 MO-05 Destinos legibles en próxima salida\nAhora el módulo muestra solo el número de salida. Los ways motorway_link adyacentes llevan destination y destination:ref con el texto del cartel real (LUGO · A CORUÑA por A-6). Una query extra cuando estamos a ~2 km de una salida rescata esos destinos. Convierte el número en un cartel de autopista útil.",
+			"x": 460,
+			"y": 760,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "a0faf2b1",
+			"type": "text",
+			"text": "## RA-03 RE-03 Caché persistente de POIs en IndexedDB\nLos POIs de un pueblo no cambian en meses. Guardar el resultado (venga de Overpass o de Wikipedia) en IndexedDB con TTL de 7-30 días. En la siguiente visita al mismo pueblo, leer de caché local sin ninguna petición de red. Elimina la dependencia de Overpass/Wikipedia para pueblos ya visitados y ahorra datos móviles.",
+			"x": 2220,
+			"y": 400,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "60482632",
+			"type": "text",
+			"text": "## FN-01 Próximas gasolineras\nNueva funcionalidad: mostrar en el panel las gasolineras próximas a la posición actual (o en la ruta, a definir). Alcance y definición por acordar: radio, fuente de datos (probablemente Overpass amenity=fuel), cómo se integra visualmente en las vistas, criterio de actualización.",
+			"x": 2660,
+			"y": 40,
+			"width": 280,
+			"height": 160,
+			"color": "6"
+		},
+		{
+			"id": "6ff60034",
+			"type": "text",
+			"text": "## FN-02 Logs de trayecto real persistidos y exportables\nNueva funcionalidad: que los mensajes del panel de debug (y métricas relevantes del trayecto) se almacenen en algún lugar del dispositivo (IndexedDB/descarga) desde el que Laureano pueda rescatarlos al volver a casa y pasárselos a Claude. Objetivo: poder hacer análisis post-trayecto sin depender de capturas manuales durante la conducción. Alcance y definición por acordar: qué se guarda, rotación, forma de exportación (descarga de .txt/.json), UI de acceso.",
+			"x": 2660,
+			"y": 220,
+			"width": 280,
+			"height": 160,
+			"color": "1"
+		},
+		{
+			"id": "9d3d196e",
+			"type": "text",
+			"text": "## PEC-01 Prueba en carretera real\nSalir a conducir con el móvil en el salpicadero y registrar: (1) pastillas azul/granate en movimiento con carreteras reales, (2) latencias de Nominatim y Overpass con datos móviles, (3) consumo de datos y batería en 30-60 min con Wake Lock activo, (4) cambios de vía entre estatales y autonómicas, (5) si el radio de caché de RoadRef (300 m) es suficiente o hay que ajustarlo. HECHA cuando: prueba realizada, mediciones registradas, docs/seguimiento.json actualizado con la sesión correspondiente, y commit del seguimiento hecho.",
+			"x": 20,
+			"y": 40,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "legend",
+			"type": "text",
+			"text": "## Legend\n🔴 **Red** = To Do (ready)\n⬜ **Gray** = Blocked\n🟠 **Orange** = Doing\n🔵 **Cyan** = Ready to review\n🟢 **Green** = Done\n🟣 **Purple** = Proposed by agent",
+			"x": -540,
+			"y": -310,
+			"width": 380,
+			"height": 230,
+			"color": "0"
+		},
+		{
 			"id": "9eb5d657",
 			"type": "text",
 			"text": "## PEC-02 PEC-02 Segunda prueba: validar MotorwayExitModule con out body\nValidar que los tres fixes de sesión 11 funcionan en carretera real. Criterio de éxito: (1) MotorwayExitModule devuelve junctions válidos (>0) en al menos una vía con salidas numeradas en OSM. (2) Weather no lanza peticiones duplicadas al pasar el radio de 1km. (3) No se observa cycling de MotorwayExit por fallos transitorios de RoadRef. Aportar log de debug tras la prueba.",
@@ -430,6 +459,76 @@
 			"text": "## PEC-03 PEC-03 Primera prueba en carretera del bloque POI\nValidar en condiciones reales: sección POI aparece con pueblos cercanos, cada pueblo muestra hasta 2 POIs con foto o icono, datos del municipio (población, altitud) cuando Wikidata los tiene. Comprobar rendimiento con 3G, comportamiento de caché al pasar por el mismo tramo, y que la sección no bloquea ni vacía el resto del panel.",
 			"x": 20,
 			"y": 400,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "f5a46384",
+			"type": "text",
+			"text": "## BPC-09 Pastilla M-505 estable, ahora alterna con Carretera de El Escorial\nSintoma: circulando por la M-505 el panel alterna entre la pastilla granate 'M-505' y el texto largo 'Carretera de El Escorial'. Debe fijarse siempre la forma oficial 'M-505' cuando la via sea esa, independientemente de si Nominatim devuelve ref o solo name. Revisar el flujo: (1) por que a veces z17 no trae ref y cae al name, (2) si el fallback Overpass de roadref.js se activa en estos casos, (3) si el parser de carreteras.js descarta mal la M-505 cuando solo llega el name largo. Criterio de exito: en un trayecto real por la M-505 la pastilla permanece 'M-505' sin oscilaciones.",
+			"x": 1340,
+			"y": 1480,
+			"width": 280,
+			"height": 160,
+			"color": "5"
+		},
+		{
+			"id": "a4c6caca",
+			"type": "text",
+			"text": "## BPC-10 MotorwayExit no se activa porque el GPS del movil no reporta velocidad\nSintoma: 8+ minutos por la M-50 y MotorwayExit quedo en 'inactivo' sin un solo log mas. Hipotesis principal: coords.speed llega null en el movil viejo (comun en Android antiguos), y el modulo exige velocidad > 50 km/h sostenida para activarse. Pasos: (1) anadir log de debug que muestre el valor bruto de velocidadKmh recibido en cada tick, (2) si se confirma null o 0, implementar fallback que calcule km/h a partir de distancias entre fixes consecutivos (el panel ya detecta 'Movimiento detectado: 73m' cada 3s, lo que son ~87 km/h), (3) validar en simulador que la activacion por fallback funciona igual.",
+			"x": 1340,
+			"y": 1660,
+			"width": 280,
+			"height": 160,
+			"color": "5"
+		},
+		{
+			"id": "bb9d7f72",
+			"type": "text",
+			"text": "## BPC-11 Distancias de pueblos cercanos no cambian al moverse\nSintoma: de Las Rozas a Majadahonda por la M-50, la barra inferior de pueblos cercanos mostro distancias estaticas aunque el coche avanzaba. Observacion: pois.js tiene codigo que recalcula distancias desde la posicion actual (linea ~283) pero aparentemente el render no se repinta en cada tick, o solo se repinta al refrescar la cache de 'pueblos cercanos'. Pasos: (1) depurar el ciclo render, (2) decidir si hay que forzar repintado en cada tick de GPS o invalidar mas agresivamente la cache, (3) validar en simulador con una ruta que recorra varios kilometros sin cambiar de pueblo dominante.",
+			"x": 1340,
+			"y": 1840,
+			"width": 280,
+			"height": 160,
+			"color": "5"
+		},
+		{
+			"id": "a6140311",
+			"type": "text",
+			"text": "## BPC-12 Layout se rompe al volver a la vista principal tras deslizar\nSintoma: en Chrome Mobile, al deslizar a vista 2 o 3 y volver a la vista 1, la vista 1 pierde adaptacion y se corta informacion. El CSS ya usa 100dvh (index.html linea 28, 38), asi que el fix no es cambiar vh->dvh. Hipotesis a investigar: (a) el scroll-snap no reposiciona limpiamente al volver, (b) el viewport recalcula con retardo cuando la barra de Chrome se muestra/oculta, (c) el contenido en vista 1 asume una altura que ya no es valida tras el cambio. Probar: forzar recalculo con JS en visibilitychange o resize, o scroll-snap-stop: always, o recalcular alturas internas al evento scroll-end.",
+			"x": 1340,
+			"y": 2020,
+			"width": 280,
+			"height": 160,
+			"color": "5"
+		},
+		{
+			"id": "305e577d",
+			"type": "text",
+			"text": "## IU-09 Boton opcional de pantalla completa (Fullscreen API)\nIdea de Laureano tras la prueba PEC-01: anadir un boton discreto que ponga el panel a pantalla completa y elimine la barra de Chrome Mobile. Mitiga el bug del layout cortado (BPC-12) y aprovecha mas superficie util. La Fullscreen API estandar (document.documentElement.requestFullscreen) funciona en Chrome Android. Por definir: posicion del boton, criterio de aparicion (siempre visible vs aparece solo al tocar), y si se guarda preferencia en localStorage. Abierto a discusion.",
+			"x": 1780,
+			"y": 1480,
+			"width": 280,
+			"height": 160,
+			"color": "6"
+		},
+		{
+			"id": "9f58859c",
+			"type": "text",
+			"text": "## PEC-04 Segunda prueba en carretera tras arreglar BPC-09 a BPC-12\nValidar en ruta real que los bugs de PEC-01 estan resueltos: (1) M-505: pastilla granate 'M-505' fija sin oscilaciones, (2) M-50: cartel verde de proxima salida aparece con distancia y ref, (3) barra de pueblos: distancias cambian con el movimiento, (4) layout: estable al deslizar entre vistas y volver. Capturar logs de debug para analisis posterior.",
+			"x": 20,
+			"y": 580,
+			"width": 280,
+			"height": 160,
+			"color": "6"
+		},
+		{
+			"id": "e55a9177",
+			"type": "text",
+			"text": "## PEC-05 Prueba en carretera para validar logs persistidos\nUna vez implementada FN-02 (logs de trayecto persistidos y exportables), salir a una ruta real de longitud suficiente para: (1) generar varios cientos de mensajes de debug, (2) validar que la rotacion y el almacenamiento no degradan el rendimiento del panel, (3) comprobar que al llegar a casa los logs se pueden exportar integros y traerlos a Claude para analisis. Criterio de exito: Laureano descarga el archivo y lo pega en una sesion sin perdida de informacion ni formato roto.",
+			"x": 20,
+			"y": 760,
 			"width": 280,
 			"height": 160,
 			"color": "6"
@@ -609,6 +708,41 @@
 			"fromNode": "570f2e87",
 			"fromSide": "bottom",
 			"toNode": "56d5b60a",
+			"toSide": "top"
+		},
+		{
+			"id": "edge-026",
+			"fromNode": "f5a46384",
+			"fromSide": "left",
+			"toNode": "9f58859c",
+			"toSide": "right"
+		},
+		{
+			"id": "edge-027",
+			"fromNode": "a4c6caca",
+			"fromSide": "left",
+			"toNode": "9f58859c",
+			"toSide": "right"
+		},
+		{
+			"id": "edge-028",
+			"fromNode": "bb9d7f72",
+			"fromSide": "left",
+			"toNode": "9f58859c",
+			"toSide": "right"
+		},
+		{
+			"id": "edge-029",
+			"fromNode": "a6140311",
+			"fromSide": "top",
+			"toNode": "9f58859c",
+			"toSide": "bottom"
+		},
+		{
+			"id": "edge-030",
+			"fromNode": "6ff60034",
+			"fromSide": "bottom",
+			"toNode": "e55a9177",
 			"toSide": "top"
 		}
 	]
