@@ -252,6 +252,11 @@ const debug = (() => {
   }
 
   function escribir(texto, color) {
+    // Persistencia a Trayectos siempre, independiente de ?debug=1 (FN-02a).
+    if (typeof Trayectos !== 'undefined') {
+      const nivel = color === '#ffcc00' ? 'warn' : (color === '#ff5555' ? 'error' : 'log');
+      Trayectos.log(nivel, texto);
+    }
     if (!activo) return;
     if (!panel) {
       // Crear el panel cuando el body ya exista. Si llamamos a debug antes

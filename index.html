@@ -713,6 +713,19 @@
   </symbol>
 </svg>
 
+<!-- Vista de administración de logs (?logs=1). Oculta por defecto. -->
+<section id="vistaLogs" style="display:none; position:fixed; inset:0; background:#0f1117; color:#fff; z-index:5000; overflow:auto; padding:16px 20px; font-family:-apple-system,system-ui,sans-serif;">
+  <header style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px;">
+    <h1 style="font-size:20px; margin:0;">Trayectos guardados</h1>
+    <a href="./" id="logsVolver" style="color:#93c5fd; text-decoration:none; font-size:14px;">← Volver al panel</a>
+  </header>
+  <div id="logsLista" style="display:flex; flex-direction:column; gap:10px;"></div>
+  <div id="logsVacio" style="display:none; color:#94a3b8; font-size:14px; margin-top:20px;">No hay trayectos guardados.</div>
+  <footer style="margin-top:20px; display:flex; justify-content:flex-end;">
+    <button id="logsBorrarTodos" type="button" style="background:#7f1d1d; color:#fff; border:none; border-radius:6px; padding:8px 14px; font-size:13px; cursor:pointer;">Borrar todos los trayectos</button>
+  </footer>
+</section>
+
 <div id="visor" class="visor">
   <section class="vista" id="vista1">
 
@@ -812,6 +825,7 @@
   </section>
 </div><!-- /visor -->
 
+  <script src="js/trayectos.js"></script>
   <script src="js/debug.js"></script>
   <script src="js/wakelock.js"></script>
   <script src="js/carreteras.js"></script>
@@ -825,6 +839,110 @@
   <script src="js/rutas.js"></script>
   <script src="js/simulator.js"></script>
   <script>
+    // Bloque etiquetado: envolvemos todo el bootstrap del panel para poder
+    // cortar limpiamente con `break panelBlock;` en modo ?logs=1, evitando
+    // ejecutar el resto del script que arranca GPS, módulos y UI del panel.
+    panelBlock: {
+    // Modo logs (?logs=1): pantalla de administración de trayectos guardados.
+    // No arranca GPS, Simulator ni ningún módulo de datos. Solo Trayectos (FN-02b).
+    if (new URLSearchParams(location.search).get('logs') === '1') {
+      document.getElementById('visor').style.display = 'none';
+      document.getElementById('vistaLogs').style.display = '';
+      document.body.style.overflow = 'auto';
+
+      const $lista = document.getElementById('logsLista');
+      const $vacio = document.getElementById('logsVacio');
+      const $borrarTodos = document.getElementById('logsBorrarTodos');
+
+      function pad2(n){return n<10?'0'+n:''+n;}
+      function fmtFecha(ms){
+        const d = new Date(ms);
+        return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate())+
+               ' '+pad2(d.getHours())+':'+pad2(d.getMinutes());
+      }
+      function fmtDuracion(ms){
+        const s = Math.max(0, Math.floor(ms/1000));
+        const h = Math.floor(s/3600), m = Math.floor((s%3600)/60), sec = s%60;
+        if (h) return h+'h '+pad2(m)+'m';
+        if (m) return m+'m '+pad2(sec)+'s';
+        return sec+'s';
+      }
+
+      async function pintarLista() {
+        $lista.innerHTML = '';
+        const trayectos = await Trayectos.listar();
+        if (!trayectos.length) {
+          $vacio.style.display = '';
+          return;
+        }
+        $vacio.style.display = 'none';
+        for (const t of trayectos) {
+          const card = document.createElement('div');
+          card.style.cssText = 'background:#1a1f2e; border:1px solid #2a3142; border-radius:8px; padding:12px 14px; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;';
+          const info = document.createElement('div');
+          info.style.cssText = 'flex:1; min-width:220px;';
+          const duracionMs = t.fin ? (new Date(t.fin) - t.id) : 0; // fin no se marca; queda 0 por ahora
+          info.innerHTML =
+            '<div style="font-size:15px; font-weight:600;">'+fmtFecha(t.id)+'</div>'+
+            '<div style="font-size:12px; color:#94a3b8; margin-top:2px;">'+
+              t.nMensajes+' mensajes · '+t.nTrack+' puntos de track'+
+            '</div>';
+          const acciones = document.createElement('div');
+          acciones.style.cssText = 'display:flex; gap:8px;';
+          const btnDescargar = document.createElement('button');
+          btnDescargar.type = 'button';
+          btnDescargar.textContent = 'Descargar';
+          btnDescargar.style.cssText = 'background:#1d4ed8; color:#fff; border:none; border-radius:6px; padding:6px 12px; font-size:13px; cursor:pointer;';
+          btnDescargar.addEventListener('click', () => descargar(t.id));
+          const btnBorrar = document.createElement('button');
+          btnBorrar.type = 'button';
+          btnBorrar.textContent = 'Borrar';
+          btnBorrar.style.cssText = 'background:#7f1d1d; color:#fff; border:none; border-radius:6px; padding:6px 12px; font-size:13px; cursor:pointer;';
+          btnBorrar.addEventListener('click', async () => {
+            if (!confirm('¿Borrar este trayecto? No se puede deshacer.')) return;
+            await Trayectos.borrar(t.id);
+            await pintarLista();
+          });
+          acciones.appendChild(btnDescargar);
+          acciones.appendChild(btnBorrar);
+          card.appendChild(info);
+          card.appendChild(acciones);
+          $lista.appendChild(card);
+        }
+      }
+
+      async function descargar(id) {
+        const texto = await Trayectos.exportarTxt(id);
+        if (!texto) { alert('No se pudo generar el archivo.'); return; }
+        const blob = new Blob([texto], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        const d = new Date(id);
+        const nombre = 'panel-viaje-'+d.getFullYear()+pad2(d.getMonth()+1)+pad2(d.getDate())+'-'+
+                       pad2(d.getHours())+pad2(d.getMinutes())+pad2(d.getSeconds())+'.txt';
+        a.href = url;
+        a.download = nombre;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      }
+
+      $borrarTodos.addEventListener('click', async () => {
+        if (!confirm('¿Borrar TODOS los trayectos? No se puede deshacer.')) return;
+        await Trayectos.borrarTodos();
+        await pintarLista();
+      });
+
+      pintarLista();
+
+      // Corta el arranque del panel normal sin ensuciar la consola.
+      break panelBlock;
+    }
+
+    // Inicia el trayecto ANTES del primer debug.log para que todo quede
+    // persistido en IDB desde la primera línea (FN-02a).
+    if (window.Trayectos) Trayectos.iniciar();
     debug.log('Página cargada');
 
     // Pedir wake lock para que la pantalla no se apague durante el viaje.
@@ -1373,6 +1491,11 @@
       }
       ultimoFixVelocidad = { lat: c.latitude, lon: c.longitude, ts: ahora };
 
+      // Registrar punto en el track del trayecto (FN-02a).
+      if (window.Trayectos) {
+        Trayectos.agregarTrack(c.latitude, c.longitude, velEfectivaKmh);
+      }
+
       $lat.textContent = c.latitude.toFixed(6);
       $lon.textContent = c.longitude.toFixed(6);
       $precision.textContent = c.accuracy != null ? `${c.accuracy.toFixed(1)} m` : '—';
@@ -1510,6 +1633,7 @@
         }
       );
     }
+    } // fin panelBlock
   </script>
 
 </body>

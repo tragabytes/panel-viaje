@@ -46,6 +46,15 @@
 			"label": "Prueba en carretera"
 		},
 		{
+			"id": "group-funcio",
+			"type": "group",
+			"x": 2640,
+			"y": 0,
+			"width": 380,
+			"height": 940,
+			"label": "Funciones nuevas"
+		},
+		{
 			"id": "group-resili",
 			"type": "group",
 			"x": 2200,
@@ -53,15 +62,6 @@
 			"width": 380,
 			"height": 700,
 			"label": "Resiliencia API"
-		},
-		{
-			"id": "group-funcio",
-			"type": "group",
-			"x": 2640,
-			"y": 0,
-			"width": 380,
-			"height": 700,
-			"label": "Funciones nuevas"
 		},
 		{
 			"id": "3c6fb2c1",
@@ -401,7 +401,7 @@
 			"y": 220,
 			"width": 280,
 			"height": 160,
-			"color": "1"
+			"color": "0"
 		},
 		{
 			"id": "9d3d196e",
@@ -471,7 +471,7 @@
 			"y": 1480,
 			"width": 280,
 			"height": 160,
-			"color": "5"
+			"color": "4"
 		},
 		{
 			"id": "a4c6caca",
@@ -481,7 +481,7 @@
 			"y": 1660,
 			"width": 280,
 			"height": 160,
-			"color": "5"
+			"color": "4"
 		},
 		{
 			"id": "bb9d7f72",
@@ -491,7 +491,7 @@
 			"y": 1840,
 			"width": 280,
 			"height": 160,
-			"color": "5"
+			"color": "4"
 		},
 		{
 			"id": "a6140311",
@@ -501,7 +501,7 @@
 			"y": 2020,
 			"width": 280,
 			"height": 160,
-			"color": "5"
+			"color": "4"
 		},
 		{
 			"id": "305e577d",
@@ -532,6 +532,36 @@
 			"width": 280,
 			"height": 160,
 			"color": "6"
+		},
+		{
+			"id": "ad6494d5",
+			"type": "text",
+			"text": "## FN-03 FN-02a Persistencia del debug en IndexedDB por trayecto\nSub-tarjeta de FN-02. Alcance: debug.log/warn/error persisten ademas de en el buffer del panel en una tabla de IndexedDB, agrupados por trayecto. Cada arranque del panel crea un trayecto nuevo con id=timestamp_inicio. Campos del trayecto: { id, inicio, fin, mensajes:[{ts, nivel, texto}], track:[{ts, lat, lon, speed}] }. El track GPS se agrega cada 30 s o cada 500 m (lo que llegue antes). Rotacion: guardar los 10 ultimos trayectos; el 11 empuja al mas viejo. Criterio de exito: tras un arranque y un par de minutos de uso con el simulador, al recargar la pagina siguen en IDB los mensajes del trayecto anterior.",
+			"x": 2660,
+			"y": 400,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "95a77e6f",
+			"type": "text",
+			"text": "## FN-04 FN-02b UI ?logs=1 con lista de trayectos y descarga\nSub-tarjeta de FN-02. Alcance: si la URL incluye ?logs=1, el panel oculta la UI normal y muestra una pantalla simple con la lista vertical de trayectos guardados. Cada fila: fecha de inicio, duracion, tamano aproximado, numero de mensajes. Botones por fila: Descargar (dispara download del .txt) y Borrar. Boton global: Borrar todo. No debe haber interaccion accidental con esta pantalla durante la conduccion; ?logs=1 es un modo explicito. Criterio de exito: desde Chrome escritorio en localhost con trayectos guardados, al abrir ?logs=1 se ve la lista; Descargar produce un archivo legible; Borrar elimina el trayecto y refresca la lista.",
+			"x": 2660,
+			"y": 580,
+			"width": 280,
+			"height": 160,
+			"color": "5"
+		},
+		{
+			"id": "58512e20",
+			"type": "text",
+			"text": "## FN-05 FN-02c Exportador txt con cabecera y compresion de repetidos\nSub-tarjeta de FN-02. Alcance: funcion que toma un trayecto guardado y produce un .txt listo para pegar a Claude. Estructura: (1) Cabecera de 10 lineas con resumen automatico: fecha, duracion, distancia aproximada (suma de segmentos del track), coordenadas inicial y final, numero de mensajes por nivel (log/warn/error), modulos que fallaron al menos una vez, lista breve de eventos destacados (cambios de roadRef, activaciones y desactivaciones de MotorwayExit, errores de API). (2) Log completo con los mensajes prefijados por timestamp, igual que el panel de debug actual. (3) Compresion de mensajes repetidos consecutivos: si el mismo texto aparece N veces seguidas, se colapsa a una linea 'POI caches OK x N entre HH:MM y HH:MM'. Criterio de exito: al descargar un trayecto real de 10+ minutos, el archivo es legible de un vistazo y no se repiten mas de 3 veces seguidas el mismo mensaje.",
+			"x": 2660,
+			"y": 760,
+			"width": 280,
+			"height": 160,
+			"color": "4"
 		}
 	],
 	"edges": [
@@ -744,6 +774,27 @@
 			"fromSide": "bottom",
 			"toNode": "e55a9177",
 			"toSide": "top"
+		},
+		{
+			"id": "edge-031",
+			"fromNode": "ad6494d5",
+			"fromSide": "top",
+			"toNode": "6ff60034",
+			"toSide": "bottom"
+		},
+		{
+			"id": "edge-032",
+			"fromNode": "95a77e6f",
+			"fromSide": "top",
+			"toNode": "6ff60034",
+			"toSide": "bottom"
+		},
+		{
+			"id": "edge-033",
+			"fromNode": "58512e20",
+			"fromSide": "top",
+			"toNode": "6ff60034",
+			"toSide": "bottom"
 		}
 	]
 }
