@@ -7,10 +7,10 @@
     "nota_pie": "Actualizar al final de cada sesión de trabajo"
   },
   "estado_actual": {
-    "fase_actual": "Fase 3 — UI definitiva (completa). Resiliencia API completa. Bugs prueba carretera en curso. FN-02 (logs persistidos) implementada en tres hijas en sesion 25.",
-    "ultima_actualizacion": "16 de abril de 2026",
-    "siguiente_hito": "PEC-04 (validar BPC-09/10/11/12 en carretera) y PEC-05 (validar FN-02 en carretera). Pendientes moradas: BPC-05, IU-09, FN-01.",
-    "bloqueos": "Ninguno. BPC-04 y FN-04 en revision (cyan) tras sesion 25. FN-02 paraguas queda gris hasta que FN-04 se apruebe en verde."
+    "fase_actual": "Fase 3 completa. Resiliencia API completa. Tanda de 6 tarjetas rojas cerradas en sesion 26 (MO-06, FN-01, FN-06, BPC-05, BPC-13, IU-09). Todas en revision (cyan).",
+    "ultima_actualizacion": "17 de abril de 2026",
+    "siguiente_hito": "Verificacion humana de las 6 tarjetas de sesion 26 mas las 4 en cyan de sesion 25. Cuando queden verdes, PEC-04 y PEC-05 quedaran desbloqueadas.",
+    "bloqueos": "Overpass API estuvo saturada durante sesion 26 (HTTP 504 y timeouts en los tres mirrors) — verificacion end-to-end de MO-06 y FN-01 con datos reales queda pendiente cuando los mirrors se recuperen. Caches del navegador del preview bloquean reloads limpios, mitigado con inyecciones runtime."
   },
   "fases": [
     {
@@ -2245,6 +2245,44 @@
         [
           "Pendientes",
           "Verificacion humana de BPC-04, FN-03, FN-04 y FN-05 (y, cuando las tres FN esten verdes, FN-02 paraguas). Tras ello PEC-04 y PEC-05 quedaran desbloqueadas. Moradas restantes sin trabajar: BPC-05, IU-09, FN-01."
+        ]
+      ]
+    },
+    {
+      "n": 26,
+      "titulo": "Tanda de 6 tarjetas rojas — MO-06, FN-01, FN-06, BPC-05, BPC-13, IU-09",
+      "campos": [
+        [
+          "Fecha",
+          "17 de abril de 2026"
+        ],
+        [
+          "Fase trabajada",
+          "MotorwayExitModule + Funciones nuevas + Bugs prueba carretera + UI/Experiencia."
+        ],
+        [
+          "Contexto de arranque",
+          "Laureano pidio acometer 6 tarjetas rojas en orden concreto y de forma autonoma (plan -> desarrollo -> test -> siguiente sin preguntar). Arranque con status del tablero y repaso de las ultimas 3 sesiones (23, 24, 25)."
+        ],
+        [
+          "Lo que se ha hecho",
+          "(A) MO-06 filtrar salidas por sentido de marcha: query Overpass nueva ('.juncs out body; .via out body geom;') para obtener geometria de los ways. parsearJunctions calcula bearing local del way en cada junction (con correccion si oneway=-1) y anota wayBearing/wayOneway. En actualizar(), se descarta cualquier junction cuyo way (oneway=yes) tenga bearing con diff>90° respecto al rumbo del usuario. Dedupe por ref movida al final para no perder el del sentido correcto. Nueva constante TOLERANCIA_SENTIDO_GRADOS=90. Test sintetico Node con A-6 dividida (dos ways oneway, un way sin oneway): 3 junctions con wayBearing correcto, wayOneway distingue los casos. Query e2e bloqueada por saturacion Overpass (504 en todos los mirrors durante la sesion).\n(B) FN-01 gasolineras: nuevo js/gasolineras.js (~120 lineas). Overpass amenity=fuel, radio 5 km, caché en memoria por proximidad (<2 km). Parser preferencia brand > operator > name. Seccion v3-gasolineras debajo del grid de POIs en V3, chips con marca+distancia. Script tag cargado antes de pois.js. Llamada desde alRecibirPosicion cuando hay desplazamiento. Test Node OK. UI verificada con monkey-patch inyectando 3 gasolineras: display OK, marcas y distancias formateadas (350 m, 1.2 km, 2.4 km).\n(C) FN-06 velocidad limite: RoadRef.consultar ahora devuelve { ref, maxspeedKmh }. Parser parsearMaxspeed cubre numero directo, '<n> mph' (conversion), 'ES:urban|rural|trunk|motorway|living_street', 'walk', 'none', ausente. En index.html actualizarCarretera: en caso A (Nominatim dio codigo) se lanza RoadRef.consultar en paralelo no-bloqueante para conseguir maxspeed; en caso B ya venia en la respuesta. Nueva variable maxspeedActual, se pinta chip redondo estilo senal al lado de la pastilla (blanco con borde rojo). Velocidad GPS coloreada: normal si <=+5 km/h, clase 'exceso' ambar en (+5, +15], clase 'exceso-grave' rojo >+15. Test Node con 18 formatos distintos del parser: todos correctos. UI verificada inyectando runtime: chip 28x28 con borde #c0392b, color ambar rgb(255,170,68), rojo rgb(255,85,85).\n(D) BPC-05 timeout global POIModule: nueva constante TIMEOUT_GLOBAL_ACTUALIZAR_MS=90000. El flujo interno se refactoriza para mantener un objeto 'parcial' actualizado tras cada paso (pueblos, POIs por pueblo, datos municipio). Promise.race entre el flujo y un timeout; si gana el timeout devolvemos parcial y liberamos enActualizacion. El flujo perdedor sigue en background: las caches por clave estable absorben los resultados tardios. Test sintetico Node con timeout corto 4.5s sobre un flujo de 6s: devuelve parcial ['A','B'], flujo termina despues sin bloquear.\n(E) BPC-13 velocidad cortada por safe-area: viewport-fit=cover anadido al meta. Nuevas CSS vars --safe-top/right/bottom/left/extra en :root con env(safe-area-inset-*). Paddings de #vista1, #vista2, #vista3 y posicion del boton fullscreen referencian las variables con calc(). Parametro ?safearea=N inyecta --safe-extra para iterar desde escritorio. Verificado: base padding '10px 12px 8px', con --safe-extra=60px pasa a '10px 72px 8px 12px'.\n(F) IU-09 boton fullscreen: boton absolute en esquina superior derecha, 26x26, discreto (opacity 0.55). SVG minimalista de expandir. Handler que alterna requestFullscreen/exitFullscreen. Se oculta via clase body.fullscreen-activo y en modo ?logs=1. Fallback: si la API no existe, el boton se oculta al arrancar. Verificado: boton renderiza en x=608 dentro de viewport 640, click dispara requestFullscreen (mockeado en preview)."
+        ],
+        [
+          "Decisiones tomadas",
+          "Ninguna decision nueva con ID en este registro (cambios tecnicos alineados con decisiones previas). TOLERANCIA_SENTIDO_GRADOS=90° (razon: >90° es sentido literalmente opuesto; curvas y trenzados quedan dentro del margen). Umbrales FN-06: +5/+15 km/h para ambar/rojo, sin sostenido (si molesta intermitencia se refinara). FN-01 solo en V3 (no en V1 para no saturar con una informacion menos critica). Timeout BPC-05: 90s (peor caso secuencial real = 3 mirrors x 8s x ~7 queries ~= 170s; cortamos a la mitad)."
+        ],
+        [
+          "Problemas encontrados",
+          "(1) Overpass API saturada durante toda la sesion: HTTP 504 en overpass-api.de, timeouts en kumi.systems y private.coffee. Imposible verificar MO-06 y FN-01 end-to-end con datos reales. El codigo se valido con tests sinteticos y la query nueva es sintacticamente correcta. Laureano lo probara en carretera real. (2) Cache agresiva del navegador del preview (problema ya conocido de sesiones 23-25) impidio reload de JS modificados con query string. Para FN-06 se verifico via fetch + eval del modulo nuevo + inyeccion runtime de CSS/HTML. Modo operativo que ya forma parte de la rutina."
+        ],
+        [
+          "Metricas de la sesion",
+          "6 tarjetas cerradas (MO-06, FN-01, FN-06, BPC-05, BPC-13, IU-09), todas en cyan. Codigo: ~120 lineas nuevas (js/gasolineras.js), ~70 lineas en js/roadref.js (parser maxspeed + elegirInfo), ~60 lineas en js/motorwayexit.js (geometry + filtro sentido), ~30 lineas en js/pois.js (timeout global), ~90 lineas en index.html (chip maxspeed, boton fullscreen, safe-area vars, UI gasolineras, color velocidad)."
+        ],
+        [
+          "Pendientes",
+          "Verificacion humana de MO-06, FN-01, FN-06, BPC-05, BPC-13, IU-09. Tras ello: prueba en carretera (ya cubierta por PEC-04 y PEC-05 pendientes). No quedan tarjetas rojas listas; el siguiente ciclo debe proponer nuevas o pasar a las moradas/pendientes."
         ]
       ]
     }
