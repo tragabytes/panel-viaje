@@ -56,6 +56,11 @@
     const MAX_POIS_POR_PUEBLO     = 2;
     const TIMEOUT_WIKIPEDIA_MS    = 8000;
     const TIMEOUT_WIKIDATA_MS     = 12000;
+    // BPC-05: timeout global de actualizar(). Si todos los mirrors Overpass
+    // están saturados, el peor caso secuencial puede llegar a 3 min
+    // (3 mirrors × 8 s × ~7 queries). Cortamos a 90 s y devolvemos lo parcial
+    // que llevemos para no bloquear futuras actualizaciones.
+    const TIMEOUT_GLOBAL_ACTUALIZAR_MS = 90000;
     const JACCARD_MIN_POI         = 0.5;
     const JACCARD_MIN_MUNICIPIO   = 0.3;
     const JACCARD_MIN_PEDANIA     = 0.5;   // más estricto para Q56061 (entidades singulares)
@@ -701,9 +706,14 @@
       }
       enActualizacion = true;
 
-      try {
+      // BPC-05: estado parcial actualizado a medida que avanza el flujo.
+      // Si el timeout global gana la carrera, devolvemos esto.
+      const parcial = { pueblosCercanos: [], datosMunicipio: null };
+
+      const flujo = (async () => {
         // Paso 1: pueblos cercanos (con caché)
         const pueblos = await obtenerPueblosCercanos(lat, lon);
+        parcial.pueblosCercanos = pueblos.map(p => ({ ...p, pois: [] }));
 
         // Pasos 2 y 3: POIs + enriquecimiento por pueblo (secuencial para no
         // martillear Wikidata; las llamadas están cacheadas tras la primera vez)
@@ -731,6 +741,7 @@
             }
             pueblosConPOIs.push({ ...pueblo, pois: [] });
           }
+          parcial.pueblosCercanos = pueblosConPOIs;
         }
 
         // Paso 4: datos del municipio actual
@@ -738,6 +749,7 @@
         if (municipioActual) {
           try {
             datosMunicipio = await obtenerDatosMunicipio(municipioActual, lat, lon);
+            parcial.datosMunicipio = datosMunicipio;
           } catch (e) {
             if (typeof debug !== 'undefined') {
               debug.log(`POI municipio [${municipioActual}]: fallo (${e.message})`);
@@ -745,14 +757,37 @@
           }
         }
 
-        ultimoResultado = { pueblosCercanos: pueblosConPOIs, datosMunicipio };
+        const resultado = { pueblosCercanos: pueblosConPOIs, datosMunicipio };
 
         if (typeof debug !== 'undefined') {
           const totalPOIs = pueblosConPOIs.reduce((n, p) => n + p.pois.length, 0);
           debug.log(`POI: resultado listo · ${pueblosConPOIs.length} pueblos · ${totalPOIs} POIs`);
         }
+        return resultado;
+      })();
 
-        return ultimoResultado;
+      // BPC-05: race contra timeout global. Sentinel _timeout para distinguir
+      // al ganador. La promesa flujo sigue su curso si pierde, sin afectar:
+      // las caches por clave estable absorben los resultados tardíos.
+      const TIMEOUT_SENTINEL = { _timeout: true };
+      const timeout = new Promise(resolve =>
+        setTimeout(() => resolve(TIMEOUT_SENTINEL), TIMEOUT_GLOBAL_ACTUALIZAR_MS)
+      );
+
+      try {
+        const ganador = await Promise.race([flujo, timeout]);
+        if (ganador === TIMEOUT_SENTINEL) {
+          if (typeof debug !== 'undefined') {
+            debug.warn(`POI: timeout global ${TIMEOUT_GLOBAL_ACTUALIZAR_MS}ms, devolviendo parcial (${parcial.pueblosCercanos.length} pueblos)`);
+          }
+          ultimoResultado = { ...parcial };
+          // Asegurar que el flujo no bloquee futuras llamadas: cuando
+          // termine (o nunca), enActualizacion ya estará liberado por finally.
+          flujo.catch(() => {});
+          return ultimoResultado;
+        }
+        ultimoResultado = ganador;
+        return ganador;
       } finally {
         enActualizacion = false;
       }

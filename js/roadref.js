@@ -27,7 +27,10 @@
 //     dedupe + filtro de desplazamiento), aquí no hay cola.
 //
 // API pública:
-//   RoadRef.consultar(lat, lon) → Promise<string|null>
+//   RoadRef.consultar(lat, lon) → Promise<{ ref: string|null, maxspeedKmh: number|null }>
+//     ref: código de carretera normalizado (mayúsculas) o null si no hay.
+//     maxspeedKmh: límite de velocidad de la vía en km/h, o null si OSM no lo
+//       informa o el formato no es interpretable. FN-06.
 //
 // Dependencia: overpass.js debe cargarse antes que este archivo.
 
@@ -42,7 +45,7 @@ __global__.RoadRef = (() => {
   // un sitio común, basta con cambiarla en dos archivos — coste mínimo.
   const REGEX_CODIGO = /^[A-Z]{1,3}-?\d{1,4}$/i;
 
-  let cache = null; // { lat, lon, ref }
+  let cache = null; // { lat, lon, ref, maxspeedKmh }
 
   // Construye la query QL. Pedimos solo tags de ways con highway y ref.
   // `out tags 3` = solo campo tags, sin coordenadas ni nodos, máximo 3
@@ -51,36 +54,80 @@ __global__.RoadRef = (() => {
     return `[out:json][timeout:10];way(around:${RADIO_BUSQUEDA_M},${lat},${lon})[highway][ref];out tags 3;`;
   }
 
-  // Recorre los elements devueltos por Overpass, extrae la primera ref
-  // que case con REGEX_CODIGO. Si hay varias, se queda con la primera:
-  // la estrategia "mejor de varias" se puede refinar después si hace falta.
-  function elegirRef(datos) {
-    if (!datos || !Array.isArray(datos.elements)) return null;
-    for (const el of datos.elements) {
-      const ref = el && el.tags && el.tags.ref;
-      if (!ref || typeof ref !== 'string') continue;
-      // Una ref puede venir como "M-505" o como "M-505;M-503" (cuando dos
-      // carreteras comparten way). Tomamos la primera que case.
-      const partes = ref.split(/\s*;\s*/);
-      for (const parte of partes) {
-        if (REGEX_CODIGO.test(parte.trim())) {
-          return parte.trim().toUpperCase();
-        }
-      }
-    }
+  // FN-06: parsea el tag maxspeed de OSM en km/h. Casos cubiertos:
+  //   "90", "120"           → número directo en km/h
+  //   "90 mph", "30 mph"    → conversión mph→km/h
+  //   "ES:urban"            → 50
+  //   "ES:rural"            → 90
+  //   "ES:trunk"            → 100
+  //   "ES:motorway"         → 120
+  //   "ES:living_street"    → 20
+  //   "walk"                → 6 (peatonal)
+  //   "none"                → null (sin límite, no útil para alertar)
+  //   ausente / vacío / otros → null
+  // Devuelve un entero o null.
+  const MAPA_ES = {
+    'urban': 50,
+    'rural': 90,
+    'trunk': 100,
+    'motorway': 120,
+    'living_street': 20,
+    'walk': 6,
+  };
+  function parsearMaxspeed(valor) {
+    if (valor == null) return null;
+    if (typeof valor === 'number' && isFinite(valor)) return Math.round(valor);
+    if (typeof valor !== 'string') return null;
+    const v = valor.trim().toLowerCase();
+    if (!v || v === 'none' || v === 'signals' || v === 'variable') return null;
+    if (v === 'walk') return MAPA_ES.walk;
+    const mphMatch = v.match(/^(\d{1,3})\s*mph$/);
+    if (mphMatch) return Math.round(parseInt(mphMatch[1], 10) * 1.609);
+    const numMatch = v.match(/^(\d{1,3})(\s*km\/h)?$/);
+    if (numMatch) return parseInt(numMatch[1], 10);
+    const esMatch = v.match(/^[a-z]{2,3}:(.+)$/);
+    if (esMatch && MAPA_ES[esMatch[1]] != null) return MAPA_ES[esMatch[1]];
     return null;
   }
 
-  // API pública.
+  // Recorre los elements devueltos por Overpass, extrae la primera ref que
+  // case con REGEX_CODIGO y, del mismo elemento, lee maxspeed. Si hay varias
+  // refs en partes distintas (M-505;M-503), elegimos la primera que case.
+  function elegirInfo(datos) {
+    if (!datos || !Array.isArray(datos.elements)) return { ref: null, maxspeedKmh: null };
+    for (const el of datos.elements) {
+      const tags = el && el.tags;
+      const refRaw = tags && tags.ref;
+      if (!refRaw || typeof refRaw !== 'string') continue;
+      const partes = refRaw.split(/\s*;\s*/);
+      for (const parte of partes) {
+        if (REGEX_CODIGO.test(parte.trim())) {
+          return {
+            ref: parte.trim().toUpperCase(),
+            maxspeedKmh: parsearMaxspeed(tags.maxspeed),
+          };
+        }
+      }
+    }
+    return { ref: null, maxspeedKmh: null };
+  }
+
+  // Compat: la API antigua devolvía solo el ref. Mantenemos un helper
+  // expuesto en _elegirRef (usado por tests) que extrae el ref de _elegirInfo.
+  function elegirRef(datos) {
+    return elegirInfo(datos).ref;
+  }
+
+  // API pública. Devuelve siempre { ref, maxspeedKmh } (cualquiera puede ser null).
   async function consultar(lat, lon) {
     // 1) Caché por proximidad
     if (cache) {
       const d = Overpass.distanciaMetros(lat, lon, cache.lat, cache.lon);
       if (d < RADIO_CACHE_M) {
         if (typeof debug !== 'undefined') {
-          debug.log(`RoadRef caché reusada (dist ${Math.round(d)}m): ${cache.ref || 'null'}`);
+          debug.log(`RoadRef caché reusada (dist ${Math.round(d)}m): ${cache.ref || 'null'}${cache.maxspeedKmh != null ? ' · ' + cache.maxspeedKmh + 'km/h' : ''}`);
         }
-        return cache.ref;
+        return { ref: cache.ref, maxspeedKmh: cache.maxspeedKmh };
       }
     }
 
@@ -89,19 +136,19 @@ __global__.RoadRef = (() => {
     // 2) Cascada de mirrors (delegada a overpass.js)
     try {
       const { datos } = await Overpass.query(queryQL, 'RoadRef');
-      const ref = elegirRef(datos);
+      const info = elegirInfo(datos);
       if (typeof debug !== 'undefined') {
         const n = (datos.elements || []).length;
-        debug.log(`RoadRef · ${n} ways · ref=${ref || 'null'}`);
+        debug.log(`RoadRef · ${n} ways · ref=${info.ref || 'null'}${info.maxspeedKmh != null ? ' · max ' + info.maxspeedKmh + 'km/h' : ''}`);
       }
-      cache = { lat, lon, ref };
-      return ref;
+      cache = { lat, lon, ref: info.ref, maxspeedKmh: info.maxspeedKmh };
+      return info;
     } catch (err) {
       // Todos los mirrors fallaron. Cacheamos null para no martillear en
       // tics sucesivos dentro del radio; el próximo movimiento >300 m
       // volverá a intentar.
-      cache = { lat, lon, ref: null };
-      return null;
+      cache = { lat, lon, ref: null, maxspeedKmh: null };
+      return { ref: null, maxspeedKmh: null };
     }
   }
 
@@ -110,6 +157,8 @@ __global__.RoadRef = (() => {
     // expuestos para test
     _construirQuery: construirQuery,
     _elegirRef: elegirRef,
+    _elegirInfo: elegirInfo,
+    _parsearMaxspeed: parsearMaxspeed,
   };
 })();
 

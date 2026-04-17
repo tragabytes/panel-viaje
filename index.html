@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Panel de viaje</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -48,6 +48,19 @@
       overflow: hidden;
     }
 
+    /* BPC-13: safe-area del navegador (iconos de estado, punch-hole, esquinas
+       redondeadas). La variable --safe-extra se añade para desarrollo
+       (parámetro ?safearea=N simula el inset cuando probamos en escritorio).
+       viewport-fit=cover en el meta permite que env() devuelva valores reales.
+       Se suman a los paddings normales de cada vista en los lados sensibles. */
+    :root {
+      --safe-top:    env(safe-area-inset-top, 0px);
+      --safe-right:  env(safe-area-inset-right, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --safe-left:   env(safe-area-inset-left, 0px);
+      --safe-extra:  0px;
+    }
+
     /* Vista 1: grid 2 columnas compacto para 640×360 */
     #vista1 {
       display: grid;
@@ -57,7 +70,11 @@
         "estado estado"
         "izq    der"
         "poi    poi";
-      padding: 10px 12px 8px;
+      padding:
+        calc(10px + var(--safe-top))
+        calc(12px + var(--safe-right) + var(--safe-extra))
+        calc(8px + var(--safe-bottom))
+        calc(12px + var(--safe-left));
       column-gap: 10px;
       overflow: hidden;
     }
@@ -151,6 +168,58 @@
     .carretera .pastilla.autonomica {
       background: #7a1f2b;
     }
+
+    /* IU-09: botón de pantalla completa en la esquina superior derecha de V1.
+       Discreto, visible solo cuando no estamos ya en fullscreen. Al tocarlo
+       invoca la Fullscreen API (estándar; Chrome Android ≥ 71). */
+    #btnFullscreen {
+      position: absolute;
+      top: calc(4px + var(--safe-top));
+      right: calc(6px + var(--safe-right) + var(--safe-extra));
+      width: 26px; height: 26px;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.18);
+      border-radius: 5px;
+      color: #fff;
+      opacity: 0.55;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      z-index: 20;
+    }
+    #btnFullscreen:active { opacity: 0.9; }
+    body.fullscreen-activo #btnFullscreen { display: none; }
+    #btnFullscreen svg { width: 14px; height: 14px; }
+
+    /* FN-06: chip con velocidad límite junto a la pastilla. Estilo
+       reminiscente de señal redonda blanca con borde rojo. */
+    .maxspeed-chip {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: #fff;
+      color: #000;
+      font-weight: 800;
+      font-size: 13px;
+      border: 2.5px solid #c0392b;
+      margin-left: 8px;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    .v3-carretera .maxspeed-chip {
+      width: 22px; height: 22px;
+      font-size: 11px;
+      border-width: 2px;
+      margin-left: 6px;
+    }
+    /* Velocidad GPS coloreada según relación con maxspeedActual.
+       Aplicada a #v1Velocidad y #v2Velocidad. */
+    .v1-velocidad.exceso, .v2-velocidad.exceso { color: #ffaa44; }
+    .v1-velocidad.exceso-grave, .v2-velocidad.exceso-grave { color: #ff5555; }
 
     .carretera .calle {
       font-size: 15px;
@@ -469,7 +538,11 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 16px 20px;
+      padding:
+        calc(16px + var(--safe-top))
+        calc(20px + var(--safe-right) + var(--safe-extra))
+        calc(16px + var(--safe-bottom))
+        calc(20px + var(--safe-left));
       position: relative;
       transition: background 1.5s ease;
     }
@@ -532,7 +605,11 @@
     #vista3 {
       display: flex;
       flex-direction: column;
-      padding: 8px 10px;
+      padding:
+        calc(8px + var(--safe-top))
+        calc(10px + var(--safe-right) + var(--safe-extra))
+        calc(8px + var(--safe-bottom))
+        calc(10px + var(--safe-left));
       overflow: hidden;
     }
 
@@ -574,6 +651,34 @@
     }
     .v3-grid::-webkit-scrollbar { display: none; }
     .v3-grid { scrollbar-width: none; }
+
+    /* FN-01: bloque de gasolineras cercanas en V3, debajo del grid de POIs */
+    .v3-gasolineras {
+      flex-shrink: 0;
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      font-size: 12px;
+    }
+    .v3-gasolineras-titulo {
+      font-size: 11px;
+      opacity: 0.5;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 4px;
+    }
+    .v3-gasolineras-lista {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px 12px;
+    }
+    .v3-gasolinera {
+      display: flex;
+      gap: 4px;
+      align-items: baseline;
+    }
+    .v3-gasolinera-marca { font-weight: 600; }
+    .v3-gasolinera-dist { opacity: 0.55; font-size: 11px; }
 
     .v3-pueblo {
       background: rgba(255,255,255,0.06);
@@ -726,6 +831,13 @@
   </footer>
 </section>
 
+<!-- IU-09: botón Fullscreen. Posicionado absolute en la esquina superior
+     derecha. Se oculta automáticamente cuando el documento está en fullscreen
+     (clase body.fullscreen-activo). -->
+<button id="btnFullscreen" type="button" aria-label="Pantalla completa" title="Pantalla completa">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 10 4 4 10 4"/><polyline points="20 10 20 4 14 4"/><polyline points="20 14 20 20 14 20"/><polyline points="4 14 4 20 10 20"/></svg>
+</button>
+
 <div id="visor" class="visor">
   <section class="vista" id="vista1">
 
@@ -822,6 +934,10 @@
       <span id="v3Ubicacion" class="v3-ubicacion">—</span>
     </div>
     <div id="v3Grid" class="v3-grid"></div>
+    <div id="v3Gasolineras" class="v3-gasolineras" style="display:none">
+      <div class="v3-gasolineras-titulo">Gasolineras cerca</div>
+      <div id="v3GasolinerasLista" class="v3-gasolineras-lista"></div>
+    </div>
   </section>
 </div><!-- /visor -->
 
@@ -835,6 +951,7 @@
   <script src="js/meteo_codigos.js"></script>
   <script src="js/weather.js"></script>
   <script src="js/motorwayexit.js"></script>
+  <script src="js/gasolineras.js"></script>
   <script src="js/pois.js"></script>
   <script src="js/rutas.js"></script>
   <script src="js/simulator.js"></script>
@@ -843,6 +960,46 @@
     // cortar limpiamente con `break panelBlock;` en modo ?logs=1, evitando
     // ejecutar el resto del script que arranca GPS, módulos y UI del panel.
     panelBlock: {
+    // IU-09: botón de pantalla completa. Al tocarlo, invoca Fullscreen API;
+    // se oculta mientras está activo (body.fullscreen-activo). Si la API no
+    // está soportada (raro: Chrome Android ≥ 71 la tiene), el botón se oculta
+    // al arrancar y no estorba.
+    (() => {
+      const btn = document.getElementById('btnFullscreen');
+      if (!btn) return;
+      if (!document.documentElement.requestFullscreen) {
+        btn.style.display = 'none';
+        return;
+      }
+      btn.addEventListener('click', async () => {
+        try {
+          if (!document.fullscreenElement) {
+            await document.documentElement.requestFullscreen();
+          } else {
+            await document.exitFullscreen();
+          }
+        } catch (err) {
+          if (typeof debug !== 'undefined') debug.warn(`Fullscreen: ${err.message}`);
+        }
+      });
+      document.addEventListener('fullscreenchange', () => {
+        document.body.classList.toggle('fullscreen-activo', !!document.fullscreenElement);
+      });
+      // Ocultar el botón en modo logs (no aplica).
+      if (new URLSearchParams(location.search).get('logs') === '1') {
+        btn.style.display = 'none';
+      }
+    })();
+
+    // BPC-13: parámetro ?safearea=N simula un inset extra en los laterales
+    // derecho y superior para iterar desde escritorio. En móvil real, los
+    // env(safe-area-inset-*) ya aportan los valores correctos con viewport-fit=cover.
+    (() => {
+      const extra = parseInt(new URLSearchParams(location.search).get('safearea') || '0', 10);
+      if (extra > 0 && extra < 200) {
+        document.documentElement.style.setProperty('--safe-extra', extra + 'px');
+      }
+    })();
     // Modo logs (?logs=1): pantalla de administración de trayectos guardados.
     // No arranca GPS, Simulator ni ningún módulo de datos. Solo Trayectos (FN-02b).
     if (new URLSearchParams(location.search).get('logs') === '1') {
@@ -966,6 +1123,8 @@
     const $municipioDesc    = document.getElementById('municipioDesc');
     const $poiBloque        = document.getElementById('poiBloque');
     const $poiScroll        = document.getElementById('poiScroll');
+    const $v3Gasolineras    = document.getElementById('v3Gasolineras');
+    const $v3GasolinerasL   = document.getElementById('v3GasolinerasLista');
     const $meteoTemp        = document.getElementById('meteoTemp');
     const $meteoDescripcion = document.getElementById('meteoDescripcion');
     const $meteoViento      = document.getElementById('meteoViento');
@@ -1014,6 +1173,11 @@
     // entre pastilla y texto largo (BPC-09).
     let roadRefActualPos        = null; // { lat, lon }
     const RADIO_HISTERESIS_PASTILLA_M = 1500;
+    // FN-06: velocidad límite de la vía actual (km/h) o null si no se conoce.
+    // Se actualiza cuando RoadRef.consultar() devuelve maxspeedKmh, ya sea
+    // como rescate del código (caso B) o como llamada paralela cuando
+    // Nominatim ya dio el código pero no el límite (caso A).
+    let maxspeedActual          = null;
     let municipioActual         = null;
     // Si el último pintado del bloque meteo fue un estado de error, lo
     // guardamos aquí para forzar el repintado en cuanto llegue cualquier
@@ -1063,11 +1227,14 @@
     function pintarCarretera(info) {
       if (info && info.codigo) {
         const claseExtra = info.tipo === 'autonomica' ? ' autonomica' : '';
+        const chipMax = (maxspeedActual != null)
+          ? `<span class="maxspeed-chip" title="Velocidad límite">${maxspeedActual}</span>`
+          : '';
         $carreteraBloque.innerHTML =
-          `<span class="pastilla${claseExtra}">${escapar(info.codigo)}</span>`;
+          `<span class="pastilla${claseExtra}">${escapar(info.codigo)}</span>${chipMax}`;
         // V3 cabecera: pastilla mini
         $v3Carretera.innerHTML =
-          `<span class="pastilla${claseExtra}">${escapar(info.codigo)}</span>`;
+          `<span class="pastilla${claseExtra}">${escapar(info.codigo)}</span>${chipMax}`;
       } else if (info && info.textoCrudo) {
         $carreteraBloque.innerHTML =
           `<span class="calle">${escapar(info.textoCrudo)}</span>`;
@@ -1108,7 +1275,9 @@
         const info = await LocationModule.obtenerCarretera(lat, lon);
 
         // Caso A: Nominatim ya dio código (estatal conocida o ref directa).
-        // Se pinta y fin.
+        // Se pinta y fin. FN-06: lanzamos RoadRef en paralelo (no bloqueante)
+        // para conseguir maxspeed; la caché de RoadRef (300m) hace que el
+        // coste real sea ~1 query por cada 300m de movimiento, despreciable.
         if (info.codigo) {
           const clave = `${info.codigo}|${info.tipo}|${info.textoCrudo}`;
           if (clave === ultimaCarreteraMostrada) return;
@@ -1117,6 +1286,17 @@
           roadRefActualPos = { lat, lon };
           pintarCarretera(info);
           debug.log(`Carretera [${info.fuente}]: ${info.codigo} (${info.tipo}, crudo: "${info.textoCrudo}")`);
+          if (window.RoadRef) {
+            RoadRef.consultar(lat, lon).then((rr) => {
+              if (rr && rr.maxspeedKmh !== maxspeedActual) {
+                maxspeedActual = rr.maxspeedKmh;
+                // Forzar re-render de la pastilla con el chip nuevo.
+                ultimaCarreteraMostrada = null;
+                pintarCarretera(info);
+                ultimaCarreteraMostrada = clave;
+              }
+            }).catch(() => {});
+          }
           return;
         }
 
@@ -1127,7 +1307,8 @@
         // que preguntamos a Overpass directamente qué ref tiene el way en
         // este punto. Decisión 22, sesión 9.8.
         if (info.textoCrudo && window.RoadRef) {
-          const refOverpass = await RoadRef.consultar(lat, lon);
+          const rr = await RoadRef.consultar(lat, lon);
+          const refOverpass = rr && rr.ref;
           if (refOverpass) {
             const rescatado = Carreteras.extraerCodigo(refOverpass);
             if (rescatado && rescatado.codigo) {
@@ -1142,8 +1323,9 @@
               ultimaCarreteraMostrada = clave;
               roadRefActual = infoRescatada.codigo;
               roadRefActualPos = { lat, lon };
+              maxspeedActual = (rr && rr.maxspeedKmh != null) ? rr.maxspeedKmh : maxspeedActual;
               pintarCarretera(infoRescatada);
-              debug.log(`Carretera [overpass]: ${infoRescatada.codigo} (${infoRescatada.tipo}, rescatada · crudo Nominatim: "${info.textoCrudo}")`);
+              debug.log(`Carretera [overpass]: ${infoRescatada.codigo} (${infoRescatada.tipo}, rescatada · crudo Nominatim: "${info.textoCrudo}"${maxspeedActual != null ? ' · max ' + maxspeedActual + 'km/h' : ''})`);
               return;
             }
           }
@@ -1168,6 +1350,7 @@
         ultimaCarreteraMostrada = clave;
         roadRefActual = null;
         roadRefActualPos = null;
+        maxspeedActual = null;
         pintarCarretera(info);
         if (info.textoCrudo) {
           debug.log(`Vía [${info.fuente}]: "${info.textoCrudo}" (sin código ni en Nominatim ni en Overpass)`);
@@ -1395,6 +1578,41 @@
       });
     }
 
+    // FN-01: pinta lista de gasolineras en V3. Distancias en metros si <1000,
+    // si no en km con 1 decimal. Marca preferida sobre nombre.
+    function pintarGasolineras(lista) {
+      if (!lista || lista.length === 0) {
+        $v3Gasolineras.style.display = 'none';
+        $v3GasolinerasL.innerHTML = '';
+        return;
+      }
+      $v3Gasolineras.style.display = '';
+      $v3GasolinerasL.innerHTML = lista.map(g => {
+        const d = g.distM < 1000
+          ? Math.round(g.distM) + ' m'
+          : (g.distM / 1000).toFixed(1) + ' km';
+        const marca = (g.marca || g.nombre || 'Gasolinera').replace(/[<>]/g, '');
+        return `<div class="v3-gasolinera"><span class="v3-gasolinera-marca">${marca}</span><span class="v3-gasolinera-dist">${d}</span></div>`;
+      }).join('');
+    }
+
+    let gasolinerasChequeado = false;
+    function actualizarGasolineras(lat, lon) {
+      if (!gasolinerasChequeado) {
+        gasolinerasChequeado = true;
+        if (!window.Gasolineras) {
+          debug.error('Gasolineras: módulo no cargado');
+          return;
+        }
+      }
+      if (!window.Gasolineras) return;
+      Gasolineras.actualizar(lat, lon).then(lista => {
+        pintarGasolineras(lista);
+      }).catch(err => {
+        debug.error(`Gasolineras: ${err.message}`);
+      });
+    }
+
     // Estado del último log de próximas salidas, para evitar spammear
     // el panel de debug con el mismo resultado en cada tick de GPS.
     let ultimoLogSalidas = null;
@@ -1513,6 +1731,19 @@
         : '';
       $v1Velocidad.textContent = velTexto;
       $v2Velocidad.textContent = velTexto;
+      // FN-06: colorea la velocidad según el exceso sobre maxspeedActual.
+      // Sin alarmas sonoras (regla de seguridad visual). Umbrales:
+      //   exceso ≤ 5 km/h         → blanco normal
+      //   exceso > 5 y ≤ 15 km/h  → ámbar (clase 'exceso')
+      //   exceso > 15 km/h        → rojo (clase 'exceso-grave')
+      let claseExceso = '';
+      if (maxspeedActual != null && velEfectivaKmh != null) {
+        const exceso = velEfectivaKmh - maxspeedActual;
+        if (exceso > 15) claseExceso = 'exceso-grave';
+        else if (exceso > 5) claseExceso = 'exceso';
+      }
+      $v1Velocidad.className = 'v1-velocidad' + (claseExceso ? ' ' + claseExceso : '');
+      $v2Velocidad.className = 'v2-velocidad' + (claseExceso ? ' ' + claseExceso : '');
 
       ultimoTickGPS = ahora;
       mostrarEstado('GPS activo', 'ok');
@@ -1538,6 +1769,7 @@
         actualizarCarretera(c.latitude, c.longitude);
         actualizarMeteo(c.latitude, c.longitude);
         actualizarPOIs(c.latitude, c.longitude);
+        actualizarGasolineras(c.latitude, c.longitude);
       }
 
       // MotorwayExit se evalúa en CADA tick, no solo cada 50 m. Es barato

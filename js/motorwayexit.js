@@ -66,6 +66,11 @@
   const DISTANCIA_MIN_JUNCTION_M = 300;
   const TOLERANCIA_ANGULAR_GRADOS = 45;
 
+  // MO-06: en autovía dividida, descartar junctions cuyo way (oneway=yes)
+  // vaya en sentido opuesto al rumbo del usuario. >90° = sentido contrario.
+  // Si el way no es oneway o no tenemos bearing, no filtramos por sentido.
+  const TOLERANCIA_SENTIDO_GRADOS = 90;
+
   const VELOCIDAD_MIN_KMH = 50;
   const HISTERESIS_VELOCIDAD_MS = 30000;
 
@@ -106,53 +111,131 @@
   let ultimoRoadRefConocido = null;
   let tsUltimoRoadRefConocido = 0;
 
+  // Memo del último conteo de descartados por sentido para deduplicar el
+  // log de MO-06 (un mensaje por cambio, no uno por tick).
+  let ultimoDescartadosSentido = 0;
+
   // --- Overpass ---
 
-  // Pedimos los nodos highway=motorway_junction de la vía actual.
-  // Estrategia en tres pasos para evitar falsos positivos de autovías
-  // cruzadas (problema P24, sesión 13):
-  //   1) Nodos motorway_junction en radio 50 km → .todos (rápido: índice espacial)
-  //   2) Ways con ref=<refVia> que contienen esos nodos → .via_actual (rápido:
-  //      lookup por set pre-filtrado, no escaneo de área)
-  //   3) Nodos motorway_junction de esas vías → resultado final limpio
-  // Así M-40, AP-6, etc. quedan excluidos cuando vamos por A-6.
+  // Pedimos los nodos highway=motorway_junction de la vía actual + geometría
+  // de los ways. La geometría sirve para filtrar el sentido de marcha (MO-06):
+  // por cada junction calculamos el bearing del segmento del way que lo
+  // contiene, y descartamos los del sentido contrario en autovía dividida.
+  // Estrategia (problema P24, sesión 13 + MO-06):
+  //   1) Nodos motorway_junction en radio 50 km → .todos (índice espacial)
+  //   2) Ways con ref=<refVia> que contienen esos nodos → .via (set pre-filtrado)
+  //   3) Nodos motorway_junction de esas vías → .juncs (resultado limpio)
+  //   4) .juncs out body  → tags + lat/lon de cada junction
+  //   5) .via   out body geom  → tags (oneway), nodes[] y geometry[] paralelos.
+  //      `nodes` y `geometry` son arrays paralelos: nodes[i] es el id del
+  //      i-ésimo nodo del way, geometry[i] su {lat, lon}.
   function construirQuery(lat, lon, refVia) {
     const radioMetros = RADIO_CONSULTA_KM * 1000;
     const refEscapada = String(refVia).replace(/"/g, '');
     return (
       `[out:json][timeout:25];` +
       `node(around:${radioMetros},${lat},${lon})[highway=motorway_junction]["ref"](if:t["ref"]!="0")->.todos;` +
-      `way[ref="${refEscapada}"][highway~"motorway"](bn.todos)->.via_actual;` +
-      `node(w.via_actual)[highway=motorway_junction]["ref"](if:t["ref"]!="0");` +
-      `out body;`
+      `way[ref="${refEscapada}"][highway~"motorway"](bn.todos)->.via;` +
+      `node(w.via)[highway=motorway_junction]["ref"](if:t["ref"]!="0")->.juncs;` +
+      `.juncs out body;` +
+      `.via out body geom;`
     );
   }
 
-  // Parsea elements de Overpass en lista de junctions limpia.
-  // Descarta sin ref, con ref "0", y dedupa por ref (se queda con el
-  // primero de cada ref en orden de aparición).
+  // Parsea elements de Overpass en lista de junctions con metadatos de sentido.
+  // No dedupa por ref aquí: en autovía dividida el mismo número de salida
+  // aparece en ambas calzadas como dos junctions distintos. La dedupe se hace
+  // más tarde en actualizar(), después de filtrar por sentido y proximidad,
+  // quedándonos con el más cercano (MO-06).
+  //
+  // Para cada junction, calcula el bearing local del way que lo contiene:
+  //   - Localiza el way por nodes[].includes(junctionId).
+  //   - Calcula el bearing del segmento adyacente al junction
+  //     (geometry[i-1] → geometry[i] si hay anterior, o geometry[i] →
+  //     geometry[i+1] si es el primero).
+  //   - Si oneway === '-1', el way está digitalizado al revés respecto
+  //     al sentido de circulación: invertimos el bearing.
   function parsearJunctions(datos) {
     if (!datos || !Array.isArray(datos.elements)) return { lista: [], descartados: 0 };
-    const vistas = new Set();
+
+    const nodes = [];
+    const ways = [];
+    for (const el of datos.elements) {
+      if (!el) continue;
+      if (el.type === 'node') nodes.push(el);
+      else if (el.type === 'way') ways.push(el);
+    }
+
+    // Mapa junctionId → { wayBearing (grados 0-360), wayOneway (bool) }.
+    // Si un junction aparece en varios ways (raro), nos quedamos con el
+    // primero encontrado: en autovía dividida cada calzada es su propio way
+    // y cada junction está en un único way.
+    const datosWayPorJunction = new Map();
+    for (const w of ways) {
+      const tags = w.tags || {};
+      const onewayRaw = (tags.oneway || '').toLowerCase();
+      const oneway = (onewayRaw === 'yes' || onewayRaw === '1' || onewayRaw === '-1' || onewayRaw === 'true');
+      const sentidoInverso = (onewayRaw === '-1');
+      const ids = Array.isArray(w.nodes) ? w.nodes : [];
+      const geom = Array.isArray(w.geometry) ? w.geometry : [];
+      if (ids.length < 2 || geom.length < 2 || ids.length !== geom.length) continue;
+      for (let i = 0; i < ids.length; i++) {
+        const idJ = ids[i];
+        if (datosWayPorJunction.has(idJ)) continue;
+        let aIdx, bIdx;
+        if (i > 0) { aIdx = i - 1; bIdx = i; }
+        else { aIdx = 0; bIdx = 1; }
+        const a = geom[aIdx];
+        const b = geom[bIdx];
+        if (!a || !b || typeof a.lat !== 'number' || typeof b.lat !== 'number') continue;
+        let bearingWay = rumboHaciaLocal(a.lat, a.lon, b.lat, b.lon);
+        if (sentidoInverso) bearingWay = (bearingWay + 180) % 360;
+        datosWayPorJunction.set(idJ, { wayBearing: bearingWay, wayOneway: oneway });
+      }
+    }
+
     const lista = [];
     let descartados = 0;
-    for (const el of datos.elements) {
-      if (!el || el.type !== 'node') continue;
+    for (const el of nodes) {
       const ref = el.tags && el.tags.ref;
       if (!ref || typeof ref !== 'string' || ref.trim() === '' || ref.trim() === '0') {
         descartados++;
         continue;
       }
       const refLimpia = ref.trim();
-      if (vistas.has(refLimpia)) continue;
-      vistas.add(refLimpia);
       if (typeof el.lat !== 'number' || typeof el.lon !== 'number') {
         descartados++;
         continue;
       }
-      lista.push({ id: el.id, ref: refLimpia, lat: el.lat, lon: el.lon });
+      const dw = datosWayPorJunction.get(el.id) || null;
+      lista.push({
+        id: el.id,
+        ref: refLimpia,
+        lat: el.lat,
+        lon: el.lon,
+        wayBearing: dw ? dw.wayBearing : null,
+        wayOneway: dw ? dw.wayOneway : false,
+      });
     }
     return { lista, descartados };
+  }
+
+  // Helper local: calcula el rumbo (grados 0-360) entre dos puntos.
+  // Duplica la lógica de Overpass.rumboHacia para no depender del módulo
+  // global cuando _parsearJunctions se usa aislado en tests.
+  function rumboHaciaLocal(lat1, lon1, lat2, lon2) {
+    if (typeof Overpass !== 'undefined' && Overpass.rumboHacia) {
+      return Overpass.rumboHacia(lat1, lon1, lat2, lon2);
+    }
+    const toRad = (g) => g * Math.PI / 180;
+    const toDeg = (r) => r * 180 / Math.PI;
+    const phi1 = toRad(lat1);
+    const phi2 = toRad(lat2);
+    const dLon = toRad(lon2 - lon1);
+    const y = Math.sin(dLon) * Math.cos(phi2);
+    const x = Math.cos(phi1) * Math.sin(phi2) -
+              Math.sin(phi1) * Math.cos(phi2) * Math.cos(dLon);
+    return (toDeg(Math.atan2(y, x)) + 360) % 360;
   }
 
   async function consultarOverpass(lat, lon, refVia) {
@@ -386,6 +469,7 @@
       return { activo: false, proxima: null, siguiente: null, estado: 'sin_datos' };
     }
 
+    let descartadosSentido = 0;
     const candidatos = [];
     for (const j of junctions) {
       const distM = Overpass.distanciaMetros(lat, lon, j.lat, j.lon);
@@ -394,15 +478,46 @@
         const rumboJ = Overpass.rumboHacia(lat, lon, j.lat, j.lon);
         const diff = Overpass.diferenciaAngular(rumbo, rumboJ);
         if (diff > TOLERANCIA_ANGULAR_GRADOS) continue;
+        // MO-06: si el way del junction es oneway y va en sentido opuesto
+        // al rumbo del usuario, es la calzada contraria → descartar.
+        if (j.wayOneway && typeof j.wayBearing === 'number') {
+          const diffSentido = Overpass.diferenciaAngular(rumbo, j.wayBearing);
+          if (diffSentido > TOLERANCIA_SENTIDO_GRADOS) {
+            descartadosSentido++;
+            continue;
+          }
+        }
       }
       candidatos.push({ id: j.id, ref: j.ref, distanciaKm: distM / 1000 });
+    }
+
+    if (descartadosSentido > 0 && typeof debug !== 'undefined') {
+      // Log dedupado: solo cuando cambia el conteo, para no spammear cada tick.
+      if (descartadosSentido !== ultimoDescartadosSentido) {
+        debug.log(`MotorwayExit: ${descartadosSentido} junctions descartados por sentido contrario`);
+        ultimoDescartadosSentido = descartadosSentido;
+      }
+    } else if (descartadosSentido === 0 && ultimoDescartadosSentido !== 0) {
+      ultimoDescartadosSentido = 0;
     }
 
     if (candidatos.length === 0) {
       return { activo: false, proxima: null, siguiente: null, estado: 'sin_datos' };
     }
 
+    // Dedupe por ref: mismo número de salida puede aparecer en ambas
+    // calzadas; nos quedamos con el más cercano (en autovía dividida ya
+    // habremos descartado el contrario por sentido, pero por seguridad).
     candidatos.sort((a, b) => a.distanciaKm - b.distanciaKm);
+    const vistosRef = new Set();
+    const candidatosUnicos = [];
+    for (const c of candidatos) {
+      if (vistosRef.has(c.ref)) continue;
+      vistosRef.add(c.ref);
+      candidatosUnicos.push(c);
+    }
+    candidatos.length = 0;
+    candidatos.push(...candidatosUnicos);
 
     const proxima = {
       id: candidatos[0].id,
@@ -432,6 +547,7 @@
     ultimaVelocidadSobreUmbral = false;
     ultimoRoadRefConocido = null;
     tsUltimoRoadRefConocido = 0;
+    ultimoDescartadosSentido = 0;
     if (typeof debug !== 'undefined') {
       debug.log('MotorwayExit: reset');
     }
