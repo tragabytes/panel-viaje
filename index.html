@@ -603,6 +603,9 @@
     #vista2[data-meteo-cat="nublado"]   .v2-anim-nublado   { display: block; }
     #vista2[data-meteo-cat="lluvia"]    .v2-anim-lluvia    { display: block; }
     #vista2[data-meteo-cat="tormenta"]  .v2-anim-lluvia    { display: block; }
+    #vista2[data-meteo-cat="tormenta"]  .v2-anim-tormenta  { display: block; }
+    #vista2[data-meteo-cat="nieve"]     .v2-anim-nieve     { display: block; }
+    #vista2[data-meteo-cat="niebla"]    .v2-anim-niebla    { display: block; }
 
     /* Sol (despejado): gira lento, rayos pulsan. */
     .v2-sol {
@@ -648,8 +651,62 @@
       100% { transform: translateY(120vh);     opacity: 0.1; }
     }
 
+    /* IU-11: nieve. Copos sembrados desde JS con delay/duration aleatorios.
+       Animación mezcla caída con oscilación lateral senoidal. */
+    .v2-copo {
+      position: absolute;
+      top: -5%;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: rgba(230,238,248,0.7);
+      animation: v2-copo-cae 9s linear infinite;
+    }
+    @keyframes v2-copo-cae {
+      0%   { transform: translate(0, 0)       scale(0.6); opacity: 0; }
+      10%  {                                              opacity: 0.55; }
+      25%  { transform: translate(10px, 28vh) scale(0.8); }
+      50%  { transform: translate(-6px, 55vh) scale(1.0); }
+      75%  { transform: translate(10px, 82vh) scale(0.9); }
+      100% { transform: translate(0, 115vh)   scale(0.7); opacity: 0.1; }
+    }
+
+    /* IU-11: niebla. Dos capas radiales con pulso de opacidad desfasado. */
+    .v2-niebla-capa {
+      position: absolute;
+      inset: -10%;
+      background: radial-gradient(ellipse at center, rgba(200,206,216,0.18) 0%, rgba(200,206,216,0) 70%);
+      animation: v2-niebla-pulsa 22s ease-in-out infinite;
+    }
+    .v2-niebla-capa-2 {
+      animation-duration: 32s;
+      animation-delay: -8s;
+      background: radial-gradient(ellipse at 30% 60%, rgba(180,188,200,0.14) 0%, rgba(180,188,200,0) 65%);
+    }
+    @keyframes v2-niebla-pulsa {
+      0%, 100% { opacity: 0.5; }
+      50%      { opacity: 1;   }
+    }
+
+    /* IU-11: tormenta. Flash blanco intermitente con ráfaga corta y pausa
+       larga. El ciclo entero es 22s (1 flash cada ~22s). */
+    .v2-flash {
+      position: absolute;
+      inset: 0;
+      background: #fff;
+      opacity: 0;
+      animation: v2-flash-cae 22s linear infinite;
+    }
+    @keyframes v2-flash-cae {
+      0%, 1.5%, 100% { opacity: 0; }
+      0.4%           { opacity: 0.32; }
+      0.9%           { opacity: 0.08; }
+      1.2%           { opacity: 0.22; }
+    }
+
     @media (prefers-reduced-motion: reduce) {
-      .v2-sol, .v2-nube, .v2-gota { animation: none !important; }
+      .v2-sol, .v2-nube, .v2-gota,
+      .v2-copo, .v2-niebla-capa, .v2-flash { animation: none !important; }
     }
 
     .v2-ubicacion { text-align: center; margin-bottom: 16px; }
@@ -1038,6 +1095,14 @@
         </svg>
       </div>
       <div class="v2-anim v2-anim-lluvia" id="v2Gotas"></div>
+      <div class="v2-anim v2-anim-nieve" id="v2Copos"></div>
+      <div class="v2-anim v2-anim-niebla">
+        <div class="v2-niebla-capa"></div>
+        <div class="v2-niebla-capa v2-niebla-capa-2"></div>
+      </div>
+      <div class="v2-anim v2-anim-tormenta">
+        <div class="v2-flash"></div>
+      </div>
     </div>
     <div class="v2-ubicacion">
       <div id="v2Municipio" class="v2-municipio">—</div>
@@ -1295,6 +1360,24 @@
         g.style.animationDelay = (-Math.random() * 1.4).toFixed(2) + 's';
         g.style.animationDuration = (1.1 + Math.random() * 0.8).toFixed(2) + 's';
         frag.appendChild(g);
+      }
+      cont.appendChild(frag);
+    })();
+
+    // IU-11: copos de nieve con caída más lenta que las gotas y oscilación
+    // lateral (keyframes mezclan translateY y translateX senoidal).
+    (function sembrarCoposNieve() {
+      const cont = document.getElementById('v2Copos');
+      if (!cont) return;
+      const n = 16;
+      const frag = document.createDocumentFragment();
+      for (let i = 0; i < n; i++) {
+        const c = document.createElement('div');
+        c.className = 'v2-copo';
+        c.style.left = (Math.random() * 100).toFixed(1) + '%';
+        c.style.animationDelay = (-Math.random() * 9).toFixed(2) + 's';
+        c.style.animationDuration = (7 + Math.random() * 5).toFixed(2) + 's';
+        frag.appendChild(c);
       }
       cont.appendChild(frag);
     })();

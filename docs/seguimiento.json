@@ -7,10 +7,10 @@
     "nota_pie": "Actualizar al final de cada sesión de trabajo"
   },
   "estado_actual": {
-    "fase_actual": "Fase 3 completa. Resiliencia API completa. Tanda de 10 tarjetas rojas cerradas en sesión 27 (BPC-14, FN-08, FN-07, PO-09, PO-10, PO-11, PO-12, MO-07, FN-09, IU-10). Todas en revisión (cyan).",
+    "fase_actual": "Fase 3 completa. Resiliencia API completa. IU-11 cerrada en sesión 28 completando el sistema de animaciones meteo de V2 (6 categorías cubiertas).",
     "ultima_actualizacion": "18 de abril de 2026",
-    "siguiente_hito": "Verificación humana de las 10 tarjetas de sesión 27 más las 6 cyan pendientes de sesión 26. Cuando queden verdes, PEC-04 y PEC-05 quedarán desbloqueadas.",
-    "bloqueos": "Ninguno. Los cambios de PO-11 corrigen un error de QID descubierto durante la sesión (Q56061 era \"entidad territorial administrativa\" genérica, no \"entidad singular de población\"; el QID correcto es Q3055118)."
+    "siguiente_hito": "Verificación humana de las tarjetas cyan pendientes (10 de sesión 27 + IU-11 de sesión 28). Con verificación queda preparado PEC-04/PEC-05.",
+    "bloqueos": "Ninguno."
   },
   "fases": [
     {
@@ -2317,6 +2317,36 @@
         [
           "Pendientes",
           "Verificación humana (Laureano) de las 10 tarjetas cyan de esta sesión. Con verificación queda preparado PEC-04/PEC-05. No se añaden tarjetas nuevas en esta sesión. IU-11 queda roja en el tablero como tarjeta parqueada hasta que IU-10 sea verificada."
+        ]
+      ]
+    },
+    {
+      "n": 28,
+      "titulo": "IU-11 — animaciones meteo adicionales (nieve, niebla, tormenta)",
+      "campos": [
+        [
+          "Fecha",
+          "18 de abril de 2026"
+        ],
+        [
+          "Fase trabajada",
+          "UI/Experiencia: animaciones sutiles de V2 (completa las 6 categorías meteo)."
+        ],
+        [
+          "Contexto de arranque",
+          "Tras cerrar las 10 tarjetas de sesión 27, Laureano pidió continuar con la siguiente tarjeta roja del tablero. IU-11 había sido parqueada esperando IU-10 verificada pero la aprobó a rojo directamente para no esperar."
+        ],
+        [
+          "Lo que se ha hecho",
+          "IU-11 amplía el sistema de animaciones de V2 (establecido en IU-10) con las 3 categorías que faltaban: (A) Nieve: nueva .v2-anim-nieve con 16 copos sembrados desde JS con delays/duración aleatorios. Cada copo es un div circular (4px, background rgba(230,238,248,0.7)) con animación keyframes v2-copo-cae 7-12s que mezcla translateY (0→115vh) con translateX senoidal (±10px) para simular oscilación lateral. Escala ligeramente entre 0.6 y 1.0 durante la caída para dar profundidad. (B) Niebla: nueva .v2-anim-niebla con 2 capas radiales semitransparentes (radial-gradient(ellipse, rgba(200,206,216,0.18), transparent)) y pulso lento de opacidad 0.5↔1.0. La segunda capa tiene duración 32s vs 22s de la primera y delay -8s, dando un efecto de bruma desfasada. (C) Tormenta: sobre la capa de lluvia ya existente, se añade .v2-anim-tormenta con un .v2-flash (div blanco 0 opacity por defecto). Keyframes v2-flash-cae 22s simulan 1 destello completo con pico 0.32 en el 0.4% del ciclo (≈88ms) y un eco corto 0.22 al 1.2%. Pausa larga del 98.8% del ciclo. El sistema respeta prefers-reduced-motion (añadidos selectores v2-copo, v2-niebla-capa, v2-flash a la regla que desactiva animaciones). Verificado visualmente forzando cada categoría: copos dispersos, niebla gris pulsante, flash capturado al forzar opacity 0.32."
+        ],
+        [
+          "Decisiones tomadas",
+          "1. IU-11 usa 16 copos (vs 18 gotas de IU-10) — la nieve se percibe más densa con menor número por el movimiento más lento y la oscilación. Más copos a esta velocidad se vería exagerado. 2. Tormenta hereda la lluvia de IU-10 (mismo selector [data-meteo-cat=\"tormenta\"] .v2-anim-lluvia) en vez de duplicar gotas. El único elemento adicional es el flash blanco sobre toda la pantalla — lo mínimo para sugerir tormenta sin distraer al conductor. 3. Flash con pico muy breve (0.4% del ciclo ≈ 88ms) y pausa larga (98.8%) — imita la cadencia real de un relámpago distante mejor que un destello periódico regular. 4. Niebla usa 2 capas con periodos distintos (22s y 32s) para que el pulso no sea repetitivo y parezca orgánico."
+        ],
+        [
+          "Pendientes",
+          "Verificación humana (Laureano) de IU-11 junto a las otras cyan. Con IU-10 + IU-11 verdes, el sistema de animaciones meteo queda cerrado para las 6 categorías."
         ]
       ]
     }
