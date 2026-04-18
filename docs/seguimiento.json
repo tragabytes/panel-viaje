@@ -7,10 +7,10 @@
     "nota_pie": "Actualizar al final de cada sesión de trabajo"
   },
   "estado_actual": {
-    "fase_actual": "Fase 3 completa. Resiliencia API completa. Tanda de 6 tarjetas rojas cerradas en sesion 26 (MO-06, FN-01, FN-06, BPC-05, BPC-13, IU-09). Todas en revision (cyan).",
-    "ultima_actualizacion": "17 de abril de 2026",
-    "siguiente_hito": "Verificacion humana de las 6 tarjetas de sesion 26 mas las 4 en cyan de sesion 25. Cuando queden verdes, PEC-04 y PEC-05 quedaran desbloqueadas.",
-    "bloqueos": "Overpass API estuvo saturada durante sesion 26 (HTTP 504 y timeouts en los tres mirrors) — verificacion end-to-end de MO-06 y FN-01 con datos reales queda pendiente cuando los mirrors se recuperen. Caches del navegador del preview bloquean reloads limpios, mitigado con inyecciones runtime."
+    "fase_actual": "Fase 3 completa. Resiliencia API completa. Tanda de 10 tarjetas rojas cerradas en sesión 27 (BPC-14, FN-08, FN-07, PO-09, PO-10, PO-11, PO-12, MO-07, FN-09, IU-10). Todas en revisión (cyan).",
+    "ultima_actualizacion": "18 de abril de 2026",
+    "siguiente_hito": "Verificación humana de las 10 tarjetas de sesión 27 más las 6 cyan pendientes de sesión 26. Cuando queden verdes, PEC-04 y PEC-05 quedarán desbloqueadas.",
+    "bloqueos": "Ninguno. Los cambios de PO-11 corrigen un error de QID descubierto durante la sesión (Q56061 era \"entidad territorial administrativa\" genérica, no \"entidad singular de población\"; el QID correcto es Q3055118)."
   },
   "fases": [
     {
@@ -2285,6 +2285,40 @@
           "Verificacion humana de MO-06, FN-01, FN-06, BPC-05, BPC-13, IU-09. Tras ello: prueba en carretera (ya cubierta por PEC-04 y PEC-05 pendientes). No quedan tarjetas rojas listas; el siguiente ciclo debe proponer nuevas o pasar a las moradas/pendientes."
         ]
       ]
+    },
+    {
+      "n": 27,
+      "titulo": "Tanda de 10 tarjetas: bugs, UX, cascada POI, animaciones meteo",
+      "campos": [
+        [
+          "Fecha",
+          "18 de abril de 2026"
+        ],
+        [
+          "Fase trabajada",
+          "Mantenimiento transversal: POIModule, MotorwayExitModule, Funciones nuevas, UI/Experiencia, Bugs prueba carretera."
+        ],
+        [
+          "Contexto de arranque",
+          "Revisión de ideas parqueadas del seguimiento para alimentar el tablero. Laureano aprobó la propuesta de 6 tarjetas (PO-09..PO-12, MO-07, FN-07), luego añadió 5 más tras discusión de diseño (BPC-14, FN-08, FN-09, IU-10, IU-11). Pidió acometer las 10 rojas en orden que yo eligiera, autónomo."
+        ],
+        [
+          "Lo que se ha hecho",
+          "(A) BPC-14 indicador simulador tapa fullscreen: banner del simulador movido de top-right a top-left en js/simulator.js (evita solape con btnFullscreen). Verificación visual: bannerRight < btnFullscreenLeft confirmado. (B) FN-08 señal velocidad invertida: nuevo estilo .maxspeed-chip.exceso (fondo #c0392b, texto blanco, borde blanco). Aplicada en el tick de velocidad cuando hay claseExceso (reutiliza umbral ámbar >5 km/h de FN-06). Verificado visualmente forzando la clase. (C) FN-07 consulta SPARQL de comarca: OPTIONAL con ?comarca wdt:P31 wd:Q56061 para filtrar. Test contra Wikidata con 5 municipios (Torrelodones, Trujillo, Medinaceli, La Bañeza, Astorga): todos pasan a comarca:null (antes devolvían provincia por cadena P279*). Se descubrió que la cadena P31/P279* desde \"provincia de España\" llega a Q56061 por anomalía taxonómica de Wikidata; P31 directo filtra bien. (D) PO-09 sort de POIs por distancia al centro: parsearPOIs recibe centroLat/centroLon, calcula distM con Overpass.distanciaMetros, sort pasa a (prioridad, distM). Test sintético con 4 POIs alrededor de Medinaceli: \"Castillo centro\" (200m) precede a \"Castillo pedanía\" (1457m) dentro de la misma prioridad. (E) PO-10 matching con sinónimos de patrimonio: STOPWORDS ampliadas con palacio, palacete, casa, museo, casona, mansion, solar, puerta, arco, puente, fuente, plaza. Nueva función matchLabels(a, b, umbral) con segunda pasada por containment: acepta si todos los tokens del nombre más corto están en el más largo y al menos uno tiene >=5 letras (nombre propio). Exportada como _matchLabels. jaccardSim refactorizada a tokenizar() + core. Test: \"Palacio de Juan Pizarro de Aragón\" vs \"Casa-Museo de Pizarro\" pasa (antes Jaccard 0.33 < 0.5). \"Torre del Alfiler\" vs \"Torre del Reloj\" sigue sin pasar. (F) PO-11 pedanías turísticas: corregido QID erróneo Q56061 por Q3055118 (entidad singular de población real en Wikidata) en _buscarEnWikidata capa 2 y en todos los comentarios. Verificado con Castrillo de los Polvazares: el módulo devuelve nombre + descripción + foto. (G) PO-12 Photon como fallback final: nueva función obtenerPOIsPhoton(nombre, lat, lon) que hace una query a photon.komoot.io con q=nombre, bias lat/lon y 5 osm_tag específicos (historic:castle|church|monastery|chapel|fort). Descubierto que Photon falla con >5 osm_tag específicos (devuelve basura global) y con lang=es (devuelve cero). Filtros cliente: distancia <=3 km, excluir el propio nombre. Cascada Overpass → Wikipedia → Photon: activado solo cuando los dos anteriores vienen vacíos. Test: Photon encuentra Castillo de Pedraza (828m) y Castillo de Medinaceli (666m). (H) MO-07 destinos legibles: la funcionalidad ya estaba implementada en MO-05 (consultarDestinos con query motorway_link, UMBRAL_DESTINOS_KM=2, formatearDestinos). Verificado con query real a Overpass de la A-6 salida 18: destination=\"Las Rozas sur;El Escorial\", destination:ref=\"M-505\". La integración visual también estaba lista (#salidaDestinos). Cerrada sin código extra. (I) FN-09 barra gasolineras en V1: nueva fila \"gas\" en el grid de #vista1 (22px 1fr auto auto), nuevo CSS .v1-gasolineras compacto (11px, 2 entries marca+distancia). pintarGasolineras ahora pinta también en V1 con lista.slice(0, 2). Verificación visual: \"Repsol 43 m · Repsol 1.0 km\" aparece al pie de V1. (J) IU-10 animaciones meteo V2: capa .v2-animacion absoluta (z-index:0) con 3 sub-capas visibles por [data-meteo-cat]. Sol SVG con rotación 60s (despejado). 2 nubes SVG cruzando 95s y 140s (nublado, también tormenta). 18 gotas CSS sembradas desde JS con left/delay/duration aleatorios (lluvia). Duraciones >=30s, solo transform+opacity, opacidad 0.07-0.55. Respeta prefers-reduced-motion. Verificación visual: las 3 animaciones se ven sutiles sobre el gradiente existente."
+        ],
+        [
+          "Decisiones tomadas",
+          "1. PO-09 usa (prioridad, distM) con distancia solo como desempate, no como criterio primario. Un castillo a 1 km pesa más que una iglesia a 100 m — la prioridad por tipo patrimonial es más relevante que la pura cercanía. 2. PO-10 devuelve exactamente el umbral (no el score de containment) para que los call sites sigan usando >= umbral sin cambios. Salvaguarda de >=5 letras evita falsos positivos con tokens cortos tipo \"Sol\". 3. PO-11 corrige error histórico: Q56061 nunca fue \"entidad singular de población\" (es \"entidad territorial administrativa\"). El QID correcto Q3055118 se descubrió inspeccionando directamente Wikidata con Castrillo de los Polvazares. 4. FN-07 usa P31 directo sin P279* para evitar que la cadena taxonómica desde \"provincia de España\" llegue a Q56061 e incluya provincias como comarcas. Coste: algunas comarcas aragonesas/catalanas marcadas solo con subtipos autonómicos también quedan excluidas. Mejor null que mal. 5. FN-09 reutiliza los datos que gasolineras.js ya obtiene sin peticiones extra — solo un segundo render con lista.slice(0, 2). Siempre visible aunque el usuario no lo vaya a usar inmediatamente. 6. IU-10 usa transform y opacity únicamente, duraciones muy largas (60-140s), opacidad <=0.55. Respeto de prefers-reduced-motion es obligatorio por seguridad visual del conductor."
+        ],
+        [
+          "Problemas encontrados",
+          "P23. Wikidata: la cadena P31/P279* desde \"provincia de España\" llega a Q56061 (\"entidad territorial administrativa\"). Imposible filtrar comarcas con cadena transitiva. Resuelto en FN-07 con P31 directo. P24. Código pois.js arrastraba QID erróneo Q56061 como \"entidad singular de población\" desde fases anteriores. El QID real era Q3055118. Resuelto en PO-11. P25. Photon devuelve cero resultados con lang=es (acepta solo en/de/fr/it). Falla con >5 osm_tag específicos. Resuelto en PO-12 usando lang por defecto y limitando a 5 osm_tag. P26. El preview MCP browser cachea agresivamente los <script src>. Cambios en simulator.js requirieron stop+start del server para recargarse. No bloqueante pero complica la iteración."
+        ],
+        [
+          "Pendientes",
+          "Verificación humana (Laureano) de las 10 tarjetas cyan de esta sesión. Con verificación queda preparado PEC-04/PEC-05. No se añaden tarjetas nuevas en esta sesión. IU-11 queda roja en el tablero como tarjeta parqueada hasta que IU-10 sea verificada."
+        ]
+      ]
     }
   ],
   "problemas_abiertos": [],
@@ -2900,108 +2934,6 @@
       ]
     },
     {
-      "id": "P23",
-      "titulo": "MotorwayExitModule: cycling caché/query por fallos transitorios de RoadRef",
-      "campos": [
-        [
-          "Fecha de aparición",
-          "sesión 11 (primera prueba real en carretera, 12 abril 2026)"
-        ],
-        [
-          "Síntoma",
-          "Cuando todos los mirrors de RoadRef fallaban en un tick, MotorwayExitModule vaciaba la caché. Al recuperarse RoadRef en el tick siguiente, lanzaba una nueva query Overpass. El ciclo ocurrió 4 veces en 3 minutos, contribuyendo a los HTTP 429 de overpass-api.de."
-        ],
-        [
-          "Causa",
-          "En actualizar(): si !roadRef → cache=null. En el tick siguiente con roadRef restaurado → !cache → lanzarConsultaAsincrona(). La caché se reseteaba con cada fallo puntual de mirror."
-        ],
-        [
-          "Resolución",
-          "Añadir GRACIA_ROADREF_MS=30000 y variables ultimoRoadRefConocido/tsUltimoRoadRefConocido. Si roadRef=null pero el último ref conocido tiene menos de 30s, usarlo como refEfectiva (fallback). Solo vaciar caché si lleva más de 30s ausente. Verificado con test que simula el patrón exacto del log."
-        ],
-        [
-          "Estado",
-          "cerrado (sesión 11)"
-        ]
-      ]
-    },
-    {
-      "id": "P25",
-      "titulo": "Timeout Overpass con query way(around:50km) en MO-04",
-      "campos": [
-        [
-          "Fecha de aparición",
-          "sesión 13 (14 abril 2026)"
-        ],
-        [
-          "Síntoma",
-          "Primera implementación de MO-04 usó way(around:50000,...) para buscar vías con ref=A-6 antes de buscar nodos. Overpass tardaba >20s y devolvía timeout o HTTP 504."
-        ],
-        [
-          "Causa",
-          "La operación way(around:radio) requiere escanear geometrías de todos los ways del área, sin índice espacial eficiente. Es 5-10x más costosa que node(around:radio), que sí usa índice espacial."
-        ],
-        [
-          "Resolución",
-          "Query de tres pasos: (1) node(around:50000)->.todos (rápido, índice espacial); (2) way[ref=...][highway~motorway](bn.todos)->.via_actual (busca ways que contienen esos nodos, no escaneo de área); (3) node(w.via_actual) (nodos de esas vías). Latencia resultante: ~4.7s en kumi.systems. Junctions A-6: 23 (antes 157 de toda el área)."
-        ],
-        [
-          "Estado",
-          "cerrado (sesión 13)"
-        ]
-      ]
-    },
-    {
-      "id": "P24",
-      "campos": [
-        [
-          "Fecha de aparicion",
-          "Sesion 12 (13 abril 2026)"
-        ],
-        [
-          "Sintoma",
-          "En la segunda vuelta del simulador a6-salidas, MotorwayExitModule mostraba salidas 82 y 83 como proximas en lugar de las salidas 24-26 de la A-6. El log mostro: proxima 83 a 3.4km, luego 24 a 5.8km y proxima 82 a 2.3km, luego 83 a 3km."
-        ],
-        [
-          "Causa",
-          "La query Overpass devuelve TODOS los motorway_junction en 50 km de radio sin filtrar por carretera. Las salidas 82 y 83 son de la M-40 (u otra via proxima) y pasan el filtro de angulo porque la M-40 discurre en la misma direccion general que la A-6 en esa zona. El codigo tenia una nota explicita de esta limitacion: si vemos falsos positivos de otra autovia cruzada, endurecemos la query."
-        ],
-        [
-          "Resolucion",
-          "Resuelto en sesión 14 (MO-04, verde). La query Overpass de tres pasos (nodos en radio → ways con ref → nodos de esas ways) filtra correctamente los junctions de vías cruzadas. Validado con simulador a6-salidas: salidas 23, 24, 26, 27, 29 de A-6 sin falsos positivos de M-40 ni AP-6."
-        ],
-        [
-          "Estado",
-          "resuelto"
-        ]
-      ]
-    },
-    {
-      "id": "P25",
-      "campos": [
-        [
-          "Fecha de aparicion",
-          "14 de abril de 2026"
-        ],
-        [
-          "Sintoma",
-          "En Chrome para Android con barra de direcciones visible, el visor quedaba recortado por la parte inferior. La fila de POIs y el borde inferior de la vista no eran visibles."
-        ],
-        [
-          "Causa",
-          "height:100vh en Chrome movil no descuenta la altura de la UI del navegador (barra de direcciones + barra de navegacion Android). El visor se dimensionaba como si el area fuera mas grande de lo visible."
-        ],
-        [
-          "Resolucion",
-          "Cambiar a height:100dvh (dynamic viewport height) en .visor y .vista. Se mantiene 100vh como primera declaracion para navegadores sin soporte dvh. dvh disponible desde Chrome 108; el movil usa Chrome 146."
-        ],
-        [
-          "Estado",
-          "Resuelto en sesion 20"
-        ]
-      ]
-    },
-    {
       "id": "P26",
       "titulo": "Pastilla de carretera oscilaba entre M-505 y 'Carretera de El Escorial'",
       "campos": [
@@ -3128,6 +3060,60 @@
         [
           "Estado",
           "Resuelto en sesión 24, pendiente de verificación definitiva en PEC-04 con el móvil viejo real."
+        ]
+      ]
+    },
+    {
+      "id": "P23",
+      "titulo": "Filtro de comarca con P31/P279* incluye provincias",
+      "campos": [
+        [
+          "Sesión",
+          "27"
+        ],
+        [
+          "Descripción",
+          "La cadena transitiva de subclases desde \"provincia de España\" (Q162620) llega a Q56061 en Wikidata por una anomalía taxonómica, haciendo que el filtro OPTIONAL ?comarca wdt:P31/wdt:P279* wd:Q56061 devolviera provincias como comarcas."
+        ],
+        [
+          "Resolución",
+          "Cambio a P31 directo: ?comarca wdt:P31 wd:Q56061. Pierde algunas comarcas aragonesas/catalanas marcadas solo con subtipos autonómicos, pero evita el falso positivo masivo de provincias."
+        ]
+      ]
+    },
+    {
+      "id": "P24",
+      "titulo": "QID erróneo Q56061 usado como entidad singular de población",
+      "campos": [
+        [
+          "Sesión",
+          "27"
+        ],
+        [
+          "Descripción",
+          "El código pois.js usaba Q56061 (\"entidad territorial administrativa\") como tipo para la capa 2 de pedanías en vez del correcto Q3055118 (\"entidad singular de población\"). Error arrastrado desde la implementación original."
+        ],
+        [
+          "Resolución",
+          "Reemplazar Q56061 por Q3055118 en el filtroQ de la capa 2 y en todos los comentarios. Confirmado con Castrillo de los Polvazares que es instancia directa de Q3055118."
+        ]
+      ]
+    },
+    {
+      "id": "P25",
+      "titulo": "Photon rechaza lang=es y >5 osm_tag específicos",
+      "campos": [
+        [
+          "Sesión",
+          "27"
+        ],
+        [
+          "Descripción",
+          "Photon devuelve lista vacía con el parámetro lang=es (acepta solo ciertos idiomas). Además, con más de 5 osm_tag=key:value específicos el servicio devuelve resultados globales irrelevantes."
+        ],
+        [
+          "Resolución",
+          "Omitir lang o usar lang=en. Limitar a 5 osm_tag específicos cubriendo los tipos más frecuentes: castle, church, monastery, chapel, fort."
         ]
       ]
     }
