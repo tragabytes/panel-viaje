@@ -597,7 +597,169 @@
       pointer-events: none;
       z-index: 0;
     }
-    #vista2 > *:not(.v2-animacion) { position: relative; z-index: 1; }
+
+    /* IU-12: paleta del cielo por momento del día. Estas variables las
+       consumen la luminaria, los god-rays y la iluminación ambiental.
+       Valores diseñados con mix-blend-mode:screen en mente (no saturar). */
+    #vista2 {
+      --v2-disco-centro:  #fff3c8;
+      --v2-disco-borde:   #ffb64d;
+      --v2-halo-color:    rgba(255, 200, 120, 0.35);
+      --v2-halo-color-2:  rgba(255, 170, 80, 0.18);
+      --v2-rays-color:    rgba(255, 205, 130, 0.28);
+      --v2-ambient-color: rgba(255, 200, 130, 0.22);
+      --v2-star-alpha:    0;
+      --v2-luna-relieve:  0;
+    }
+    #vista2[data-momento="amanecer"] {
+      --v2-disco-centro:  #ffe4b5;
+      --v2-disco-borde:   #ff7a4d;
+      --v2-halo-color:    rgba(255, 140, 100, 0.40);
+      --v2-halo-color-2:  rgba(255, 90, 120, 0.20);
+      --v2-rays-color:    rgba(255, 150, 110, 0.32);
+      --v2-ambient-color: rgba(255, 130, 120, 0.28);
+    }
+    #vista2[data-momento="atardecer"] {
+      --v2-disco-centro:  #ffd390;
+      --v2-disco-borde:   #e84a5c;
+      --v2-halo-color:    rgba(240, 100, 120, 0.38);
+      --v2-halo-color-2:  rgba(190, 70, 150, 0.22);
+      --v2-rays-color:    rgba(255, 130, 140, 0.30);
+      --v2-ambient-color: rgba(230, 110, 140, 0.28);
+    }
+    #vista2[data-momento="noche"] {
+      --v2-disco-centro:  #e8ecf4;
+      --v2-disco-borde:   #aab4cc;
+      --v2-halo-color:    rgba(170, 195, 240, 0.28);
+      --v2-halo-color-2:  rgba(120, 150, 220, 0.14);
+      --v2-rays-color:    rgba(170, 200, 245, 0.16);
+      --v2-ambient-color: rgba(130, 160, 230, 0.16);
+      --v2-star-alpha:    0.7;
+      --v2-luna-relieve:  0.35;
+    }
+
+    /* IU-12: luminaria celeste (sol o luna según momento). Grande (360px),
+       posicionada 60% fuera de pantalla esquina superior-derecha. */
+    .v2-luminaria {
+      position: absolute;
+      top: -210px;
+      right: -180px;
+      width: 360px;
+      height: 360px;
+      display: none;
+      pointer-events: none;
+    }
+    #vista2[data-meteo-cat="despejado"] .v2-luminaria { display: block; }
+    .v2-lum-halo {
+      position: absolute;
+      inset: -30%;
+      border-radius: 50%;
+      background: radial-gradient(circle at center,
+        var(--v2-halo-color) 0%,
+        var(--v2-halo-color-2) 35%,
+        transparent 70%);
+      filter: blur(18px);
+    }
+    .v2-lum-disco {
+      position: absolute;
+      inset: 20%;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%,
+        var(--v2-disco-centro) 0%,
+        var(--v2-disco-borde) 70%,
+        var(--v2-disco-borde) 100%);
+      filter: blur(1.5px);
+      opacity: 0.95;
+    }
+    /* Relieve lunar: cráteres suaves visibles solo de noche (var --v2-luna-relieve=0.35). */
+    .v2-lum-disco::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      opacity: var(--v2-luna-relieve, 0);
+      background:
+        radial-gradient(circle at 58% 38%, rgba(120,130,150,0.45) 0%, transparent 14%),
+        radial-gradient(circle at 42% 62%, rgba(110,120,145,0.40) 0%, transparent 10%),
+        radial-gradient(circle at 70% 70%, rgba(115,125,150,0.35) 0%, transparent 8%);
+    }
+
+    /* IU-12: iluminación ambiental. Radial gigante que baña la pantalla
+       desde la esquina de la luminaria. mix-blend-mode:screen suma luz
+       sobre el gradiente de fondo existente. */
+    .v2-ambient {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse 140% 100% at 95% -5%,
+        var(--v2-ambient-color) 0%,
+        transparent 55%);
+      mix-blend-mode: screen;
+      pointer-events: none;
+    }
+    #vista2[data-meteo-cat="despejado"] .v2-ambient,
+    #vista2[data-meteo-cat="nublado"]   .v2-ambient { display: block; }
+    .v2-ambient { display: none; }
+
+    /* IU-12: god-rays. 5 haces saliendo de la esquina superior-derecha
+       con mix-blend-mode:screen. Cada uno tiene su propia duración larga
+       (28-48s) y delay para que aparezcan desfasados. */
+    .v2-rays {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 100%;
+      height: 100%;
+      transform-origin: 100% 0%;
+      mix-blend-mode: screen;
+      pointer-events: none;
+      display: none;
+    }
+    #vista2[data-meteo-cat="despejado"] .v2-rays { display: block; }
+    .v2-ray {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 200%;
+      height: 38px;
+      background: linear-gradient(90deg, transparent 0%, var(--v2-rays-color) 55%, transparent 100%);
+      transform-origin: 100% 50%;
+      filter: blur(6px);
+      opacity: 0;
+      animation: v2-ray-pulso 36s ease-in-out infinite;
+    }
+    .v2-ray-1 { transform: rotate(200deg); animation-duration: 28s; animation-delay:  -2s; }
+    .v2-ray-2 { transform: rotate(215deg); animation-duration: 34s; animation-delay:  -9s; }
+    .v2-ray-3 { transform: rotate(230deg); animation-duration: 42s; animation-delay: -15s; }
+    .v2-ray-4 { transform: rotate(245deg); animation-duration: 38s; animation-delay: -22s; }
+    .v2-ray-5 { transform: rotate(260deg); animation-duration: 48s; animation-delay: -31s; }
+    @keyframes v2-ray-pulso {
+      0%, 100% { opacity: 0; }
+      45%      { opacity: 0.35; }
+      55%      { opacity: 0.4;  }
+    }
+
+    /* IU-12: estrellas para noche despejada. Visibles solo si --v2-star-alpha > 0. */
+    .v2-estrella {
+      position: absolute;
+      width: 2px;
+      height: 2px;
+      border-radius: 50%;
+      background: #e6edf8;
+      opacity: calc(var(--v2-star-alpha, 0) * 0.9);
+      box-shadow: 0 0 3px rgba(230,237,248,0.6);
+      animation: v2-estrella-twinkle 8s ease-in-out infinite;
+    }
+    @keyframes v2-estrella-twinkle {
+      0%, 100% { opacity: calc(var(--v2-star-alpha, 0) * 0.3); transform: scale(0.8); }
+      50%      { opacity: calc(var(--v2-star-alpha, 0) * 1.0); transform: scale(1.1); }
+    }
+
+    /* IU-12: cuando V2 no está visible en el viewport, detenemos TODAS las
+       animaciones para ahorrar batería. La clase la añade IntersectionObserver. */
+    #vista2.v2-inactiva * {
+      animation-play-state: paused !important;
+    }
+    #vista2 > *:not(.v2-animacion):not(.v2-luminaria):not(.v2-ambient):not(.v2-rays) { position: relative; z-index: 1; }
     .v2-anim { display: none; position: absolute; inset: 0; }
     #vista2[data-meteo-cat="despejado"] .v2-anim-despejado { display: block; }
     #vista2[data-meteo-cat="nublado"]   .v2-anim-nublado   { display: block; }
@@ -1065,22 +1227,26 @@
   </section><!-- /vista1 -->
 
   <section class="vista" id="vista2" data-meteo-cat="despejado">
-    <!-- IU-10: capa de animación por código WMO. -->
+    <!-- IU-10+IU-12: capa de animación por código WMO y momento del día. -->
+    <!-- IU-12: iluminación ambiental baja la luz cálida/fría sobre la V2. -->
+    <div class="v2-ambient" aria-hidden="true"></div>
+    <!-- IU-12: god-rays desde la esquina superior-derecha. -->
+    <div class="v2-rays" aria-hidden="true">
+      <div class="v2-ray v2-ray-1"></div>
+      <div class="v2-ray v2-ray-2"></div>
+      <div class="v2-ray v2-ray-3"></div>
+      <div class="v2-ray v2-ray-4"></div>
+      <div class="v2-ray v2-ray-5"></div>
+    </div>
+    <!-- IU-12: luminaria celeste (sol o luna según data-momento). -->
+    <div class="v2-luminaria" aria-hidden="true">
+      <div class="v2-lum-halo"></div>
+      <div class="v2-lum-disco"></div>
+    </div>
+    <!-- IU-12: contenedor de estrellas (visibles de noche despejada). -->
     <div class="v2-animacion" aria-hidden="true">
-      <div class="v2-anim v2-anim-despejado">
-        <svg class="v2-sol" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="50" cy="50" r="14" fill="currentColor"/>
-          <g stroke-linecap="round">
-            <line x1="50" y1="18" x2="50" y2="8"/>
-            <line x1="50" y1="92" x2="50" y2="82"/>
-            <line x1="18" y1="50" x2="8" y2="50"/>
-            <line x1="92" y1="50" x2="82" y2="50"/>
-            <line x1="26" y1="26" x2="19" y2="19"/>
-            <line x1="81" y1="81" x2="74" y2="74"/>
-            <line x1="26" y1="74" x2="19" y2="81"/>
-            <line x1="74" y1="26" x2="81" y2="19"/>
-          </g>
-        </svg>
+      <div class="v2-anim v2-anim-despejado" id="v2Estrellas">
+        <!-- SVG de rayos del sol eliminado: sustituido por god-rays realistas. -->
       </div>
       <div class="v2-anim v2-anim-nublado">
         <svg class="v2-nube v2-nube-1" viewBox="0 0 180 60" fill="currentColor">
@@ -1346,6 +1512,22 @@
     const $v2MeteoPrevision = document.getElementById('v2MeteoPrevision');
     const $v2Velocidad      = document.getElementById('v2Velocidad');
 
+    // IU-12: estado del cielo (noche | amanecer | dia | atardecer).
+    // amanecer y atardecer: ventanas de 45 min antes y 15 min después del
+    // evento solar, para cubrir la hora azul + primer/último sol bajo.
+    function calcularMomentoDia(sunriseISO, sunsetISO, nowMs) {
+      if (!sunriseISO || !sunsetISO) return 'dia';
+      const sunrise = new Date(sunriseISO).getTime();
+      const sunset  = new Date(sunsetISO).getTime();
+      if (isNaN(sunrise) || isNaN(sunset)) return 'dia';
+      const m45 = 45 * 60 * 1000;
+      const m15 = 15 * 60 * 1000;
+      if (nowMs >= sunrise - m45 && nowMs <= sunrise + m15) return 'amanecer';
+      if (nowMs >= sunset  - m45 && nowMs <= sunset  + m15) return 'atardecer';
+      if (nowMs >  sunrise + m15 && nowMs <  sunset  - m45) return 'dia';
+      return 'noche';
+    }
+
     // IU-10: generar las gotas de lluvia una sola vez con delays/posiciones
     // aleatorios. El selector CSS [data-meteo-cat="lluvia"] las hace visibles.
     (function sembrarGotasLluvia() {
@@ -1362,6 +1544,40 @@
         frag.appendChild(g);
       }
       cont.appendChild(frag);
+    })();
+
+    // IU-12: estrellas para noche despejada. Generadas una vez con posición
+    // aleatoria y delay de twinkle desfasado. La visibilidad se controla
+    // por la variable CSS --v2-star-alpha en el selector [data-momento="noche"].
+    (function sembrarEstrellas() {
+      const cont = document.getElementById('v2Estrellas');
+      if (!cont) return;
+      const n = 35;
+      const frag = document.createDocumentFragment();
+      for (let i = 0; i < n; i++) {
+        const e = document.createElement('div');
+        e.className = 'v2-estrella';
+        e.style.left = (Math.random() * 100).toFixed(1) + '%';
+        // Sembrar en 2/3 superiores del cielo, no sobre el contenido central
+        e.style.top  = (Math.random() * 65).toFixed(1) + '%';
+        e.style.animationDelay    = (-Math.random() * 8).toFixed(2) + 's';
+        e.style.animationDuration = (5 + Math.random() * 6).toFixed(2) + 's';
+        frag.appendChild(e);
+      }
+      cont.appendChild(frag);
+    })();
+
+    // IU-12: pausa las animaciones de V2 cuando no está visible en el
+    // viewport para ahorrar batería. Basado en scroll horizontal de #visor.
+    (function pausarV2FueraDeVista() {
+      const v2 = document.getElementById('vista2');
+      if (!v2 || typeof IntersectionObserver !== 'function') return;
+      const obs = new IntersectionObserver((entries) => {
+        entries.forEach(ent => {
+          v2.classList.toggle('v2-inactiva', ent.intersectionRatio < 0.5);
+        });
+      }, { threshold: [0, 0.5, 1] });
+      obs.observe(v2);
     })();
 
     // IU-11: copos de nieve con caída más lenta que las gotas y oscilación
@@ -1662,6 +1878,10 @@
           `${MeteoCodigos.iconoSVG(resumen.icono)} ${escapar(resumen.texto)}`;
         // Gradiente de fondo según categoría
         $vista2.setAttribute('data-meteo-cat', meteo.categoria || 'despejado');
+        // IU-12: momento del día (noche/amanecer/dia/atardecer) derivado de
+        // sunrise/sunset de Open-Meteo. Modula colores de luminaria,
+        // god-rays e iluminación ambiental.
+        $vista2.setAttribute('data-momento', calcularMomentoDia(meteo.sunrise, meteo.sunset, Date.now()));
 
         const nHoras = meteo.previsionHoraria ? meteo.previsionHoraria.length : 0;
         const etiqueta = meteo.deCache ? ' [cache]' : '';

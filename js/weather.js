@@ -72,6 +72,7 @@
       '&longitude=' + encodeURIComponent(lon.toFixed(5)) +
       '&current=' + CAMPOS_CURRENT +
       '&hourly=' + CAMPOS_HOURLY +
+      '&daily=sunrise,sunset' +
       '&forecast_hours=' + HORAS_PREVISION +
       '&timezone=auto';
   }
@@ -182,6 +183,16 @@
       ? MeteoCodigos.traducir(c.weather_code, esDia)
       : { texto: '—', categoria: 'desconocido', icono: '❓' };
 
+    // IU-12: sunrise/sunset del día actual para calcular momento del día.
+    // daily es un array — cogemos el índice 0 (hoy).
+    var sunrise = null, sunset = null;
+    if (json.daily && Array.isArray(json.daily.sunrise) && json.daily.sunrise[0]) {
+      sunrise = json.daily.sunrise[0];
+    }
+    if (json.daily && Array.isArray(json.daily.sunset) && json.daily.sunset[0]) {
+      sunset = json.daily.sunset[0];
+    }
+
     return {
       temperatura: c.temperature_2m,
       temperaturaUnidad: u.temperature_2m || '°C',
@@ -195,6 +206,8 @@
       vientoUnidad: u.wind_speed_10m || 'km/h',
       vientoDireccion: c.wind_direction_10m,
       hora: c.time,
+      sunrise: sunrise,
+      sunset: sunset,
       zonaHoraria: json.timezone,
       previsionHoraria: transformarHourly(json.hourly, uHourly, esDia),
       // Campos traducidos del current

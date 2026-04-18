@@ -7,9 +7,9 @@
     "nota_pie": "Actualizar al final de cada sesión de trabajo"
   },
   "estado_actual": {
-    "fase_actual": "Fase 3 completa. Resiliencia API completa. IU-11 cerrada en sesión 28 completando el sistema de animaciones meteo de V2 (6 categorías cubiertas).",
+    "fase_actual": "Fase 3 completa. IU-12 cerrada en sesión 29: base del sistema full-inmersión de V2 con momento del día (noche/amanecer/día/atardecer) y luminaria realista (sol/luna).",
     "ultima_actualizacion": "18 de abril de 2026",
-    "siguiente_hito": "Verificación humana de las tarjetas cyan pendientes (10 de sesión 27 + IU-11 de sesión 28). Con verificación queda preparado PEC-04/PEC-05.",
+    "siguiente_hito": "Verificación humana de IU-12. Tarjetas siguientes: IU-13 (motor Canvas lluvia), IU-14 (tormenta elaborada), IU-15 (nieve Canvas + niebla volumétrica).",
     "bloqueos": "Ninguno."
   },
   "fases": [
@@ -2347,6 +2347,36 @@
         [
           "Pendientes",
           "Verificación humana (Laureano) de IU-11 junto a las otras cyan. Con IU-10 + IU-11 verdes, el sistema de animaciones meteo queda cerrado para las 6 categorías."
+        ]
+      ]
+    },
+    {
+      "n": 29,
+      "titulo": "IU-12 — luminaria celeste con momento del día (sol/luna + crepúsculos)",
+      "campos": [
+        [
+          "Fecha",
+          "18 de abril de 2026"
+        ],
+        [
+          "Fase trabajada",
+          "UI/Experiencia: base del sistema full-inmersión de animaciones meteo en V2."
+        ],
+        [
+          "Contexto de arranque",
+          "Laureano pidió subir la calidad de las animaciones meteo a un nivel cinematográfico (sol parcialmente visible que ilumina la pantalla, gotas que golpean, intensidades variables). Tras discusión aclaró full-inmersión solo en V2 y que el día/noche debe reflejarse en los visuales (luna de noche, crepúsculos cálidos). Se abrieron 4 tarjetas encadenadas: IU-12 (base luminaria + momento), IU-13 (motor Canvas lluvia), IU-14 (tormenta elaborada), IU-15 (nieve + niebla). Esta sesión acomete IU-12."
+        ],
+        [
+          "Lo que se ha hecho",
+          "IU-12 establece la infraestructura del sistema de animaciones meteo full-inmersión en V2, empezando por el cielo base con sol/luna y momento del día. (A) WeatherModule: añadido &daily=sunrise,sunset a la URL de Open-Meteo. Normalización extrae sunrise[0] y sunset[0] y los expone como campos del objeto meteo. (B) index.html: nueva función calcularMomentoDia(sunriseISO, sunsetISO, nowMs) devuelve uno de 4 estados: noche | amanecer | dia | atardecer. Ventanas de 45min antes y 15min después de cada evento solar para cubrir la hora azul y el primer/último sol bajo. (C) data-momento se aplica al #vista2 en paralelo a data-meteo-cat al recibir el meteo. Paleta por momento definida con CSS custom properties (--v2-disco-centro, --v2-disco-borde, --v2-halo-color, --v2-rays-color, --v2-ambient-color, --v2-star-alpha, --v2-luna-relieve). (D) Luminaria celeste .v2-luminaria: contenedor 360x360 posicionado top:-210px/right:-180px para que 50% asome en la esquina superior-derecha. Solo visible en despejado. Estructura: .v2-lum-halo (radial-gradient blurred 18px) + .v2-lum-disco (radial-gradient centro→borde). El disco tiene pseudo-elemento ::before con cráteres sutiles controlados por --v2-luna-relieve (0 de día, 0.35 de noche). (E) Iluminación ambiental .v2-ambient: radial-gradient gigante (ellipse 140%x100% at 95% -5%) con mix-blend-mode:screen que baña la esquina superior-derecha. Color por momento (cálido día, rosa atardecer, frío noche). (F) God-rays .v2-rays: 5 franjas (.v2-ray-1..5) con linear-gradient y mix-blend-mode:screen, rotadas 200°-260° (saliendo radialmente desde la esquina del sol). Duración individual 28-48s, delay negativo desfasado para que nunca coincidan. Opacidad máxima 0.4 (regla full-inmersión). (G) Estrellas .v2-estrella: 35 divs sembrados desde JS con posición/delay aleatorios. Visibilidad controlada por --v2-star-alpha (0 normalmente, 0.7 en noche). Twinkle de 5-11s por estrella. (H) IntersectionObserver: cuando V2 no está visible (intersectionRatio < 0.5), se añade clase .v2-inactiva que aplica animation-play-state:paused a todos los hijos. Ahorra batería cuando el usuario está en V1 o V3. Verificación visual de los 4 momentos forzando data-momento con monkey-patch de setAttribute: día (sol amarillo cálido, halo dorado), atardecer (sol rojo, halo rosa-violeta), noche (luna gris-azul, estrellas, halo frío), amanecer (sol naranja cálido, halo rosa). Los god-rays verificados con opacity forzada. Bug encontrado y corregido durante la implementación: la regla #vista2 > *:not(.v2-animacion) de IU-10 sobrescribía el position:absolute de la luminaria. Ampliada a :not(.v2-animacion):not(.v2-luminaria):not(.v2-ambient):not(.v2-rays)."
+        ],
+        [
+          "Decisiones tomadas",
+          "1. Ventanas de amanecer/atardecer asimétricas (45min antes, 15min después) para cubrir la hora azul previa al evento solar cuando el cielo ya está interesante y acotar el período cuando ya ha ocurrido. 2. Todas las variantes de color por momento se expresan como CSS custom properties en selectores #vista2[data-momento=\"X\"]. Permite que las 4 futuras IU-13/14/15 hereden la misma paleta sin duplicar. 3. Luna implementada como misma luminaria con paleta distinta + crateres opcionales (opacity 0 de día, 0.35 de noche). Evita mantener dos SVG separados. 4. God-rays con mix-blend-mode:screen en lugar de opacity sobre fondo oscuro: la mezcla SCREEN suma luz al pixel existente, dando un efecto más \"luz real\" que un overlay. 5. Estrellas como divs posicionados (no SVG): 35 elementos son baratos y el twinkle con keyframes en opacity+scale no fuerza reflow. 6. IntersectionObserver a threshold 0.5: pausar solo cuando V2 está claramente fuera de cuadro evita parpadeo durante el swipe."
+        ],
+        [
+          "Pendientes",
+          "Verificación humana de IU-12 en condiciones reales (todos los momentos del día, prueba en distintas horas). Siguiente en cola: IU-13 (motor Canvas 2D de lluvia con viento e impacto). IU-14 e IU-15 dependen de IU-13."
         ]
       ]
     }
