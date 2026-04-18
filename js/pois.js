@@ -25,7 +25,7 @@
 //             Caché por POI (nombre+coords), sin expiración.
 //   Paso 4 — Datos del municipio: Wikidata SPARQL por proximidad (radio 10 km).
 //             Capa 1: wd:Q2074737 (municipio de España), Jaccard ≥ 0.3.
-//             Capa 2 (pedanías): wd:Q56061 (entidad singular de población),
+//             Capa 2 (pedanías): wd:Q3055118 (entidad singular de población),
 //             solo si capa 1 falla, Jaccard ≥ 0.5. Campos: población (P1082),
 //             altitud (P2044), superficie (P2046). Caché por nombre, sin expiración.
 //
@@ -63,10 +63,14 @@
     const TIMEOUT_GLOBAL_ACTUALIZAR_MS = 90000;
     const JACCARD_MIN_POI         = 0.5;
     const JACCARD_MIN_MUNICIPIO   = 0.3;
-    const JACCARD_MIN_PEDANIA     = 0.5;   // más estricto para Q56061 (entidades singulares)
+    const JACCARD_MIN_PEDANIA     = 0.5;   // más estricto para Q3055118 (entidades singulares)
 
     const WIKIDATA_ENDPOINT = 'https://query.wikidata.org/sparql';
     const WIKIPEDIA_ENDPOINT = 'https://es.wikipedia.org/api/rest_v1/page/summary';
+    // PO-12: Photon como último recurso cuando Overpass y Wikipedia vienen vacíos.
+    const PHOTON_ENDPOINT = 'https://photon.komoot.io/api';
+    const TIMEOUT_PHOTON_MS = 8000;
+    const PHOTON_RADIO_M = 3000;
 
     // Orden de prioridad (castle > cathedral > ... > peak)
     const PRIORIDAD = [
@@ -83,12 +87,16 @@
       viewpoint: '👁️', attraction: '⭐', peak: '⛰️',
     };
 
-    // Stopwords de dominio (decisión 13)
+    // Stopwords de dominio (decisión 13 + PO-10). PO-10 amplía con sinónimos
+    // comunes de patrimonio civil para que "Palacio de X" y "Casa-Museo de X"
+    // comparen solo por los nombres propios restantes.
     const STOPWORDS = new Set([
       'de','del','la','el','los','las','y','a','en',
       'san','santa','santo','nuestra','señora','virgen',
       'iglesia','ermita','castillo','torre','convento',
       'monasterio','catedral','capilla',
+      'palacio','palacete','casa','museo','casona','mansion','solar',
+      'puerta','arco','puente','fuente','plaza',
     ]);
 
     // --- Caché en memoria (sesión) ---
@@ -195,19 +203,41 @@
 
     // --- Utilidades ---
 
-    function jaccardSim(a, b) {
-      const palabras = s => new Set(
+    function tokenizar(s) {
+      return new Set(
         s.toLowerCase()
           .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
           .split(/\W+/)
           .filter(w => w.length > 1 && !STOPWORDS.has(w))
       );
-      const wa = palabras(a);
-      const wb = palabras(b);
+    }
+
+    function jaccardSim(a, b) {
+      const wa = tokenizar(a);
+      const wb = tokenizar(b);
       let interseccion = 0;
       for (const w of wa) if (wb.has(w)) interseccion++;
       const union = wa.size + wb.size - interseccion;
       return union === 0 ? 0 : interseccion / union;
+    }
+
+    // PO-10: match en dos pasadas. Primera pasada Jaccard estricto. Si no
+    // llega al umbral, segunda pasada por "containment": todos los tokens
+    // del nombre más corto están en el más largo Y al menos uno tiene ≥ 5
+    // letras (nombre propio probable). Evita falsos positivos con nombres
+    // monosilábicos tipo "Sol" o "Ría". Devuelve el umbral si pasa por
+    // containment, o la similitud Jaccard en el resto de casos.
+    function matchLabels(a, b, umbral) {
+      const jac = jaccardSim(a, b);
+      if (jac >= umbral) return jac;
+      const wa = tokenizar(a), wb = tokenizar(b);
+      const [pequeno, grande] = wa.size <= wb.size ? [wa, wb] : [wb, wa];
+      if (pequeno.size === 0) return jac;
+      let tieneNombrePropio = false;
+      for (const w of pequeno) if (w.length >= 5) { tieneNombrePropio = true; break; }
+      if (!tieneNombrePropio) return jac;
+      for (const w of pequeno) if (!grande.has(w)) return jac;
+      return umbral;
     }
 
     function iconoPorTipo(tipo) {
@@ -350,21 +380,69 @@
       );
     }
 
-    function parsearPOIs(datos) {
+    // PO-09: centroLat/centroLon son las coordenadas del pueblo (centro
+    // administrativo). Añadimos distM a cada POI y usamos (prioridad, distM)
+    // como orden de sort: empates de prioridad se resuelven por cercanía al
+    // centro para empujar POIs de pedanías lejanas al final en municipios
+    // grandes (caso Medinaceli).
+    function parsearPOIs(datos, centroLat, centroLon) {
       return (datos.elements || [])
         .filter(el => el.tags && el.tags.name)
         .map(el => {
           const tipo = el.tags.historic || el.tags.tourism || el.tags.natural || 'attraction';
           const lat = el.lat != null ? el.lat : (el.center ? el.center.lat : null);
           const lon = el.lon != null ? el.lon : (el.center ? el.center.lon : null);
-          return { nombre: el.tags.name, tipo, lat, lon };
+          const distM = (lat != null && lon != null && centroLat != null && centroLon != null)
+            ? Overpass.distanciaMetros(centroLat, centroLon, lat, lon)
+            : null;
+          return { nombre: el.tags.name, tipo, lat, lon, distM };
         })
         .filter(p => p.lat != null && p.lon != null)
         .sort((a, b) => {
           const ia = PRIORIDAD.indexOf(a.tipo);
           const ib = PRIORIDAD.indexOf(b.tipo);
-          return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+          const pa = ia === -1 ? 99 : ia;
+          const pb = ib === -1 ? 99 : ib;
+          if (pa !== pb) return pa - pb;
+          return (a.distM ?? Infinity) - (b.distM ?? Infinity);
         });
+    }
+
+    // PO-12: fallback Photon. Una sola query con el nombre del pueblo como
+    // texto y bias geográfico lat/lon, filtrada por osm_tag a tipos de
+    // patrimonio e interés turístico. Se activa solo cuando Overpass y
+    // Wikipedia vienen vacíos. Útil cuando Overpass está saturada y los
+    // mirrors devuelven lista vacía sin excepción.
+    async function obtenerPOIsPhoton(nombre, lat, lon) {
+      // Photon acepta osm_tag pero se comporta errático con >5 valores
+      // específicos (devuelve basura global). Usamos 5 tags clave que cubren
+      // los tipos más frecuentes de patrimonio español.
+      const tags = ['historic:castle','historic:church','historic:monastery',
+                    'historic:chapel','historic:fort'];
+      const filtros = tags.map(t => `osm_tag=${t}`).join('&');
+      const url = `${PHOTON_ENDPOINT}?q=${encodeURIComponent(nombre)}&lat=${lat}&lon=${lon}&limit=10&${filtros}`;
+      const datos = await fetchConTimeout(url, {}, TIMEOUT_PHOTON_MS);
+      const feats = (datos.features || [])
+        .filter(f => f.geometry && f.geometry.coordinates && f.properties && f.properties.name)
+        .filter(f => f.properties.name.toLowerCase() !== nombre.toLowerCase())
+        .map(f => {
+          const [plon, plat] = f.geometry.coordinates;
+          return {
+            nombre: f.properties.name,
+            tipo: f.properties.osm_value,
+            lat: plat,
+            lon: plon,
+            distM: Overpass.distanciaMetros(lat, lon, plat, plon),
+          };
+        })
+        .filter(p => p.distM <= PHOTON_RADIO_M)
+        .sort((a, b) => a.distM - b.distM)
+        .slice(0, MAX_POIS_POR_PUEBLO);
+      if (typeof debug !== 'undefined') {
+        const top = feats.map(p => `${p.tipo}:${p.nombre}`).join(', ');
+        debug.log(`POI [${nombre}] [Photon]: ${feats.length} POIs${feats.length ? ' · ' + top : ''}`);
+      }
+      return feats;
     }
 
     // Fallback Wikipedia geosearch para POIs de un pueblo. Radio 2 km,
@@ -406,19 +484,40 @@
         return idbDatos;
       }
 
-      let pois;
+      let pois = [];
       try {
         const { datos, dt } = await Overpass.query(construirQueryPOIs(lat, lon), `POI-${nombre}`);
-        pois = parsearPOIs(datos);
+        pois = parsearPOIs(datos, lat, lon);
         if (typeof debug !== 'undefined') {
           const top = pois.slice(0, 3).map(p => `${p.tipo}:${p.nombre}`).join(', ');
           debug.log(`POI [${nombre}]: ${pois.length} POIs reales en ${dt}ms${pois.length ? ' · ' + top : ' (ninguno en OSM)'}`);
         }
       } catch (e) {
         if (typeof debug !== 'undefined') {
-          debug.warn(`POI [${nombre}]: Overpass falló (${e.message}), probando Wikipedia`);
+          debug.warn(`POI [${nombre}]: Overpass falló (${e.message})`);
         }
-        pois = await obtenerPOIsWikipedia(nombre, lat, lon);
+      }
+
+      // PO-12: cascada de fallbacks. Si Overpass viene vacío o falló, probar
+      // Wikipedia geosearch. Si también viene vacía, probar Photon (una
+      // sola query con osm_tag múltiples y bias geo).
+      if (pois.length === 0) {
+        try {
+          pois = await obtenerPOIsWikipedia(nombre, lat, lon);
+        } catch (e) {
+          if (typeof debug !== 'undefined') {
+            debug.warn(`POI [${nombre}]: Wikipedia falló (${e.message})`);
+          }
+        }
+      }
+      if (pois.length === 0) {
+        try {
+          pois = await obtenerPOIsPhoton(nombre, lat, lon);
+        } catch (e) {
+          if (typeof debug !== 'undefined') {
+            debug.warn(`POI [${nombre}]: Photon falló (${e.message})`);
+          }
+        }
       }
 
       cachePOIs.set(nombre, pois);
@@ -459,7 +558,7 @@
       let mejorSim = -1, mejorB = null;
       for (const b of bindings) {
         const label = b.itemLabel ? b.itemLabel.value : '';
-        const sim = jaccardSim(poi.nombre, label);
+        const sim = matchLabels(poi.nombre, label, JACCARD_MIN_POI);
         if (sim > mejorSim) { mejorSim = sim; mejorB = b; }
       }
       if (!mejorB || mejorSim < JACCARD_MIN_POI) return null;
@@ -562,7 +661,7 @@
     // --- Paso 4: Datos del municipio (Wikidata, dos capas) ---
 
     // Helper compartido por las dos capas de búsqueda.
-    // filtroQ: 'Q2074737' (municipio oficial) o 'Q56061' (entidad singular).
+    // filtroQ: 'Q2074737' (municipio oficial) o 'Q3055118' (entidad singular).
     // umbral:  Jaccard mínimo para aceptar el match.
     // Devuelve {nombre, poblacion, altitud, superficie} o null.
     async function _buscarEnWikidata(nombre, lat, lon, filtroQ, umbral) {
@@ -577,7 +676,7 @@
         `  OPTIONAL { ?item wdt:P1082 ?poblacion. }` +
         `  OPTIONAL { ?item wdt:P2044 ?altitud. }` +
         `  OPTIONAL { ?item wdt:P2046 ?superficie. }` +
-        `  OPTIONAL { ?item wdt:P131 ?comarca. }` +
+        `  OPTIONAL { ?item wdt:P131 ?comarca. ?comarca wdt:P31 wd:Q56061. }` +
         `  SERVICE wikibase:label { bd:serviceParam wikibase:language "es,en". }` +
         `} LIMIT 5`
       );
@@ -590,7 +689,7 @@
       let mejorSim = -1, mejorB = null;
       for (const b of bindings) {
         const label = b.itemLabel ? b.itemLabel.value : '';
-        const sim = jaccardSim(nombre, label);
+        const sim = matchLabels(nombre, label, umbral);
         if (sim > mejorSim) { mejorSim = sim; mejorB = b; }
       }
 
@@ -649,13 +748,13 @@
         falloRed = true;
       }
 
-      // Capa 2 (pedanías): entidad singular de población de España (Q56061)
+      // Capa 2 (pedanías): entidad singular de población de España (Q3055118)
       if (!resultado) {
         try {
-          resultado = await _buscarEnWikidata(nombre, lat, lon, 'Q56061', JACCARD_MIN_PEDANIA);
+          resultado = await _buscarEnWikidata(nombre, lat, lon, 'Q3055118', JACCARD_MIN_PEDANIA);
         } catch (e) {
           if (typeof debug !== 'undefined') {
-            debug.log(`POI municipio [${nombre}] (Q56061): fallo (${e.message})`);
+            debug.log(`POI municipio [${nombre}] (Q3055118): fallo (${e.message})`);
           }
           falloRed = true;
         }
@@ -811,8 +910,10 @@
       reset,
       // Expuestos para tests
       _jaccardSim: jaccardSim,
+      _matchLabels: matchLabels,
       _parsearPOIs: parsearPOIs,
       _iconoPorTipo: iconoPorTipo,
+      _obtenerPOIsPhoton: obtenerPOIsPhoton,
     };
 
   })();

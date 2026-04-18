@@ -6,17 +6,8 @@
 			"x": 1320,
 			"y": 0,
 			"width": 380,
-			"height": 2380,
+			"height": 2560,
 			"label": "Bugs prueba carretera"
-		},
-		{
-			"id": "group-uiexpe",
-			"type": "group",
-			"x": 1760,
-			"y": 0,
-			"width": 380,
-			"height": 1660,
-			"label": "UI / Experiencia"
 		},
 		{
 			"id": "group-poimod",
@@ -24,17 +15,17 @@
 			"x": 880,
 			"y": 0,
 			"width": 380,
-			"height": 1480,
+			"height": 2200,
 			"label": "POIModule"
 		},
 		{
-			"id": "group-motorw",
+			"id": "group-uiexpe",
 			"type": "group",
-			"x": 440,
+			"x": 1760,
 			"y": 0,
 			"width": 380,
-			"height": 1120,
-			"label": "MotorwayExitModule"
+			"height": 2020,
+			"label": "UI / Experiencia"
 		},
 		{
 			"id": "group-funcio",
@@ -42,8 +33,17 @@
 			"x": 2640,
 			"y": 0,
 			"width": 380,
-			"height": 1120,
+			"height": 1660,
 			"label": "Funciones nuevas"
+		},
+		{
+			"id": "group-motorw",
+			"type": "group",
+			"x": 440,
+			"y": 0,
+			"width": 380,
+			"height": 1300,
+			"label": "MotorwayExitModule"
 		},
 		{
 			"id": "group-prueba",
@@ -64,41 +64,121 @@
 			"label": "Resiliencia API"
 		},
 		{
-			"id": "be8ef879",
+			"id": "legend",
 			"type": "text",
-			"text": "## PO-01 Revisar decisión 13 y definir qué falta para arrancar POIModule\nLa arquitectura base de POIModule está consolidada en la decisión 13 del seguimiento (sesiones 06-07): Overpass como inventario en radio 1500 m, priorización por tipo (castle > cathedral > ... > viewpoint), enriquecimiento Wikipedia REST + fallback Wikidata SPARQL por proximidad, umbral Jaccard >= 0.5, stopwords del dominio, timeout 10 s con reintento, fallback a icono. Esta tarjeta consiste en releer esa decisión, contrastarla con el estado actual del código, e identificar qué parámetros necesitan ajuste, qué casos no cubre, o qué ha cambiado desde sesión 07. Output: lista de decisiones pendientes antes de escribir código.",
-			"x": 900,
-			"y": 40,
+			"text": "## Legend\n🔴 **Red** = To Do (ready)\n⬜ **Gray** = Blocked\n🟠 **Orange** = Doing\n🔵 **Cyan** = Ready to review\n🟢 **Green** = Done\n🟣 **Purple** = Proposed by agent",
+			"x": -540,
+			"y": -310,
+			"width": 380,
+			"height": 230,
+			"color": "0"
+		},
+		{
+			"id": "canvas-warnings",
+			"type": "text",
+			"text": "## Warnings\n✓ None",
+			"x": -540,
+			"y": -530,
+			"width": 380,
+			"height": 200,
+			"color": "3"
+		},
+		{
+			"id": "canvas-errors",
+			"type": "text",
+			"text": "## Errors\n✓ None",
+			"x": -540,
+			"y": -750,
+			"width": 380,
+			"height": 200,
+			"color": "1"
+		},
+		{
+			"id": "570f2e87",
+			"type": "text",
+			"text": "## IU-07 Velocidad visible + datos GPS solo en debug\nCrear elemento dedicado de velocidad visible en Vista 1 (20px bold) y Vista 2 (18px esquina inferior). Latitud/longitud/precision/rumbo pasan a un bloque que solo se muestra cuando debug esta activo (?debug=1). Eliminar los bloques .coordenadas y .detalles del flujo principal. Ajustar js/debug.js si hiciera falta para exponer el estado o anadir el bloque dentro del panel debug. Verificacion: sin coords visibles sin ?debug=1; velocidad prominente en V1 y esquina en V2; con ?debug=1 se ven todos los datos tecnicos.",
+			"x": 1780,
+			"y": 1120,
 			"width": 280,
 			"height": 160,
 			"color": "4"
 		},
 		{
-			"id": "78221e08",
+			"id": "56d5b60a",
 			"type": "text",
-			"text": "## PO-02 Implementar POIModule (base)\nMódulo js/pois.js: pueblos cercanos en un radio dado + POI principal por pueblo desde Overpass y Wikidata. Fallback si un pueblo no tiene POIs. Caché con TTL largo (horas).",
-			"x": 900,
-			"y": 220,
+			"text": "## IU-08 Pulido visual y prueba con simulador\nAfinar margenes, paddings y tamanos de fuente en las tres vistas. Probar con las tres rutas del simulador (a6-salidas, m505, cruce-a6-m505) a 640x360 en DevTools. Verificar que el debug panel sigue funcionando como overlay sin romper el scroll-snap (ajustar CSS del padding del body). Verificar que body tiene overflow:hidden y ninguna vista hace scroll vertical. Prueba final antes de dar la Fase 3 por cerrada. Verificacion: 3 vistas correctas a 640x360; swipe fluido; sin scroll vertical; debug funciona con ?debug=1; 3 rutas del simulador pintan correctamente en las tres vistas.",
+			"x": 1780,
+			"y": 1300,
 			"width": 280,
 			"height": 160,
 			"color": "4"
 		},
 		{
-			"id": "4a42b347",
+			"id": "90cf5ebf",
 			"type": "text",
-			"text": "## PO-03 Vista Qué ver por la zona\nRejilla de pueblos con nombre, POI principal y foto (miniatura Wikipedia) en la vista 3 del panel. Deslizable horizontalmente como el resto de vistas.",
-			"x": 900,
-			"y": 400,
+			"text": "## IU-05 Vista 3 POIs grid a pantalla completa\nDisenar Vista 3 dedicada a POIs: cabecera compacta de 30px con pastilla carretera + municipio + provincia en una linea; debajo grid de tarjetas de pueblo con CSS grid repeat(auto-fill, minmax(140px, 1fr)) gap 8px. Cada tarjeta muestra nombre, distancia y hasta 2 POIs con icono y nombre. Reemplaza el scroll horizontal actual (que entra en conflicto con scroll-snap del visor). Funciones render escriben tambien a V3. Verificacion: tarjetas grid vivas; cabecera con carretera + ubicacion; actualiza con simulador.",
+			"x": 1780,
+			"y": 760,
 			"width": 280,
 			"height": 160,
 			"color": "4"
 		},
 		{
-			"id": "360b9f70",
+			"id": "f2e20e5d",
 			"type": "text",
-			"text": "## PO-04 Soporte de pedanías en POIModule\nLas pedanías (ejemplo: Castrillo de los Polvazares aparece como parte de Astorga en SPARQL, no como municipio independiente) no salen en la búsqueda estándar de municipios. Añadir una segunda capa de búsqueda que incluya entidades singulares de población. Identificado en sesión 05 como idea parqueada para Fase 2.",
-			"x": 900,
-			"y": 580,
+			"text": "## BPC-05 BPC-05 Timeout global de POIModule cuando los mirrors están caídos\nSi todos los mirrors de Overpass están caídos o saturados, enActualizacion=true bloquea el módulo unos 3 min (3 mirrors × 8 s × 3 queries). Solución propuesta: timeout global de 90 s en actualizar(); pasado ese tiempo, devolver resultados parciales y liberar el flag.",
+			"x": 1340,
+			"y": 760,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "9f5aa28c",
+			"type": "text",
+			"text": "## BPC-06 BPC-06 Mostrar pueblos cercanos aunque no tengan POIs\nLa sección POI se oculta completamente cuando ningún pueblo tiene POIs enriquecidos. Problema: pintarPOIs filtra pueblos con pois.length > 0, dejando la pantalla vacía aunque se sepan los pueblos cercanos. Fix: mostrar siempre la tarjeta con nombre y distancia; los POIs son enriquecimiento opcional sobre esa base. Así el conductor siempre sabe qué hay cerca aunque Overpass falle.",
+			"x": 1340,
+			"y": 940,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "d714129e",
+			"type": "text",
+			"text": "## BPC-07 BPC-07 No cachear fallo de red en obtenerPOIsPueblo\nCuando todos los mirrors Overpass fallan, obtenerPOIsPueblo guarda pois:[] en caché, idéntico a un pueblo sin POIs reales. El módulo no reintenta aunque el próximo ciclo tenga conexión. Fix: no cachear si el error fue de red (todos_mirrors_fallaron); cachear solo si Overpass respondió correctamente con 0 elementos.",
+			"x": 1340,
+			"y": 1120,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "91a2eeb9",
+			"type": "text",
+			"text": "## IU-06 Iconos SVG meteo sustituir emojis\nCrear sprite SVG inline en index.html con 8 simbolos (sol, luna, nube, niebla, lluvia, nieve, tormenta, desconocido) inspirados en Meteocons MIT. Sprite total bajo 5 KB. Actualizar js/meteo_codigos.js: los campos dia/noche de la TABLA pasan de emoji a ID de simbolo SVG. Funciones render del meteo pasan de inyectar texto a inyectar <svg><use href='#meteo-sol'/></svg>. Verificacion: SVG renderiza en las tres vistas a los tamanos 22-40px; sprite <5 KB; sin emojis restantes en la seccion meteo.",
+			"x": 1780,
+			"y": 940,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "305e577d",
+			"type": "text",
+			"text": "## IU-09 Boton opcional de pantalla completa (Fullscreen API)\nIdea de Laureano tras la prueba PEC-01: anadir un boton discreto que ponga el panel a pantalla completa y elimine la barra de Chrome Mobile. Mitiga el bug del layout cortado (BPC-12) y aprovecha mas superficie util. La Fullscreen API estandar (document.documentElement.requestFullscreen) funciona en Chrome Android. Por definir: posicion del boton, criterio de aparicion (siempre visible vs aparece solo al tocar), y si se guarda preferencia en localStorage. Abierto a discusion.",
+			"x": 1780,
+			"y": 1480,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "8bff8c13",
+			"type": "text",
+			"text": "## BPC-08 BPC-08 No cachear fallo de red en obtenerDatosMunicipio\nMismo problema que BPC-07 pero en Wikidata: si la query falla por timeout o error de red, el módulo cachea null y no reintenta en ciclos siguientes. Fix: distinguir null-por-fallo-de-red (no cachear) de null-porque-Wikidata-no-tiene-datos (cachear). Así se reintenta al desplazarse fuera del radio de caché.",
+			"x": 1340,
+			"y": 1300,
 			"width": 280,
 			"height": 160,
 			"color": "4"
@@ -144,41 +224,211 @@
 			"color": "4"
 		},
 		{
-			"id": "bacdcff7",
+			"id": "f5a46384",
 			"type": "text",
-			"text": "## MO-01 Añadir ruta con salidas de autovía al simulador\nUsar el notebook obtener_rutas_osm.ipynb para extraer una ruta por la A-6 (o AP-6) que pase por al menos 3-4 salidas conocidas, y añadirla al catálogo de rutas.js. Objetivo: poder probar MotorwayExitModule desde casa sin conducir, igual que se hizo con las rutas a6 y m505.",
-			"x": 460,
-			"y": 40,
+			"text": "## BPC-09 Pastilla M-505 estable, ahora alterna con Carretera de El Escorial\nSintoma: circulando por la M-505 el panel alterna entre la pastilla granate 'M-505' y el texto largo 'Carretera de El Escorial'. Debe fijarse siempre la forma oficial 'M-505' cuando la via sea esa, independientemente de si Nominatim devuelve ref o solo name. Revisar el flujo: (1) por que a veces z17 no trae ref y cae al name, (2) si el fallback Overpass de roadref.js se activa en estos casos, (3) si el parser de carreteras.js descarta mal la M-505 cuando solo llega el name largo. Criterio de exito: en un trayecto real por la M-505 la pastilla permanece 'M-505' sin oscilaciones.",
+			"x": 1340,
+			"y": 1480,
 			"width": 280,
 			"height": 160,
 			"color": "4"
 		},
 		{
-			"id": "89ae8a6c",
+			"id": "a4c6caca",
 			"type": "text",
-			"text": "## MO-02 Implementar MotorwayExitModule\nNuevo módulo js/motorwayexit.js. Query Overpass node[motorway_junction](around:N) con el mismo patrón ya validado en roadref.js: query minimalista, cascada de mirrors, caché por proximidad, timeout por mirror, debug.log completo. Salida: número de salida + distancia estimada.",
-			"x": 460,
-			"y": 220,
+			"text": "## BPC-10 MotorwayExit no se activa porque el GPS del movil no reporta velocidad\nSintoma: 8+ minutos por la M-50 y MotorwayExit quedo en 'inactivo' sin un solo log mas. Hipotesis principal: coords.speed llega null en el movil viejo (comun en Android antiguos), y el modulo exige velocidad > 50 km/h sostenida para activarse. Pasos: (1) anadir log de debug que muestre el valor bruto de velocidadKmh recibido en cada tick, (2) si se confirma null o 0, implementar fallback que calcule km/h a partir de distancias entre fixes consecutivos (el panel ya detecta 'Movimiento detectado: 73m' cada 3s, lo que son ~87 km/h), (3) validar en simulador que la activacion por fallback funciona igual.",
+			"x": 1340,
+			"y": 1660,
 			"width": 280,
 			"height": 160,
 			"color": "4"
 		},
 		{
-			"id": "f6b85293",
+			"id": "bb9d7f72",
 			"type": "text",
-			"text": "## MO-03 Integrar próxima salida en el panel\nMostrar el resultado de MotorwayExitModule en vista 1 (el cartel verde de salida). Solo cuando estamos en autovía; silencioso en carreteras convencionales.",
-			"x": 460,
+			"text": "## BPC-11 Distancias de pueblos cercanos no cambian al moverse\nSintoma: de Las Rozas a Majadahonda por la M-50, la barra inferior de pueblos cercanos mostro distancias estaticas aunque el coche avanzaba. Observacion: pois.js tiene codigo que recalcula distancias desde la posicion actual (linea ~283) pero aparentemente el render no se repinta en cada tick, o solo se repinta al refrescar la cache de 'pueblos cercanos'. Pasos: (1) depurar el ciclo render, (2) decidir si hay que forzar repintado en cada tick de GPS o invalidar mas agresivamente la cache, (3) validar en simulador con una ruta que recorra varios kilometros sin cambiar de pueblo dominante.",
+			"x": 1340,
+			"y": 1840,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "360b9f70",
+			"type": "text",
+			"text": "## PO-04 Soporte de pedanías en POIModule\nLas pedanías (ejemplo: Castrillo de los Polvazares aparece como parte de Astorga en SPARQL, no como municipio independiente) no salen en la búsqueda estándar de municipios. Añadir una segunda capa de búsqueda que incluya entidades singulares de población. Identificado en sesión 05 como idea parqueada para Fase 2.",
+			"x": 900,
+			"y": 580,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "b72c2145",
+			"type": "text",
+			"text": "## IU-04 Vista 2 Ubicacion + Meteo con gradientes\nDisenar Vista 2 centrada y glanceable: municipio 28px, provincia/CCAA 14px, temperatura 36px con icono 40px, descripcion 16px, viento/humedad/prevision 13px, velocidad 18px en esquina inferior derecha. Fondo con 6 gradientes por categoria meteo (despejado, nuboso, niebla, lluvia, nieve, tormenta) via data-attribute seteado desde JS. Funciones render escriben tanto a V1 como a V2. Verificacion: datos vivos en V2; gradiente cambia con categoria meteo al saltar entre rutas del simulador.",
+			"x": 1780,
+			"y": 580,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "360e933c",
+			"type": "text",
+			"text": "## BPC-04 BPC-04 Indicador de carga en la sección POI\nLa sección POI permanece oculta entre 15 y 120 s mientras se cargan los datos. El usuario no recibe ningún feedback. Solución propuesta: mostrar 'Cargando...' desde el primer tick en que se sabe la posición, y reemplazar por el contenido real cuando llegue.",
+			"x": 1340,
+			"y": 580,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "4a42b347",
+			"type": "text",
+			"text": "## PO-03 Vista Qué ver por la zona\nRejilla de pueblos con nombre, POI principal y foto (miniatura Wikipedia) en la vista 3 del panel. Deslizable horizontalmente como el resto de vistas.",
+			"x": 900,
 			"y": 400,
 			"width": 280,
 			"height": 160,
 			"color": "4"
 		},
 		{
-			"id": "f5448431",
+			"id": "a0faf2b1",
 			"type": "text",
-			"text": "## MO-04 MO-04 Filtrar junctions por vía en la query Overpass\nLa query actual devuelve todos los motorway_junction en 50 km sin filtrar por carretera. Resultado: salidas de vías cruzadas (M-40, AP-6, etc.) aparecen como próximas salidas cuando el filtro de ángulo no las descarta. Fix: cambiar la query para obtener solo nodos junction de las ways con ref igual a roadRef (way[ref=X] → node(w)[motorway_junction]). Detectado en prueba simulador sesión 12.",
+			"text": "## RA-03 RE-03 Caché persistente de POIs en IndexedDB\nLos POIs de un pueblo no cambian en meses. Guardar el resultado (venga de Overpass o de Wikipedia) en IndexedDB con TTL de 7-30 días. En la siguiente visita al mismo pueblo, leer de caché local sin ninguna petición de red. Elimina la dependencia de Overpass/Wikipedia para pueblos ya visitados y ahorra datos móviles.",
+			"x": 2220,
+			"y": 400,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "7823d897",
+			"type": "text",
+			"text": "## IU-03 Layout compacto Vista 1 (grid 2 columnas)\nDisenar Vista 1 (Completa, por defecto) como CSS Grid de dos columnas ~60/40 que encaje todo en 640x360: carretera + salida autovia + ubicacion + datos municipio a la izquierda, meteo + velocidad a la derecha, y POIs en lista compacta (1 linea por pueblo) abajo. Sin scroll vertical. Mover coordenadas/precision/rumbo a bloque solo-debug. Verificacion: todo visible a 640x360; velocidad 20px bold visible; sin scroll vertical.",
+			"x": 1780,
+			"y": 400,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "84fa0fde",
+			"type": "text",
+			"text": "## BPC-03 BP-03 MotorwayExit: no vaciar caché en fallo transitorio de RoadRef\nCuando RoadRef falla por un tick y vuelve, MotorwayExit vacía caché y relanza Overpass innecesariamente. Contribuye a 429. No vaciar si el fallo es transitorio.",
+			"x": 1340,
+			"y": 400,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "78221e08",
+			"type": "text",
+			"text": "## PO-02 Implementar POIModule (base)\nMódulo js/pois.js: pueblos cercanos en un radio dado + POI principal por pueblo desde Overpass y Wikidata. Fallback si un pueblo no tiene POIs. Caché con TTL largo (horas).",
+			"x": 900,
+			"y": 220,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "5711fa1b",
+			"type": "text",
+			"text": "## RA-02 RE-02 Fallback Wikipedia geosearch para POIs por pueblo\nSi obtenerPOIsPueblo() falla en todos los mirrors de Overpass, intentar con Wikipedia geosearch centrado en las coordenadas del pueblo (radio 2 km). Los artículos de Wikipedia correlacionan bien con POIs notables (castillos, palacios, miradores). Ventaja extra: el pageid devuelto permite pedir el extracto de Wikipedia directamente, sin lookup adicional.",
+			"x": 2220,
+			"y": 220,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "5532fc2b",
+			"type": "text",
+			"text": "## IU-02 Estructura HTML tres vistas + scroll-snap\nReestructurar index.html: envolver contenido actual en un visor con tres section.vista (Completa, Ubicacion+Meteo, POIs). Añadir CSS scroll-snap-type: x mandatory para swipe nativo sin JS. Vista 1 contiene todo lo actual, Vista 2 y 3 vacías como placeholder. Verificacion: swipe fluido entre las tres vistas; Vista 1 sigue mostrando toda la informacion como antes; simulador funciona en las tres rutas.",
+			"x": 1780,
+			"y": 220,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "24da1a0b",
+			"type": "text",
+			"text": "## BPC-02 BP-02 Weather: guardia petición en vuelo\nSi el coche pasa el radio de 1000m mientras hay una petición en curso, se lanzan duplicadas. Añadir flag peticionEnCurso en weather.js.",
+			"x": 1340,
+			"y": 220,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "be8ef879",
+			"type": "text",
+			"text": "## PO-01 Revisar decisión 13 y definir qué falta para arrancar POIModule\nLa arquitectura base de POIModule está consolidada en la decisión 13 del seguimiento (sesiones 06-07): Overpass como inventario en radio 1500 m, priorización por tipo (castle > cathedral > ... > viewpoint), enriquecimiento Wikipedia REST + fallback Wikidata SPARQL por proximidad, umbral Jaccard >= 0.5, stopwords del dominio, timeout 10 s con reintento, fallback a icono. Esta tarjeta consiste en releer esa decisión, contrastarla con el estado actual del código, e identificar qué parámetros necesitan ajuste, qué casos no cubre, o qué ha cambiado desde sesión 07. Output: lista de decisiones pendientes antes de escribir código.",
+			"x": 900,
+			"y": 40,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "074bb897",
+			"type": "text",
+			"text": "## RA-01 RE-01 Fallback Wikipedia geosearch para pueblos cercanos\nSi obtenerPueblosCercanos() falla en todos los mirrors de Overpass, intentar con es.wikipedia.org/w/api.php?action=query&list=geosearch (radio 10 km, límite 50 resultados). Filtrar en cliente: excluir títulos que contengan Estación de, Embalse, Arroyo, códigos de carretera, etc. Quedarse con los que parezcan municipios/pedanías. Infraestructura Wikimedia, completamente independiente de Overpass.",
+			"x": 2220,
+			"y": 40,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "8c503e62",
+			"type": "text",
+			"text": "## IU-01 Indicador de datos obsoletos\nSi el panel lleva más de 3 min sin recibir GPS válido (pantalla apagada, pérdida de señal, background throttling del navegador), los datos mostrados son antiguos pero nada lo indica. Fix: marcar visualmente los datos (opacity reducida o punto naranja junto a 'Última actualización') cuando el último tick tiene más de N segundos.",
+			"x": 1780,
+			"y": 40,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "3c6fb2c1",
+			"type": "text",
+			"text": "## BPC-01 BP-01 Fix out tags→out body en MotorwayExit\nconstruirQuery usa 'out tags' que no incluye lat/lon. Todos los junctions son descartados. Cambiar a 'out body'. Una línea. Validar en simulador.",
+			"x": 1340,
+			"y": 40,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "a6140311",
+			"type": "text",
+			"text": "## BPC-12 Layout se rompe al volver a la vista principal tras deslizar\nSintoma: en Chrome Mobile, al deslizar a vista 2 o 3 y volver a la vista 1, la vista 1 pierde adaptacion y se corta informacion. El CSS ya usa 100dvh (index.html linea 28, 38), asi que el fix no es cambiar vh->dvh. Hipotesis a investigar: (a) el scroll-snap no reposiciona limpiamente al volver, (b) el viewport recalcula con retardo cuando la barra de Chrome se muestra/oculta, (c) el contenido en vista 1 asume una altura que ya no es valida tras el cambio. Probar: forzar recalculo con JS en visibilitychange o resize, o scroll-snap-stop: always, o recalcular alturas internas al evento scroll-end.",
+			"x": 1340,
+			"y": 2020,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "1258d06b",
+			"type": "text",
+			"text": "## BPC-13 BPC-13 Velocidad cortada por safe-area en vista 1\nEn el pantallazo de la sesión 26 (ruta ida al trabajo, M-501) la velocidad '34 km/h' aparece cortada por la derecha como '34 km/'. Causa probable: el viewport no respeta safe areas del navegador Android (iconos de estado, esquina redondeada, punch-hole). Solución: añadir viewport-fit=cover al meta viewport y aplicar env(safe-area-inset-right/top/bottom/left) en el padding del contenedor de vista 1. Validar en el móvil real, no sirve solo la preview de Claude. Si conviene, añadir un parametro ?safearea=N que pinte padding ficticio para iterar mas rapido en escritorio.",
+			"x": 1340,
+			"y": 2200,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "0324f771",
+			"type": "text",
+			"text": "## MO-06 MO-06 Filtrar salidas por sentido de marcha\nHoy MotorwayExit filtra junctions por distancia (>300m) y angulo del vector tu->junction respecto a tu rumbo (<45deg). Eso descarta lo que esta detras pero NO distingue: (a) salidas del carril contrario en autovia dividida, (b) incorporaciones (on-ramp) vs salidas (off-ramp). En el log del 17/04 aparece 'M-50 · 38 junctions validos · 0 descartados': son los dos sentidos juntos. Aproximacion: por cada nodo motorway_junction, consultar el way parent (mismo ref) y comparar bearing del segmento del way con el rumbo del usuario. Si el oneway del way va en sentido contrario, descartar. Coste: una query Overpass mas pesada por consulta inicial (50km radio), pero solo una vez por entrada en via. Depende de tener un set decente de rutas con autovia dividida en el simulador para validar. Ver decision 14 para histeresis y diseno previo.",
 			"x": 460,
-			"y": 580,
+			"y": 940,
 			"width": 280,
 			"height": 160,
 			"color": "4"
@@ -194,24 +444,34 @@
 			"color": "4"
 		},
 		{
-			"id": "9d3d196e",
+			"id": "f5448431",
 			"type": "text",
-			"text": "## PEC-01 Prueba en carretera real\nSalir a conducir con el móvil en el salpicadero y registrar: (1) pastillas azul/granate en movimiento con carreteras reales, (2) latencias de Nominatim y Overpass con datos móviles, (3) consumo de datos y batería en 30-60 min con Wake Lock activo, (4) cambios de vía entre estatales y autonómicas, (5) si el radio de caché de RoadRef (300 m) es suficiente o hay que ajustarlo. HECHA cuando: prueba realizada, mediciones registradas, docs/seguimiento.json actualizado con la sesión correspondiente, y commit del seguimiento hecho.",
-			"x": 20,
-			"y": 40,
+			"text": "## MO-04 MO-04 Filtrar junctions por vía en la query Overpass\nLa query actual devuelve todos los motorway_junction en 50 km sin filtrar por carretera. Resultado: salidas de vías cruzadas (M-40, AP-6, etc.) aparecen como próximas salidas cuando el filtro de ángulo no las descarta. Fix: cambiar la query para obtener solo nodos junction de las ways con ref igual a roadRef (way[ref=X] → node(w)[motorway_junction]). Detectado en prueba simulador sesión 12.",
+			"x": 460,
+			"y": 580,
 			"width": 280,
 			"height": 160,
 			"color": "4"
 		},
 		{
-			"id": "legend",
+			"id": "f6b85293",
 			"type": "text",
-			"text": "## Legend\n🔴 **Red** = To Do (ready)\n⬜ **Gray** = Blocked\n🟠 **Orange** = Doing\n🔵 **Cyan** = Ready to review\n🟢 **Green** = Done\n🟣 **Purple** = Proposed by agent",
-			"x": -540,
-			"y": -310,
-			"width": 380,
-			"height": 230,
-			"color": "0"
+			"text": "## MO-03 Integrar próxima salida en el panel\nMostrar el resultado de MotorwayExitModule en vista 1 (el cartel verde de salida). Solo cuando estamos en autovía; silencioso en carreteras convencionales.",
+			"x": 460,
+			"y": 400,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "89ae8a6c",
+			"type": "text",
+			"text": "## MO-02 Implementar MotorwayExitModule\nNuevo módulo js/motorwayexit.js. Query Overpass node[motorway_junction](around:N) con el mismo patrón ya validado en roadref.js: query minimalista, cascada de mirrors, caché por proximidad, timeout por mirror, debug.log completo. Salida: número de salida + distancia estimada.",
+			"x": 460,
+			"y": 220,
+			"width": 280,
+			"height": 160,
+			"color": "4"
 		},
 		{
 			"id": "9eb5d657",
@@ -222,56 +482,6 @@
 			"width": 280,
 			"height": 160,
 			"color": "4"
-		},
-		{
-			"id": "0324f771",
-			"type": "text",
-			"text": "## MO-06 MO-06 Filtrar salidas por sentido de marcha\nHoy MotorwayExit filtra junctions por distancia (>300m) y angulo del vector tu->junction respecto a tu rumbo (<45deg). Eso descarta lo que esta detras pero NO distingue: (a) salidas del carril contrario en autovia dividida, (b) incorporaciones (on-ramp) vs salidas (off-ramp). En el log del 17/04 aparece 'M-50 · 38 junctions validos · 0 descartados': son los dos sentidos juntos. Aproximacion: por cada nodo motorway_junction, consultar el way parent (mismo ref) y comparar bearing del segmento del way con el rumbo del usuario. Si el oneway del way va en sentido contrario, descartar. Coste: una query Overpass mas pesada por consulta inicial (50km radio), pero solo una vez por entrada en via. Depende de tener un set decente de rutas con autovia dividida en el simulador para validar. Ver decision 14 para histeresis y diseno previo.",
-			"x": 460,
-			"y": 940,
-			"width": 280,
-			"height": 160,
-			"color": "5"
-		},
-		{
-			"id": "60482632",
-			"type": "text",
-			"text": "## FN-01 Próximas gasolineras\nNueva funcionalidad: mostrar en el panel las gasolineras próximas a la posición actual (o en la ruta, a definir). Alcance y definición por acordar: radio, fuente de datos (probablemente Overpass amenity=fuel), cómo se integra visualmente en las vistas, criterio de actualización.",
-			"x": 2660,
-			"y": 40,
-			"width": 280,
-			"height": 160,
-			"color": "5"
-		},
-		{
-			"id": "6ff60034",
-			"type": "text",
-			"text": "## FN-02 Logs de trayecto real persistidos y exportables\nNueva funcionalidad: que los mensajes del panel de debug (y métricas relevantes del trayecto) se almacenen en algún lugar del dispositivo (IndexedDB/descarga) desde el que Laureano pueda rescatarlos al volver a casa y pasárselos a Claude. Objetivo: poder hacer análisis post-trayecto sin depender de capturas manuales durante la conducción. Alcance y definición por acordar: qué se guarda, rotación, forma de exportación (descarga de .txt/.json), UI de acceso.",
-			"x": 2660,
-			"y": 220,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "canvas-warnings",
-			"type": "text",
-			"text": "## Warnings\n✓ None",
-			"x": -540,
-			"y": -530,
-			"width": 380,
-			"height": 200,
-			"color": "3"
-		},
-		{
-			"id": "canvas-errors",
-			"type": "text",
-			"text": "## Errors\n✓ None",
-			"x": -540,
-			"y": -750,
-			"width": 380,
-			"height": 200,
-			"color": "1"
 		},
 		{
 			"id": "75ad7211",
@@ -304,6 +514,36 @@
 			"color": "4"
 		},
 		{
+			"id": "bacdcff7",
+			"type": "text",
+			"text": "## MO-01 Añadir ruta con salidas de autovía al simulador\nUsar el notebook obtener_rutas_osm.ipynb para extraer una ruta por la A-6 (o AP-6) que pase por al menos 3-4 salidas conocidas, y añadirla al catálogo de rutas.js. Objetivo: poder probar MotorwayExitModule desde casa sin conducir, igual que se hizo con las rutas a6 y m505.",
+			"x": 460,
+			"y": 40,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "9d3d196e",
+			"type": "text",
+			"text": "## PEC-01 Prueba en carretera real\nSalir a conducir con el móvil en el salpicadero y registrar: (1) pastillas azul/granate en movimiento con carreteras reales, (2) latencias de Nominatim y Overpass con datos móviles, (3) consumo de datos y batería en 30-60 min con Wake Lock activo, (4) cambios de vía entre estatales y autonómicas, (5) si el radio de caché de RoadRef (300 m) es suficiente o hay que ajustarlo. HECHA cuando: prueba realizada, mediciones registradas, docs/seguimiento.json actualizado con la sesión correspondiente, y commit del seguimiento hecho.",
+			"x": 20,
+			"y": 40,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "6ff60034",
+			"type": "text",
+			"text": "## FN-02 Logs de trayecto real persistidos y exportables\nNueva funcionalidad: que los mensajes del panel de debug (y métricas relevantes del trayecto) se almacenen en algún lugar del dispositivo (IndexedDB/descarga) desde el que Laureano pueda rescatarlos al volver a casa y pasárselos a Claude. Objetivo: poder hacer análisis post-trayecto sin depender de capturas manuales durante la conducción. Alcance y definición por acordar: qué se guarda, rotación, forma de exportación (descarga de .txt/.json), UI de acceso.",
+			"x": 2660,
+			"y": 220,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
 			"id": "ad6494d5",
 			"type": "text",
 			"text": "## FN-03 FN-02a Persistencia del debug en IndexedDB por trayecto\nSub-tarjeta de FN-02. Alcance: debug.log/warn/error persisten ademas de en el buffer del panel en una tabla de IndexedDB, agrupados por trayecto. Cada arranque del panel crea un trayecto nuevo con id=timestamp_inicio. Campos del trayecto: { id, inicio, fin, mensajes:[{ts, nivel, texto}], track:[{ts, lat, lon, speed}] }. El track GPS se agrega cada 30 s o cada 500 m (lo que llegue antes). Rotacion: guardar los 10 ultimos trayectos; el 11 empuja al mas viejo. Criterio de exito: tras un arranque y un par de minutos de uso con el simulador, al recargar la pagina siguen en IDB los mensajes del trayecto anterior.",
@@ -319,76 +559,6 @@
 			"text": "## FN-04 FN-02b UI ?logs=1 con lista de trayectos y descarga\nSub-tarjeta de FN-02. Alcance: si la URL incluye ?logs=1, el panel oculta la UI normal y muestra una pantalla simple con la lista vertical de trayectos guardados. Cada fila: fecha de inicio, duracion, tamano aproximado, numero de mensajes. Botones por fila: Descargar (dispara download del .txt) y Borrar. Boton global: Borrar todo. No debe haber interaccion accidental con esta pantalla durante la conduccion; ?logs=1 es un modo explicito. Criterio de exito: desde Chrome escritorio en localhost con trayectos guardados, al abrir ?logs=1 se ve la lista; Descargar produce un archivo legible; Borrar elimina el trayecto y refresca la lista.",
 			"x": 2660,
 			"y": 580,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "570f2e87",
-			"type": "text",
-			"text": "## IU-07 Velocidad visible + datos GPS solo en debug\nCrear elemento dedicado de velocidad visible en Vista 1 (20px bold) y Vista 2 (18px esquina inferior). Latitud/longitud/precision/rumbo pasan a un bloque que solo se muestra cuando debug esta activo (?debug=1). Eliminar los bloques .coordenadas y .detalles del flujo principal. Ajustar js/debug.js si hiciera falta para exponer el estado o anadir el bloque dentro del panel debug. Verificacion: sin coords visibles sin ?debug=1; velocidad prominente en V1 y esquina en V2; con ?debug=1 se ven todos los datos tecnicos.",
-			"x": 1780,
-			"y": 1120,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "56d5b60a",
-			"type": "text",
-			"text": "## IU-08 Pulido visual y prueba con simulador\nAfinar margenes, paddings y tamanos de fuente en las tres vistas. Probar con las tres rutas del simulador (a6-salidas, m505, cruce-a6-m505) a 640x360 en DevTools. Verificar que el debug panel sigue funcionando como overlay sin romper el scroll-snap (ajustar CSS del padding del body). Verificar que body tiene overflow:hidden y ninguna vista hace scroll vertical. Prueba final antes de dar la Fase 3 por cerrada. Verificacion: 3 vistas correctas a 640x360; swipe fluido; sin scroll vertical; debug funciona con ?debug=1; 3 rutas del simulador pintan correctamente en las tres vistas.",
-			"x": 1780,
-			"y": 1300,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "b72c2145",
-			"type": "text",
-			"text": "## IU-04 Vista 2 Ubicacion + Meteo con gradientes\nDisenar Vista 2 centrada y glanceable: municipio 28px, provincia/CCAA 14px, temperatura 36px con icono 40px, descripcion 16px, viento/humedad/prevision 13px, velocidad 18px en esquina inferior derecha. Fondo con 6 gradientes por categoria meteo (despejado, nuboso, niebla, lluvia, nieve, tormenta) via data-attribute seteado desde JS. Funciones render escriben tanto a V1 como a V2. Verificacion: datos vivos en V2; gradiente cambia con categoria meteo al saltar entre rutas del simulador.",
-			"x": 1780,
-			"y": 580,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "90cf5ebf",
-			"type": "text",
-			"text": "## IU-05 Vista 3 POIs grid a pantalla completa\nDisenar Vista 3 dedicada a POIs: cabecera compacta de 30px con pastilla carretera + municipio + provincia en una linea; debajo grid de tarjetas de pueblo con CSS grid repeat(auto-fill, minmax(140px, 1fr)) gap 8px. Cada tarjeta muestra nombre, distancia y hasta 2 POIs con icono y nombre. Reemplaza el scroll horizontal actual (que entra en conflicto con scroll-snap del visor). Funciones render escriben tambien a V3. Verificacion: tarjetas grid vivas; cabecera con carretera + ubicacion; actualiza con simulador.",
-			"x": 1780,
-			"y": 760,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "074bb897",
-			"type": "text",
-			"text": "## RA-01 RE-01 Fallback Wikipedia geosearch para pueblos cercanos\nSi obtenerPueblosCercanos() falla en todos los mirrors de Overpass, intentar con es.wikipedia.org/w/api.php?action=query&list=geosearch (radio 10 km, límite 50 resultados). Filtrar en cliente: excluir títulos que contengan Estación de, Embalse, Arroyo, códigos de carretera, etc. Quedarse con los que parezcan municipios/pedanías. Infraestructura Wikimedia, completamente independiente de Overpass.",
-			"x": 2220,
-			"y": 40,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "5711fa1b",
-			"type": "text",
-			"text": "## RA-02 RE-02 Fallback Wikipedia geosearch para POIs por pueblo\nSi obtenerPOIsPueblo() falla en todos los mirrors de Overpass, intentar con Wikipedia geosearch centrado en las coordenadas del pueblo (radio 2 km). Los artículos de Wikipedia correlacionan bien con POIs notables (castillos, palacios, miradores). Ventaja extra: el pageid devuelto permite pedir el extracto de Wikipedia directamente, sin lookup adicional.",
-			"x": 2220,
-			"y": 220,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "a0faf2b1",
-			"type": "text",
-			"text": "## RA-03 RE-03 Caché persistente de POIs en IndexedDB\nLos POIs de un pueblo no cambian en meses. Guardar el resultado (venga de Overpass o de Wikipedia) en IndexedDB con TTL de 7-30 días. En la siguiente visita al mismo pueblo, leer de caché local sin ninguna petición de red. Elimina la dependencia de Overpass/Wikipedia para pueblos ya visitados y ahorra datos móviles.",
-			"x": 2220,
-			"y": 400,
 			"width": 280,
 			"height": 160,
 			"color": "4"
@@ -411,187 +581,127 @@
 			"y": 940,
 			"width": 280,
 			"height": 160,
-			"color": "5"
-		},
-		{
-			"id": "360e933c",
-			"type": "text",
-			"text": "## BPC-04 BPC-04 Indicador de carga en la sección POI\nLa sección POI permanece oculta entre 15 y 120 s mientras se cargan los datos. El usuario no recibe ningún feedback. Solución propuesta: mostrar 'Cargando...' desde el primer tick en que se sabe la posición, y reemplazar por el contenido real cuando llegue.",
-			"x": 1340,
-			"y": 580,
-			"width": 280,
-			"height": 160,
 			"color": "4"
 		},
 		{
-			"id": "f2e20e5d",
+			"id": "60482632",
 			"type": "text",
-			"text": "## BPC-05 BPC-05 Timeout global de POIModule cuando los mirrors están caídos\nSi todos los mirrors de Overpass están caídos o saturados, enActualizacion=true bloquea el módulo unos 3 min (3 mirrors × 8 s × 3 queries). Solución propuesta: timeout global de 90 s en actualizar(); pasado ese tiempo, devolver resultados parciales y liberar el flag.",
-			"x": 1340,
-			"y": 760,
-			"width": 280,
-			"height": 160,
-			"color": "5"
-		},
-		{
-			"id": "9f5aa28c",
-			"type": "text",
-			"text": "## BPC-06 BPC-06 Mostrar pueblos cercanos aunque no tengan POIs\nLa sección POI se oculta completamente cuando ningún pueblo tiene POIs enriquecidos. Problema: pintarPOIs filtra pueblos con pois.length > 0, dejando la pantalla vacía aunque se sepan los pueblos cercanos. Fix: mostrar siempre la tarjeta con nombre y distancia; los POIs son enriquecimiento opcional sobre esa base. Así el conductor siempre sabe qué hay cerca aunque Overpass falle.",
-			"x": 1340,
-			"y": 940,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "d714129e",
-			"type": "text",
-			"text": "## BPC-07 BPC-07 No cachear fallo de red en obtenerPOIsPueblo\nCuando todos los mirrors Overpass fallan, obtenerPOIsPueblo guarda pois:[] en caché, idéntico a un pueblo sin POIs reales. El módulo no reintenta aunque el próximo ciclo tenga conexión. Fix: no cachear si el error fue de red (todos_mirrors_fallaron); cachear solo si Overpass respondió correctamente con 0 elementos.",
-			"x": 1340,
-			"y": 1120,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "8c503e62",
-			"type": "text",
-			"text": "## IU-01 Indicador de datos obsoletos\nSi el panel lleva más de 3 min sin recibir GPS válido (pantalla apagada, pérdida de señal, background throttling del navegador), los datos mostrados son antiguos pero nada lo indica. Fix: marcar visualmente los datos (opacity reducida o punto naranja junto a 'Última actualización') cuando el último tick tiene más de N segundos.",
-			"x": 1780,
+			"text": "## FN-01 Próximas gasolineras\nNueva funcionalidad: mostrar en el panel las gasolineras próximas a la posición actual (o en la ruta, a definir). Alcance y definición por acordar: radio, fuente de datos (probablemente Overpass amenity=fuel), cómo se integra visualmente en las vistas, criterio de actualización.",
+			"x": 2660,
 			"y": 40,
 			"width": 280,
 			"height": 160,
 			"color": "4"
 		},
 		{
-			"id": "5532fc2b",
+			"id": "18e280c4",
 			"type": "text",
-			"text": "## IU-02 Estructura HTML tres vistas + scroll-snap\nReestructurar index.html: envolver contenido actual en un visor con tres section.vista (Completa, Ubicacion+Meteo, POIs). Añadir CSS scroll-snap-type: x mandatory para swipe nativo sin JS. Vista 1 contiene todo lo actual, Vista 2 y 3 vacías como placeholder. Verificacion: swipe fluido entre las tres vistas; Vista 1 sigue mostrando toda la informacion como antes; simulador funciona en las tres rutas.",
-			"x": 1780,
-			"y": 220,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "7823d897",
-			"type": "text",
-			"text": "## IU-03 Layout compacto Vista 1 (grid 2 columnas)\nDisenar Vista 1 (Completa, por defecto) como CSS Grid de dos columnas ~60/40 que encaje todo en 640x360: carretera + salida autovia + ubicacion + datos municipio a la izquierda, meteo + velocidad a la derecha, y POIs en lista compacta (1 linea por pueblo) abajo. Sin scroll vertical. Mover coordenadas/precision/rumbo a bloque solo-debug. Verificacion: todo visible a 640x360; velocidad 20px bold visible; sin scroll vertical.",
-			"x": 1780,
-			"y": 400,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "91a2eeb9",
-			"type": "text",
-			"text": "## IU-06 Iconos SVG meteo sustituir emojis\nCrear sprite SVG inline en index.html con 8 simbolos (sol, luna, nube, niebla, lluvia, nieve, tormenta, desconocido) inspirados en Meteocons MIT. Sprite total bajo 5 KB. Actualizar js/meteo_codigos.js: los campos dia/noche de la TABLA pasan de emoji a ID de simbolo SVG. Funciones render del meteo pasan de inyectar texto a inyectar <svg><use href='#meteo-sol'/></svg>. Verificacion: SVG renderiza en las tres vistas a los tamanos 22-40px; sprite <5 KB; sin emojis restantes en la seccion meteo.",
-			"x": 1780,
-			"y": 940,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "305e577d",
-			"type": "text",
-			"text": "## IU-09 Boton opcional de pantalla completa (Fullscreen API)\nIdea de Laureano tras la prueba PEC-01: anadir un boton discreto que ponga el panel a pantalla completa y elimine la barra de Chrome Mobile. Mitiga el bug del layout cortado (BPC-12) y aprovecha mas superficie util. La Fullscreen API estandar (document.documentElement.requestFullscreen) funciona en Chrome Android. Por definir: posicion del boton, criterio de aparicion (siempre visible vs aparece solo al tocar), y si se guarda preferencia en localStorage. Abierto a discusion.",
-			"x": 1780,
+			"text": "## PO-09 Filtrar POIs por distancia al centro del municipio\nEn municipios grandes con pedanías (ej. Medinaceli), Overpass y Wikidata devuelven POIs dentro del término municipal pero en pedanías alejadas. Reordenar POIs por distancia a las coordenadas del centro del municipio, poniendo arriba los más cercanos. Las coordenadas ya vienen de Overpass, así que es un sort en cliente sin peticiones extra.",
+			"x": 900,
 			"y": 1480,
 			"width": 280,
 			"height": 160,
 			"color": "5"
 		},
 		{
-			"id": "3c6fb2c1",
+			"id": "212e4410",
 			"type": "text",
-			"text": "## BPC-01 BP-01 Fix out tags→out body en MotorwayExit\nconstruirQuery usa 'out tags' que no incluye lat/lon. Todos los junctions son descartados. Cambiar a 'out body'. Una línea. Validar en simulador.",
-			"x": 1340,
-			"y": 40,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "24da1a0b",
-			"type": "text",
-			"text": "## BPC-02 BP-02 Weather: guardia petición en vuelo\nSi el coche pasa el radio de 1000m mientras hay una petición en curso, se lanzan duplicadas. Añadir flag peticionEnCurso en weather.js.",
-			"x": 1340,
-			"y": 220,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "84fa0fde",
-			"type": "text",
-			"text": "## BPC-03 BP-03 MotorwayExit: no vaciar caché en fallo transitorio de RoadRef\nCuando RoadRef falla por un tick y vuelve, MotorwayExit vacía caché y relanza Overpass innecesariamente. Contribuye a 429. No vaciar si el fallo es transitorio.",
-			"x": 1340,
-			"y": 400,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "8bff8c13",
-			"type": "text",
-			"text": "## BPC-08 BPC-08 No cachear fallo de red en obtenerDatosMunicipio\nMismo problema que BPC-07 pero en Wikidata: si la query falla por timeout o error de red, el módulo cachea null y no reintenta en ciclos siguientes. Fix: distinguir null-por-fallo-de-red (no cachear) de null-porque-Wikidata-no-tiene-datos (cachear). Así se reintenta al desplazarse fuera del radio de caché.",
-			"x": 1340,
-			"y": 1300,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "f5a46384",
-			"type": "text",
-			"text": "## BPC-09 Pastilla M-505 estable, ahora alterna con Carretera de El Escorial\nSintoma: circulando por la M-505 el panel alterna entre la pastilla granate 'M-505' y el texto largo 'Carretera de El Escorial'. Debe fijarse siempre la forma oficial 'M-505' cuando la via sea esa, independientemente de si Nominatim devuelve ref o solo name. Revisar el flujo: (1) por que a veces z17 no trae ref y cae al name, (2) si el fallback Overpass de roadref.js se activa en estos casos, (3) si el parser de carreteras.js descarta mal la M-505 cuando solo llega el name largo. Criterio de exito: en un trayecto real por la M-505 la pastilla permanece 'M-505' sin oscilaciones.",
-			"x": 1340,
-			"y": 1480,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "a4c6caca",
-			"type": "text",
-			"text": "## BPC-10 MotorwayExit no se activa porque el GPS del movil no reporta velocidad\nSintoma: 8+ minutos por la M-50 y MotorwayExit quedo en 'inactivo' sin un solo log mas. Hipotesis principal: coords.speed llega null en el movil viejo (comun en Android antiguos), y el modulo exige velocidad > 50 km/h sostenida para activarse. Pasos: (1) anadir log de debug que muestre el valor bruto de velocidadKmh recibido en cada tick, (2) si se confirma null o 0, implementar fallback que calcule km/h a partir de distancias entre fixes consecutivos (el panel ya detecta 'Movimiento detectado: 73m' cada 3s, lo que son ~87 km/h), (3) validar en simulador que la activacion por fallback funciona igual.",
-			"x": 1340,
+			"text": "## PO-10 Normalización de labels: segunda pasada con sinónimos de patrimonio\nEn Trujillo solo se matchearon 3/8 POIs (37%) por diferencias de nombre: 'Palacio de Pizarro' vs 'Casa-Museo de Pizarro'. Añadir una segunda pasada de matching con sinónimos comunes (casa=palacio=casa-museo, iglesia=parroquia, etc.) o búsqueda parcial contra Wikidata cuando el primer intento falla. Objetivo: subir cobertura del 37% al ~65% en pueblos grandes.",
+			"x": 900,
 			"y": 1660,
 			"width": 280,
 			"height": 160,
-			"color": "4"
+			"color": "5"
 		},
 		{
-			"id": "bb9d7f72",
+			"id": "6bc542a5",
 			"type": "text",
-			"text": "## BPC-11 Distancias de pueblos cercanos no cambian al moverse\nSintoma: de Las Rozas a Majadahonda por la M-50, la barra inferior de pueblos cercanos mostro distancias estaticas aunque el coche avanzaba. Observacion: pois.js tiene codigo que recalcula distancias desde la posicion actual (linea ~283) pero aparentemente el render no se repinta en cada tick, o solo se repinta al refrescar la cache de 'pueblos cercanos'. Pasos: (1) depurar el ciclo render, (2) decidir si hay que forzar repintado en cada tick de GPS o invalidar mas agresivamente la cache, (3) validar en simulador con una ruta que recorra varios kilometros sin cambiar de pueblo dominante.",
-			"x": 1340,
+			"text": "## PO-11 Soporte de entidades singulares de población (pedanías turísticas)\nCastrillo de los Polvazares es pedanía de Astorga, no municipio, por lo que la consulta SPARQL para municipios españoles no lo encuentra. Sin embargo es un destino turístico reconocido. Ampliar la búsqueda para incluir entidades singulares de población (Q515869 en Wikidata) además de municipios, para dar cobertura a pedanías con valor turístico.",
+			"x": 900,
 			"y": 1840,
 			"width": 280,
 			"height": 160,
-			"color": "4"
+			"color": "5"
 		},
 		{
-			"id": "a6140311",
+			"id": "daf29577",
 			"type": "text",
-			"text": "## BPC-12 Layout se rompe al volver a la vista principal tras deslizar\nSintoma: en Chrome Mobile, al deslizar a vista 2 o 3 y volver a la vista 1, la vista 1 pierde adaptacion y se corta informacion. El CSS ya usa 100dvh (index.html linea 28, 38), asi que el fix no es cambiar vh->dvh. Hipotesis a investigar: (a) el scroll-snap no reposiciona limpiamente al volver, (b) el viewport recalcula con retardo cuando la barra de Chrome se muestra/oculta, (c) el contenido en vista 1 asume una altura que ya no es valida tras el cambio. Probar: forzar recalculo con JS en visibilitychange o resize, o scroll-snap-stop: always, o recalcular alturas internas al evento scroll-end.",
-			"x": 1340,
+			"text": "## PO-12 Photon como fallback final cuando Overpass+Wikidata quedan vacíos\nPhoton se descartó como geocodificador administrativo pero su capacidad de devolver el POI más cercano es útil como último eslabón de la cascada: Overpass → Wikipedia geosearch → Photon. Activar solo cuando los dos anteriores devuelven cero resultados. Evaluar cobertura en carretera antes de activar por defecto.",
+			"x": 900,
 			"y": 2020,
 			"width": 280,
 			"height": 160,
-			"color": "4"
+			"color": "5"
 		},
 		{
-			"id": "1258d06b",
+			"id": "849d45c4",
 			"type": "text",
-			"text": "## BPC-13 BPC-13 Velocidad cortada por safe-area en vista 1\nEn el pantallazo de la sesión 26 (ruta ida al trabajo, M-501) la velocidad '34 km/h' aparece cortada por la derecha como '34 km/'. Causa probable: el viewport no respeta safe areas del navegador Android (iconos de estado, esquina redondeada, punch-hole). Solución: añadir viewport-fit=cover al meta viewport y aplicar env(safe-area-inset-right/top/bottom/left) en el padding del contenedor de vista 1. Validar en el móvil real, no sirve solo la preview de Claude. Si conviene, añadir un parametro ?safearea=N que pinte padding ficticio para iterar mas rapido en escritorio.",
-			"x": 1340,
-			"y": 2200,
+			"text": "## MO-07 Destinos legibles en salidas: query a motorway_link adyacentes\nLos node[motorway_junction] llevan ref pero rara vez name. Los ways adyacentes (motorway_link) sí suelen llevar destination y destination:ref con textos legibles ('Madrid', 'Zaragoza por A-2'). Cuando estamos a <2 km de una salida, hacer una segunda query Overpass a los motorway_link adyacentes y extraer los destinos. El cartel verde de vista 1 mostraría destinos como un cartel real en lugar de solo el número de salida.",
+			"x": 460,
+			"y": 1120,
 			"width": 280,
 			"height": 160,
 			"color": "5"
+		},
+		{
+			"id": "a5a802c1",
+			"type": "text",
+			"text": "## FN-07 Mejora de la consulta de comarcas (filtrar a comarca de España)\nLa consulta SPARQL actual usa wdt:P361 (part of) para obtener la comarca, pero P361 devuelve cualquier tipo de pertenencia, no solo comarcas. Filtrar a entidades que sean instancia de 'comarca de España' (Q56061) para mejorar precisión. Cuando no haya valor útil, omitir el campo en lugar de mostrar datos incorrectos.",
+			"x": 2660,
+			"y": 1120,
+			"width": 280,
+			"height": 160,
+			"color": "5"
+		},
+		{
+			"id": "4ef49f3e",
+			"type": "text",
+			"text": "## BPC-14 Indicador del simulador tapa el botón fullscreen\nEn modo simulación (?sim=<ruta>), el recuadro amarillo 'sim <ruta> xN' se dibuja en la esquina superior-derecha y solapa el botón fullscreen de IU-09, impidiendo pincharlo. Reubicar el indicador del simulador (p.ej. esquina inferior-derecha o superior-izquierda) para que el botón fullscreen siga siendo accesible durante pruebas con simulador.",
+			"x": 1340,
+			"y": 2380,
+			"width": 280,
+			"height": 160,
+			"color": "5"
+		},
+		{
+			"id": "1dd05750",
+			"type": "text",
+			"text": "## FN-08 Señal de velocidad invertida cuando se supera el límite\nCuando la velocidad GPS supera maxspeedActual, cambiar el estilo del .maxspeed-chip a fondo rojo sólido con número blanco (actualmente blanco con borde rojo y número negro). Activar con clase .exceso sobre el chip, disparada por el mismo umbral que ya colorea #v1Velocidad/#v2Velocidad. Sin barra diagonal — mantener aspecto de alerta limpia, no confundir con señal de tráfico real.",
+			"x": 2660,
+			"y": 1300,
+			"width": 280,
+			"height": 160,
+			"color": "5"
+		},
+		{
+			"id": "8a314bee",
+			"type": "text",
+			"text": "## FN-09 Barra compacta de gasolineras en vista principal (V1)\nLas gasolineras (Overpass amenity=fuel, radio 5 km, hasta 5 resultados por distancia) solo aparecen hoy en V3. Añadir versión compacta permanente en V1 con las 2 más cercanas (marca + distancia) en una fila discreta al pie de la vista o adyacente al bloque de próxima salida. Objetivo ampliado: orientar paradas (baño, comida, repostaje). Reutiliza los datos ya obtenidos por gasolineras.js sin peticiones extra. Medir impacto en el layout denso de V1 antes de confirmar posición.",
+			"x": 2660,
+			"y": 1480,
+			"width": 280,
+			"height": 160,
+			"color": "5"
+		},
+		{
+			"id": "7033e6e4",
+			"type": "text",
+			"text": "## IU-10 Animaciones sutiles en fondo de V2 (meteo) — base + 3 estados\nAñadir capa SVG/CSS sobre el fondo actual de V2 que se anime según el código WMO devuelto por Open-Meteo. Infraestructura: contenedor absoluto detrás del contenido, función que mapea código WMO → clase de animación, respeta prefers-reduced-motion. Primera entrega: 3 animaciones (despejado con sol girando, nubes desplazándose, lluvia cayendo) con duraciones ≥ 30 s usando solo transform y opacity (no repintado de layout). Medir consumo de batería en el móvil viejo antes de añadir más.",
+			"x": 1780,
+			"y": 1660,
+			"width": 280,
+			"height": 160,
+			"color": "5"
+		},
+		{
+			"id": "a1081e25",
+			"type": "text",
+			"text": "## IU-11 Animaciones meteo adicionales (nieve, niebla, tormenta)\nSobre la base de IU-10, añadir animaciones para códigos WMO de nieve (copos cayendo y oscilando), niebla (capa difuminada con opacidad pulsante lenta) y tormenta (flash ocasional cada ~20 s). Mismas restricciones que IU-10: solo transform y opacity, duraciones largas, respetar prefers-reduced-motion. Depende de IU-10 para reutilizar el sistema de mapeo código WMO → animación.",
+			"x": 1780,
+			"y": 1840,
+			"width": 280,
+			"height": 160,
+			"color": "6"
 		}
 	],
 	"edges": [
@@ -825,6 +935,13 @@
 			"fromSide": "top",
 			"toNode": "6ff60034",
 			"toSide": "bottom"
+		},
+		{
+			"id": "edge-034",
+			"fromNode": "7033e6e4",
+			"fromSide": "bottom",
+			"toNode": "a1081e25",
+			"toSide": "top"
 		}
 	]
 }

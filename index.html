@@ -65,11 +65,12 @@
     #vista1 {
       display: grid;
       grid-template-columns: 58% 42%;
-      grid-template-rows: 22px 1fr auto;
+      grid-template-rows: 22px 1fr auto auto;
       grid-template-areas:
         "estado estado"
         "izq    der"
-        "poi    poi";
+        "poi    poi"
+        "gas    gas";
       padding:
         calc(10px + var(--safe-top))
         calc(12px + var(--safe-right) + var(--safe-extra))
@@ -107,6 +108,28 @@
       border-top: 1px solid rgba(255,255,255,0.1);
       padding-top: 5px;
     }
+
+    /* FN-09: barra compacta de gasolineras al pie de V1. Siempre visible
+       aunque no haya datos aún (oculta solo cuando no hay ninguna). */
+    .v1-gasolineras {
+      grid-area: gas;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      padding-top: 4px;
+      margin-top: 4px;
+      display: flex;
+      flex-wrap: nowrap;
+      gap: 14px;
+      font-size: 11px;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+    .v1-gasolineras .v1-gasolinera {
+      display: flex;
+      gap: 4px;
+      align-items: baseline;
+    }
+    .v1-gasolineras .v1-gasolinera-marca { font-weight: 600; }
+    .v1-gasolineras .v1-gasolinera-dist { opacity: 0.55; }
 
     /* Compactar elementos para Vista 1 */
     #vista1 .estado { font-size: 12px; margin: 0; line-height: 1.2; }
@@ -220,6 +243,15 @@
        Aplicada a #v1Velocidad y #v2Velocidad. */
     .v1-velocidad.exceso, .v2-velocidad.exceso { color: #ffaa44; }
     .v1-velocidad.exceso-grave, .v2-velocidad.exceso-grave { color: #ff5555; }
+
+    /* FN-08: cuando se supera el límite, el chip de velocidad se invierte
+       (fondo rojo sólido, texto blanco) para alertar sin distraer. Sin barra
+       diagonal: es una alerta del panel, no una señal real. */
+    .maxspeed-chip.exceso {
+      background: #c0392b;
+      color: #fff;
+      border-color: #fff;
+    }
 
     .carretera .calle {
       font-size: 15px;
@@ -554,6 +586,71 @@
     #vista2[data-meteo-cat="lluvia"]    { background: linear-gradient(135deg, #0d1520 0%, #1a2a3e 50%, #0f1925 100%); }
     #vista2[data-meteo-cat="nieve"]     { background: linear-gradient(135deg, #1a1e2e 0%, #2a3048 50%, #1e2236 100%); }
     #vista2[data-meteo-cat="tormenta"]  { background: linear-gradient(135deg, #0f0a18 0%, #261830 50%, #140e1e 100%); }
+
+    /* IU-10: capa de animación sutil detrás del contenido. Solo transform y
+       opacity (no repintado), duraciones >= 30 s, opacidad baja para no
+       distraer. Primera entrega: despejado, nublado, lluvia. */
+    .v2-animacion {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+      z-index: 0;
+    }
+    #vista2 > *:not(.v2-animacion) { position: relative; z-index: 1; }
+    .v2-anim { display: none; position: absolute; inset: 0; }
+    #vista2[data-meteo-cat="despejado"] .v2-anim-despejado { display: block; }
+    #vista2[data-meteo-cat="nublado"]   .v2-anim-nublado   { display: block; }
+    #vista2[data-meteo-cat="lluvia"]    .v2-anim-lluvia    { display: block; }
+    #vista2[data-meteo-cat="tormenta"]  .v2-anim-lluvia    { display: block; }
+
+    /* Sol (despejado): gira lento, rayos pulsan. */
+    .v2-sol {
+      position: absolute;
+      top: 12%;
+      right: 10%;
+      width: 120px;
+      height: 120px;
+      opacity: 0.12;
+      color: #ffd37a;
+      animation: v2-sol-rotar 60s linear infinite;
+    }
+    @keyframes v2-sol-rotar { to { transform: rotate(360deg); } }
+
+    /* Nubes (nublado): 2 nubes con desplazamiento horizontal lento. */
+    .v2-nube {
+      position: absolute;
+      width: 180px;
+      height: 60px;
+      opacity: 0.10;
+      color: #cfd4dc;
+      will-change: transform;
+    }
+    .v2-nube-1 { top: 18%; animation: v2-nube-cruza 95s linear infinite; }
+    .v2-nube-2 { top: 55%; animation: v2-nube-cruza 140s linear infinite; animation-delay: -40s; opacity: 0.07; }
+    @keyframes v2-nube-cruza {
+      from { transform: translateX(-220px); }
+      to   { transform: translateX(calc(100vw + 220px)); }
+    }
+
+    /* Lluvia (y tormenta): 18 gotas con delays escalonados. */
+    .v2-gota {
+      position: absolute;
+      top: -10%;
+      width: 2px;
+      height: 18px;
+      background: linear-gradient(to bottom, rgba(180,200,230,0) 0%, rgba(180,200,230,0.45) 100%);
+      animation: v2-gota-cae 1.4s linear infinite;
+    }
+    @keyframes v2-gota-cae {
+      0%   { transform: translateY(0);         opacity: 0; }
+      10%  {                                    opacity: 0.55; }
+      100% { transform: translateY(120vh);     opacity: 0.1; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .v2-sol, .v2-nube, .v2-gota { animation: none !important; }
+    }
 
     .v2-ubicacion { text-align: center; margin-bottom: 16px; }
     .v2-municipio { font-size: 28px; font-weight: 400; }
@@ -891,6 +988,9 @@
     </div>
   </div>
 
+  <!-- FN-09: barra compacta de gasolineras en V1 (paradas cercanas) -->
+  <div id="v1Gasolineras" class="v1-gasolineras" style="display:none"></div>
+
   <!-- Datos GPS: ocultos aquí, visibles con ?debug=1 (IU-07) -->
   <div id="v1-gps">
     <div class="coordenadas">
@@ -908,6 +1008,37 @@
   </section><!-- /vista1 -->
 
   <section class="vista" id="vista2" data-meteo-cat="despejado">
+    <!-- IU-10: capa de animación por código WMO. -->
+    <div class="v2-animacion" aria-hidden="true">
+      <div class="v2-anim v2-anim-despejado">
+        <svg class="v2-sol" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="50" cy="50" r="14" fill="currentColor"/>
+          <g stroke-linecap="round">
+            <line x1="50" y1="18" x2="50" y2="8"/>
+            <line x1="50" y1="92" x2="50" y2="82"/>
+            <line x1="18" y1="50" x2="8" y2="50"/>
+            <line x1="92" y1="50" x2="82" y2="50"/>
+            <line x1="26" y1="26" x2="19" y2="19"/>
+            <line x1="81" y1="81" x2="74" y2="74"/>
+            <line x1="26" y1="74" x2="19" y2="81"/>
+            <line x1="74" y1="26" x2="81" y2="19"/>
+          </g>
+        </svg>
+      </div>
+      <div class="v2-anim v2-anim-nublado">
+        <svg class="v2-nube v2-nube-1" viewBox="0 0 180 60" fill="currentColor">
+          <ellipse cx="40"  cy="38" rx="34" ry="18"/>
+          <ellipse cx="90"  cy="30" rx="42" ry="22"/>
+          <ellipse cx="140" cy="38" rx="34" ry="18"/>
+        </svg>
+        <svg class="v2-nube v2-nube-2" viewBox="0 0 180 60" fill="currentColor">
+          <ellipse cx="40"  cy="38" rx="34" ry="18"/>
+          <ellipse cx="90"  cy="30" rx="42" ry="22"/>
+          <ellipse cx="140" cy="38" rx="34" ry="18"/>
+        </svg>
+      </div>
+      <div class="v2-anim v2-anim-lluvia" id="v2Gotas"></div>
+    </div>
     <div class="v2-ubicacion">
       <div id="v2Municipio" class="v2-municipio">—</div>
       <div id="v2Admin" class="v2-admin">—</div>
@@ -1125,6 +1256,7 @@
     const $poiScroll        = document.getElementById('poiScroll');
     const $v3Gasolineras    = document.getElementById('v3Gasolineras');
     const $v3GasolinerasL   = document.getElementById('v3GasolinerasLista');
+    const $v1Gasolineras    = document.getElementById('v1Gasolineras');
     const $meteoTemp        = document.getElementById('meteoTemp');
     const $meteoDescripcion = document.getElementById('meteoDescripcion');
     const $meteoViento      = document.getElementById('meteoViento');
@@ -1148,6 +1280,24 @@
     const $v2MeteoHumedad   = document.getElementById('v2MeteoHumedad');
     const $v2MeteoPrevision = document.getElementById('v2MeteoPrevision');
     const $v2Velocidad      = document.getElementById('v2Velocidad');
+
+    // IU-10: generar las gotas de lluvia una sola vez con delays/posiciones
+    // aleatorios. El selector CSS [data-meteo-cat="lluvia"] las hace visibles.
+    (function sembrarGotasLluvia() {
+      const cont = document.getElementById('v2Gotas');
+      if (!cont) return;
+      const n = 18;
+      const frag = document.createDocumentFragment();
+      for (let i = 0; i < n; i++) {
+        const g = document.createElement('div');
+        g.className = 'v2-gota';
+        g.style.left = (Math.random() * 100).toFixed(1) + '%';
+        g.style.animationDelay = (-Math.random() * 1.4).toFixed(2) + 's';
+        g.style.animationDuration = (1.1 + Math.random() * 0.8).toFixed(2) + 's';
+        frag.appendChild(g);
+      }
+      cont.appendChild(frag);
+    })();
 
     const $v1Velocidad      = document.getElementById('v1Velocidad');
 
@@ -1580,19 +1730,25 @@
 
     // FN-01: pinta lista de gasolineras en V3. Distancias en metros si <1000,
     // si no en km con 1 decimal. Marca preferida sobre nombre.
+    // FN-09: además pinta las 2 primeras en V1 como barra compacta al pie.
     function pintarGasolineras(lista) {
       if (!lista || lista.length === 0) {
         $v3Gasolineras.style.display = 'none';
         $v3GasolinerasL.innerHTML = '';
+        $v1Gasolineras.style.display = 'none';
+        $v1Gasolineras.innerHTML = '';
         return;
       }
+      const fmtDist = d => d < 1000 ? Math.round(d) + ' m' : (d / 1000).toFixed(1) + ' km';
       $v3Gasolineras.style.display = '';
       $v3GasolinerasL.innerHTML = lista.map(g => {
-        const d = g.distM < 1000
-          ? Math.round(g.distM) + ' m'
-          : (g.distM / 1000).toFixed(1) + ' km';
         const marca = (g.marca || g.nombre || 'Gasolinera').replace(/[<>]/g, '');
-        return `<div class="v3-gasolinera"><span class="v3-gasolinera-marca">${marca}</span><span class="v3-gasolinera-dist">${d}</span></div>`;
+        return `<div class="v3-gasolinera"><span class="v3-gasolinera-marca">${marca}</span><span class="v3-gasolinera-dist">${fmtDist(g.distM)}</span></div>`;
+      }).join('');
+      $v1Gasolineras.style.display = '';
+      $v1Gasolineras.innerHTML = lista.slice(0, 2).map(g => {
+        const marca = (g.marca || g.nombre || 'Gasolinera').replace(/[<>]/g, '');
+        return `<div class="v1-gasolinera"><span class="v1-gasolinera-marca">${marca}</span><span class="v1-gasolinera-dist">${fmtDist(g.distM)}</span></div>`;
       }).join('');
     }
 
@@ -1744,6 +1900,12 @@
       }
       $v1Velocidad.className = 'v1-velocidad' + (claseExceso ? ' ' + claseExceso : '');
       $v2Velocidad.className = 'v2-velocidad' + (claseExceso ? ' ' + claseExceso : '');
+      // FN-08: invertir los chips .maxspeed-chip cuando hay exceso (cualquier
+      // grado) para que la señal alerte visualmente además del color de la
+      // velocidad GPS.
+      document.querySelectorAll('.maxspeed-chip').forEach(chip => {
+        chip.classList.toggle('exceso', !!claseExceso);
+      });
 
       ultimoTickGPS = ahora;
       mostrarEstado('GPS activo', 'ok');

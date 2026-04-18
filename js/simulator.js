@@ -100,8 +100,8 @@
     banner.id = 'sim-banner';
     banner.style.cssText = `
       position: fixed;
-      top: 8px;
-      right: 8px;
+      top: 4px;
+      left: 4px;
       z-index: 10000;
       background: rgba(220, 140, 20, 0.92);
       color: #000;
