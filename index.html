@@ -759,12 +759,11 @@
     #vista2.v2-inactiva * {
       animation-play-state: paused !important;
     }
-    #vista2 > *:not(.v2-animacion):not(.v2-luminaria):not(.v2-ambient):not(.v2-rays):not(.v2-rain-canvas):not(.v2-lightning):not(.v2-lightning-eco) { position: relative; z-index: 1; }
+    #vista2 > *:not(.v2-animacion):not(.v2-luminaria):not(.v2-ambient):not(.v2-rays):not(.v2-rain-canvas):not(.v2-snow-canvas):not(.v2-fog):not(.v2-lightning):not(.v2-lightning-eco) { position: relative; z-index: 1; }
     .v2-anim { display: none; position: absolute; inset: 0; }
     #vista2[data-meteo-cat="despejado"] .v2-anim-despejado { display: block; }
     #vista2[data-meteo-cat="nublado"]   .v2-anim-nublado   { display: block; }
-    #vista2[data-meteo-cat="nieve"]     .v2-anim-nieve     { display: block; }
-    #vista2[data-meteo-cat="niebla"]    .v2-anim-niebla    { display: block; }
+    #vista2[data-meteo-cat="niebla"].v2-fog-fallback .v2-anim-niebla { display: block; }
 
     /* Sol (despejado): gira lento, rayos pulsan. */
     .v2-sol {
@@ -808,27 +807,44 @@
     #vista2[data-meteo-cat="lluvia"]   .v2-rain-canvas,
     #vista2[data-meteo-cat="tormenta"] .v2-rain-canvas { display: block; }
 
-    /* IU-11: nieve. Copos sembrados desde JS con delay/duration aleatorios.
-       Animación mezcla caída con oscilación lateral senoidal. */
-    .v2-copo {
+    /* IU-15: nieve servida por js/v2_snowfx.js (Canvas 2D) y niebla por
+       js/v2_fogfx.js (SVG feTurbulence+feDisplacementMap). Las reglas
+       siguientes solo aplican al fallback CSS de la niebla, activado por
+       #vista2.v2-fog-fallback cuando el navegador no soporta el filter
+       SVG o el usuario pasa ?fogfallback=1. Las dos capas radiales son
+       las originales de IU-11. */
+    .v2-snow-canvas {
       position: absolute;
-      top: -5%;
-      width: 4px;
-      height: 4px;
-      border-radius: 50%;
-      background: rgba(230,238,248,0.7);
-      animation: v2-copo-cae 9s linear infinite;
+      inset: 0;
+      pointer-events: none;
+      display: none;
+      z-index: 0;
     }
-    @keyframes v2-copo-cae {
-      0%   { transform: translate(0, 0)       scale(0.6); opacity: 0; }
-      10%  {                                              opacity: 0.55; }
-      25%  { transform: translate(10px, 28vh) scale(0.8); }
-      50%  { transform: translate(-6px, 55vh) scale(1.0); }
-      75%  { transform: translate(10px, 82vh) scale(0.9); }
-      100% { transform: translate(0, 115vh)   scale(0.7); opacity: 0.1; }
+    #vista2[data-meteo-cat="nieve"] .v2-snow-canvas { display: block; }
+
+    .v2-fog {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      display: none;
+      mix-blend-mode: screen;
+      z-index: 0;
+    }
+    #vista2[data-meteo-cat="niebla"]:not(.v2-fog-fallback) .v2-fog { display: block; }
+    .v2-fog-capa-1 { animation: v2-fog-drift-1 60s ease-in-out infinite alternate; }
+    .v2-fog-capa-2 { animation: v2-fog-drift-2 80s ease-in-out infinite alternate; }
+    @keyframes v2-fog-drift-1 {
+      from { transform: translate(-40px, -20px); }
+      to   { transform: translate( 40px,  10px); }
+    }
+    @keyframes v2-fog-drift-2 {
+      from { transform: translate( 30px,  15px); }
+      to   { transform: translate(-30px, -10px); }
     }
 
-    /* IU-11: niebla. Dos capas radiales con pulso de opacidad desfasado. */
+    /* Fallback CSS: dos radiales con pulso (comportamiento IU-11). */
     .v2-niebla-capa {
       position: absolute;
       inset: -10%;
@@ -870,7 +886,7 @@
 
     @media (prefers-reduced-motion: reduce) {
       .v2-sol, .v2-nube,
-      .v2-copo, .v2-niebla-capa,
+      .v2-niebla-capa, .v2-fog-capa-1, .v2-fog-capa-2,
       .v2-lightning, .v2-lightning-eco { animation: none !important; display: none !important; }
     }
 
@@ -1263,7 +1279,6 @@
           <ellipse cx="140" cy="38" rx="34" ry="18"/>
         </svg>
       </div>
-      <div class="v2-anim v2-anim-nieve" id="v2Copos"></div>
       <div class="v2-anim v2-anim-niebla">
         <div class="v2-niebla-capa"></div>
         <div class="v2-niebla-capa v2-niebla-capa-2"></div>
@@ -1318,6 +1333,8 @@
   <script src="js/simulator.js"></script>
   <script src="js/v2_rainfx.js"></script>
   <script src="js/v2_lightningfx.js"></script>
+  <script src="js/v2_snowfx.js"></script>
+  <script src="js/v2_fogfx.js"></script>
   <script>
     // Bloque etiquetado: envolvemos todo el bootstrap del panel para poder
     // cortar limpiamente con `break panelBlock;` en modo ?logs=1, evitando
@@ -1533,6 +1550,9 @@
     if (window.RainFX) RainFX.init();
     // IU-14: rayos SVG de tormenta con eco cálido.
     if (window.LightningFX) LightningFX.init();
+    // IU-15: nieve Canvas 2D + niebla volumétrica SVG (con fallback CSS).
+    if (window.SnowFX) SnowFX.init();
+    if (window.FogFX)  FogFX.init();
 
     // IU-12: estrellas para noche despejada. Generadas una vez con posición
     // aleatoria y delay de twinkle desfasado. La visibilidad se controla
@@ -1568,23 +1588,7 @@
       obs.observe(v2);
     })();
 
-    // IU-11: copos de nieve con caída más lenta que las gotas y oscilación
-    // lateral (keyframes mezclan translateY y translateX senoidal).
-    (function sembrarCoposNieve() {
-      const cont = document.getElementById('v2Copos');
-      if (!cont) return;
-      const n = 16;
-      const frag = document.createDocumentFragment();
-      for (let i = 0; i < n; i++) {
-        const c = document.createElement('div');
-        c.className = 'v2-copo';
-        c.style.left = (Math.random() * 100).toFixed(1) + '%';
-        c.style.animationDelay = (-Math.random() * 9).toFixed(2) + 's';
-        c.style.animationDuration = (7 + Math.random() * 5).toFixed(2) + 's';
-        frag.appendChild(c);
-      }
-      cont.appendChild(frag);
-    })();
+    // IU-15: sembrado CSS retirado; la nieve la pinta ahora SnowFX (Canvas).
 
     const $v1Velocidad      = document.getElementById('v1Velocidad');
 
@@ -1881,6 +1885,13 @@
           LightningFX.setMomento(momentoV2);
           LightningFX.setCategoria(meteo.categoria || null);
         }
+        // IU-15: nieve canvas reacciona a weather_code y viento; niebla SVG
+        // solo ajusta paleta por momento (la oculta/muestra el CSS).
+        if (window.SnowFX) {
+          SnowFX.setMomento(momentoV2);
+          SnowFX.setMeteo(meteo);
+        }
+        if (window.FogFX) FogFX.setMomento(momentoV2);
 
         const nHoras = meteo.previsionHoraria ? meteo.previsionHoraria.length : 0;
         const etiqueta = meteo.deCache ? ' [cache]' : '';
