@@ -63,27 +63,46 @@
     }
   }
 
-  function densidadObjetivo(mmH) {
-    if (mmH < 1)  return 18;
-    if (mmH < 3)  return 28;
-    if (mmH < 8)  return 40;
-    return 50;
+  function esTormenta(m) {
+    return !!(m && m.categoria === 'tormenta');
   }
 
-  function velocidadCaidaPxS(mmH) {
-    if (mmH < 1) return 450;
-    if (mmH < 3) return 600;
-    if (mmH < 8) return 800;
-    return 1000;
+  // IU-14: tormenta aplica un multiplicador x2 (con cap) sobre la densidad
+  // normal de lluvia para transmitir sensación de frente.
+  function densidadObjetivo(mmH, tormenta) {
+    var base;
+    if (mmH < 1)      base = 18;
+    else if (mmH < 3) base = 28;
+    else if (mmH < 8) base = 40;
+    else              base = 50;
+    return tormenta ? Math.min(base * 2, 100) : base;
+  }
+
+  // IU-14: tormenta acelera un 25 % la caída para reforzar la intensidad.
+  function velocidadCaidaPxS(mmH, tormenta) {
+    var base;
+    if (mmH < 1)      base = 450;
+    else if (mmH < 3) base = 600;
+    else if (mmH < 8) base = 800;
+    else              base = 1000;
+    return tormenta ? base * 1.25 : base;
   }
 
   // Componente horizontal del viento en px/s. La convención meteo dice
   // wind_direction = dirección DESDE donde sopla (0° = N, 90° = E).
   // Así que viento desde 90° empuja hacia el oeste: vx negativo.
+  // IU-14: en tormenta forzamos un mínimo de 30 km/h y multiplicamos x1.5
+  // para dar la sensación de frente incluso cuando el viento real es bajo.
   function vientoVxPxS(m) {
-    if (!m || typeof m.vientoVelocidad !== 'number') return 0;
-    var kmh = m.vientoVelocidad;
+    if (!m) return 0;
+    var kmh = (typeof m.vientoVelocidad === 'number') ? m.vientoVelocidad : 0;
     var dirDeg = (typeof m.vientoDireccion === 'number') ? m.vientoDireccion : 0;
+    if (esTormenta(m)) {
+      kmh = Math.max(kmh, 30) * 1.5;
+      // Si no hay dirección de viento (o es 0), forzamos una inclinación
+      // visible alterna: 110° (viento desde ESE → empuja al oeste).
+      if (!m.vientoDireccion) dirDeg = 110;
+    }
     var ms = kmh / 3.6;
     var magnitud = ms * 22;
     var dirRad = dirDeg * Math.PI / 180;
@@ -99,7 +118,7 @@
       : -20 - Math.random() * 40;
     gota.len = 10 + Math.random() * 14;
     var mmH = mmPorHora(meteoActual);
-    var baseVyS = velocidadCaidaPxS(mmH);
+    var baseVyS = velocidadCaidaPxS(mmH, esTormenta(meteoActual));
     gota.vy = (baseVyS * (0.85 + Math.random() * 0.35)) / 30;
     var vxS = vientoVxPxS(meteoActual);
     gota.vx = (vxS * (0.85 + Math.random() * 0.35)) / 30;
@@ -305,7 +324,7 @@
       meteoActual.categoria !== (m && m.categoria) ||
       mmPorHora(meteoActual) !== mmPorHora(m);
     meteoActual = m || null;
-    poolObjetivo = densidadObjetivo(mmPorHora(meteoActual));
+    poolObjetivo = densidadObjetivo(mmPorHora(meteoActual), esTormenta(meteoActual));
     if (reducedMotion) renderEstatico();
     if (cambia && typeof debug !== 'undefined') {
       debug.log('RainFX meteo · cat=' + (m && m.categoria) +
