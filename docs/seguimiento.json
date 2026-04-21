@@ -7,9 +7,9 @@
     "nota_pie": "Actualizar al final de cada sesión de trabajo"
   },
   "estado_actual": {
-    "fase_actual": "Fase 3 completa. IU-13 cerrada en sesión 30: motor Canvas 2D de lluvia (pool adaptativo 18-50 según mm/h, gotas inclinadas por viento real, impactos elípticos, tintado por momento del día). Sustituye a la lluvia CSS de IU-10.",
+    "fase_actual": "Fase 3 completa. IU-14 cerrada en sesión 31: capa de tormenta sobre el motor de lluvia (pool x2, viento forzado, rayo SVG bifurcado con glow y eco cálido). Sustituye al flash blanco plano de IU-11.",
     "ultima_actualizacion": "21 de abril de 2026",
-    "siguiente_hito": "Verificación humana de IU-13. Tarjetas siguientes: IU-14 (tormenta sobre el motor: densidad x2, rayo en rama, eco cálido) e IU-15 (nieve en Canvas + niebla volumétrica SVG).",
+    "siguiente_hito": "Verificación humana de IU-13 e IU-14. Última tarjeta del bloque full-inmersión: IU-15 (nieve en Canvas reusando el motor + niebla volumétrica SVG).",
     "bloqueos": "Ninguno."
   },
   "fases": [
@@ -2415,6 +2415,40 @@
         [
           "Pendientes",
           "Verificación humana de IU-13 en carretera (prueba en día con lluvia real) y en distintos momentos del día. Siguientes en cola: IU-14 (tormenta: densidad x2, rayo en rama y eco cálido sobre el mismo motor) e IU-15 (nieve en Canvas reusando el motor + niebla volumétrica SVG)."
+        ]
+      ]
+    },
+    {
+      "n": 31,
+      "titulo": "IU-14 — tormenta: densidad x2, rayo SVG bifurcado y eco cálido",
+      "campos": [
+        [
+          "Fecha",
+          "21 de abril de 2026"
+        ],
+        [
+          "Fase trabajada",
+          "UI/Experiencia: segunda capa dinámica del bloque full-inmersión. Sustituye al flash blanco plano de IU-11 por rayos SVG con glow sobre el motor de lluvia de IU-13."
+        ],
+        [
+          "Contexto de arranque",
+          "IU-13 en verde (confirmada por Laureano al aprobar el paso de IU-14 a roja). Sesión dedicada íntegramente a IU-14 siguiendo la descripción original de la tarjeta: sobre el motor de lluvia aplicar densidad x2 y viento forzado, rayo SVG con feGaussianBlur en lugar de flash blanco, eco cálido de 300 ms tras el rayo, frecuencia aleatoria 15-35 s, diferenciación día/noche, opacidad <= 0.4."
+        ],
+        [
+          "Lo que se ha hecho",
+          "(A) RainFX ampliado con modo tormenta: nueva función esTormenta(m) que se pasa como segundo argumento a densidadObjetivo (cap a 100, x2 sobre la base) y velocidadCaidaPxS (x1.25). En vientoVxPxS, cuando la categoría es tormenta se fuerza un mínimo de 30 km/h antes de multiplicar x1.5; si vientoDireccion es 0 o ausente, se fuerza 110° para garantizar una inclinación visible. (B) Nuevo módulo js/v2_lightningfx.js (~230 líneas) con API LightningFX.init/setCategoria/setMomento. Crea un <svg> y un <div> de eco cálido como hijos de #vista2, insertados tras el canvas de lluvia. El SVG lleva un <defs><filter id=\"v2-lightning-glow\"> con feGaussianBlur stdDeviation=2.5 y feMerge (blur debajo, SourceGraphic encima) para conseguir trazo nítido sobre halo difuso. (C) 3 paths alternos de rama bifurcada, cada uno con su propio camino zigzag vertical (8-9 puntos) más una bifurcación lateral; se eligen al azar por rayo para variar. (D) Paleta por momento del día: dia/amanecer/atardecer/noche con variantes de stroke (gris-azul a blanco-azul) y de eco (cálido rosado a naranja intenso). Opacidades pico <= 0.4 en stroke, <= 0.32 en eco. (E) Animación de un rayo: opacidad 0→1 en 30 ms (flash principal), 1→0 en 90 ms restantes (total 120 ms); eco cálido 0→1 en 80 ms y 1→0 en 220 ms adicionales (total 300 ms). Ambos arrancan prácticamente a la vez; el eco sobrevive al rayo para dar el resplandor posterior. (F) Scheduler: setTimeout recursivo con espera aleatoria 15000 + rand*20000 ms entre rayos. setCategoria('tormenta') arranca el ciclo, cualquier otra categoría lo cancela (limpia timer, flashTimer y ecoTimer). (G) IntersectionObserver propio al 0.5 de threshold; si V2 no está visible el rayo no se dispara aunque el timer vence (el scheduler sigue programando pero no lanza). (H) CSS: nuevas reglas .v2-lightning y .v2-lightning-eco con position:absolute, display:none por defecto y display:block solo cuando data-meteo-cat=\"tormenta\". Eco con mix-blend-mode:screen para sumarse al fondo en vez de aplanarlo. (I) Integración en index.html: carga del nuevo script tras v2_rainfx.js, llamada LightningFX.init() junto a RainFX.init(), y LightningFX.setMomento(momento) + LightningFX.setCategoria(meteo.categoria) en pintarMeteo paralelamente a RainFX. (J) Retirado lo viejo: .v2-flash y @keyframes v2-flash-cae, div <div class=\"v2-anim v2-anim-tormenta\"><div class=\"v2-flash\"></div></div>, selector #vista2[data-meteo-cat=\"tormenta\"] .v2-anim-tormenta { display: block }. Añadidos .v2-lightning y .v2-lightning-eco al selector :not() de z-index:1 de #vista2 para que queden bajo el contenido. Entradas de prefers-reduced-motion para ambos con display:none."
+        ],
+        [
+          "Decisiones tomadas",
+          "1. Módulo separado (LightningFX) en vez de ampliar RainFX: SVG vs Canvas son dos mundos distintos y el rayo tiene su propio scheduler basado en setTimeout, no RAF. Acoplarlos solo multiplicaría ramas dentro del tick de RainFX. 2. 3 paths precargados y selección aleatoria por rayo: más barato que generar geometría en vivo y permite controlar la estética (bifurcaciones naturales). Si se quedan cortos, escalar a 5-6 es trivial. 3. Forzar mínimo de 30 km/h en tormenta para el viento: la sensación de frente necesita inclinación visible de la lluvia aunque el GPS diga viento 0. Documentado explícitamente en vientoVxPxS. 4. Eco cálido como div con radial-gradient y mix-blend-mode:screen (no naranjo sobre fondo oscuro que se ve plano): SCREEN suma luz al pixel existente y da el efecto de resplandor difuso que describe la tarjeta. 5. feMerge con blur debajo y SourceGraphic encima: si solo dejamos el blur, el rayo pierde nitidez; el merge nos da trazo definido sobre halo. 6. Pool cap 100 en tormenta: x2 estricto daría 100 con mmH>=8, pero más allá de 100 gotas a 30 fps empieza a costar en la GPU del móvil viejo. 100 es el techo razonable."
+        ],
+        [
+          "Verificación",
+          "Dev server panel-viaje, simulador ?sim=a6&speed=1&debug=1. (1) Con data-meteo-cat='tormenta' el canvas de lluvia recibe pool=100 (mmH 10 → base 50 · 2) y viento forzado aunque el meteo real reporte vientoVelocidad=0. (2) El SVG .v2-lightning y el div .v2-lightning-eco aparecen con display:block solo en tormenta, ocultos (none) al cambiar a despejado. (3) Forzando opacidad inline en un path y el eco se aprecia el rayo bifurcado con glow y el resplandor cálido sobre el cielo de tormenta; capturas de pantalla comparativas de día (stroke gris-azul, eco rosado) y noche (stroke blanco-azul intenso, eco naranja más vivo). (4) El scheduler lanza un rayo real a los ~15 s (primer rayo aleatorio dentro del intervalo 15-35 s) con debug.log 'LightningFX · rayo #1 · momento=dia'. (5) Al cambiar categoría a 'despejado' el debug.log registra 'LightningFX: scheduler detenido' y el SVG queda oculto por CSS."
+        ],
+        [
+          "Pendientes",
+          "Verificación humana de IU-14 en tormenta real en carretera y en distintos momentos del día. Última tarjeta del bloque full-inmersión: IU-15 (nieve en Canvas reusando el motor de RainFX + niebla volumétrica SVG)."
         ]
       ]
     }
