@@ -57,17 +57,24 @@ Estas restricciones son permanentes y condicionan cualquier decisión técnica d
 ├── .claude/
 │   └── skills/                     Skills de Obsidian de kepano (ver sección 8)
 ├── js/                             Módulos JavaScript del panel
-│   ├── debug.js                    Panel de debug en pantalla con ?debug=1
-│   ├── location.js                 LocationModule (Nominatim zoom 14 + 17)
-│   ├── weather.js                  WeatherModule (Open-Meteo)
-│   ├── meteo_codigos.js            Tabla WMO → texto + categoría + icono
-│   ├── carreteras.js               Clasificación estatal/autonómica + tabla de mapeo
-│   ├── roadref.js                  Fallback Overpass para rescatar ref de vías
+│   ├── debug.js                    Panel de debug en pantalla con ?debug=1 (expone const debug global; usar typeof debug !== 'undefined' como guarda)
+│   ├── trayectos.js                Persistencia de logs por trayecto en IndexedDB + exportador (FN-02)
 │   ├── wakelock.js                 Wake Lock API para mantener la pantalla encendida
-│   ├── simulator.js                Simulador de GPS activable con ?sim=<ruta>
+│   ├── carreteras.js               Clasificación estatal/autonómica + tabla de mapeo
+│   ├── overpass.js                 Cascada de mirrors Overpass compartida
+│   ├── roadref.js                  Fallback Overpass para rescatar ref de vías
+│   ├── location.js                 LocationModule (Nominatim zoom 14 + 17)
+│   ├── meteo_codigos.js            Tabla WMO → texto + categoría + icono + icono SVG
+│   ├── weather.js                  WeatherModule (Open-Meteo; expone mm/h y sunrise/sunset)
+│   ├── motorwayexit.js             Próxima salida de autovía (Overpass)
+│   ├── gasolineras.js              GasolinerasModule (Overpass)
+│   ├── pois.js                     POIModule (Overpass + Wikidata + Wikipedia + Photon)
 │   ├── rutas.js                    Catálogo de rutas del simulador
-│   ├── motorwayexit.js             (pendiente) Próxima salida de autovía
-│   └── (futuros módulos)
+│   ├── simulator.js                Simulador de GPS activable con ?sim=<ruta>
+│   ├── v2_rainfx.js                Motor Canvas 2D de lluvia en V2 (IU-13)
+│   ├── v2_lightningfx.js           Rayo SVG + eco cálido para tormenta en V2 (IU-14)
+│   ├── v2_snowfx.js                Motor Canvas 2D de nieve en V2 (IU-15)
+│   └── v2_fogfx.js                 Niebla volumétrica SVG en V2 (IU-15; fallback con ?fogfallback=1)
 ├── docs/                           Documentación y sistema de seguimiento
 │   ├── seguimiento.json            FUENTE CANÓNICA de historia (ver sección 5)
 │   ├── generar_seguimiento.js      Script Node.js que genera el .docx desde el JSON
