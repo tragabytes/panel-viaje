@@ -7,9 +7,9 @@
     "nota_pie": "Actualizar al final de cada sesión de trabajo"
   },
   "estado_actual": {
-    "fase_actual": "Fase 3 completa. IU-12 cerrada en sesión 29: base del sistema full-inmersión de V2 con momento del día (noche/amanecer/día/atardecer) y luminaria realista (sol/luna).",
-    "ultima_actualizacion": "18 de abril de 2026",
-    "siguiente_hito": "Verificación humana de IU-12. Tarjetas siguientes: IU-13 (motor Canvas lluvia), IU-14 (tormenta elaborada), IU-15 (nieve Canvas + niebla volumétrica).",
+    "fase_actual": "Fase 3 completa. IU-13 cerrada en sesión 30: motor Canvas 2D de lluvia (pool adaptativo 18-50 según mm/h, gotas inclinadas por viento real, impactos elípticos, tintado por momento del día). Sustituye a la lluvia CSS de IU-10.",
+    "ultima_actualizacion": "21 de abril de 2026",
+    "siguiente_hito": "Verificación humana de IU-13. Tarjetas siguientes: IU-14 (tormenta sobre el motor: densidad x2, rayo en rama, eco cálido) e IU-15 (nieve en Canvas + niebla volumétrica SVG).",
     "bloqueos": "Ninguno."
   },
   "fases": [
@@ -2379,6 +2379,44 @@
           "Verificación humana de IU-12 en condiciones reales (todos los momentos del día, prueba en distintas horas). Siguiente en cola: IU-13 (motor Canvas 2D de lluvia con viento e impacto). IU-14 e IU-15 dependen de IU-13."
         ]
       ]
+    },
+    {
+      "n": 30,
+      "titulo": "IU-13 — motor Canvas 2D de lluvia con viento, impacto y momento del día",
+      "campos": [
+        [
+          "Fecha",
+          "21 de abril de 2026"
+        ],
+        [
+          "Fase trabajada",
+          "UI/Experiencia: primera capa dinámica del sistema full-inmersión. Sustituye la lluvia CSS de IU-10 por un motor Canvas 2D."
+        ],
+        [
+          "Contexto de arranque",
+          "IU-12 en cyan verificada como verde por Laureano al arrancar la sesión. IU-13 movida de morada a roja; arrancada y convertida en naranja. Sin cambios de alcance: seguimos la descripción original de la tarjeta (pool 30-50 gotas, viento, impactos, Canvas 2D, 30fps, prefers-reduced-motion, tintado por momento del día, opacidad <= 0.4)."
+        ],
+        [
+          "Lo que se ha hecho",
+          "(A) WeatherModule: añadido 'precipitation' a CAMPOS_CURRENT de Open-Meteo y normalizado a meteo.precipitacion (mm/h). Así el motor puede leer la intensidad real de la lluvia actual. (B) Nuevo módulo js/v2_rainfx.js (~280 líneas) con API RainFX.init() / setMeteo() / setMomento(). Crea un <canvas class=\"v2-rain-canvas\"> como primer hijo de #vista2, dimensionado a dpr*0.75 con escalado ctx.scale para coordenadas CSS. (C) Pool adaptativo: 18 gotas por debajo de 1 mm/h, 28 hasta 3, 40 hasta 8, 50 si más. Si precipitacion no viene, fallback por weather_code WMO (drizzle/rain/showers/thunderstorm). (D) Física: caída 450-1000 px/s según intensidad, componente horizontal vx derivada de wind_speed_10m + wind_direction_10m (dirección meteorológica como DESDE donde sopla, vx = -sin(dir) * magnitud). Cada gota se respawnea al tocar 97% de la altura o salir por los lados. (E) Render: línea con gradiente vertical azul traslúcido + pequeño brillo superior. Impactos como elipses horizontales que crecen de 4x1 a 14x3 y fade en 400 ms (12 frames a 30 fps). Hasta 16 splashes simultáneos. (F) Tintado por momento del día: 4 paletas (dia, amanecer, atardecer, noche) con variantes de gota, brillo y color de splash. Se aplica vía RainFX.setMomento() en paralelo a data-momento. (G) Ciclo: 30 fps fijo con guard de timestamp en requestAnimationFrame. IntersectionObserver a threshold 0.5 sobre #vista2 marca visibleEnViewport; si false, el tick salta la simulación y el render (el RAF sigue pero cuesta poco). Si la categoría no es lluvia ni tormenta, el tick vacía pools y limpia canvas. (H) prefers-reduced-motion: pinta un único frame estático con gotas distribuidas en altura aleatoria, no arranca RAF. (I) Integración en index.html: carga del script, llamada RainFX.init() al arrancar, y RainFX.setMomento(momento) + RainFX.setMeteo(meteo) en cada pintado de meteo. Retirado el sembrado CSS de IU-10: eliminadas las reglas .v2-gota, @keyframes v2-gota-cae, sembrarGotasLluvia(), el div #v2Gotas y los selectores de display de .v2-anim-lluvia. Añadida regla CSS para que .v2-rain-canvas se muestre solo en data-meteo-cat=\"lluvia\"/\"tormenta\". Actualizado el selector de z-index de #vista2 > *:not(...) para excluir también .v2-rain-canvas. (J) Bug encontrado y corregido: mis guardas iniciales usaban window.debug, pero el proyecto exporta debug como const global (no propiedad de window). Cambiadas a typeof debug !== 'undefined' para seguir la convención del resto del proyecto y hacer que los logs de init/cambio de meteo aparezcan en el panel ?debug=1."
+        ],
+        [
+          "Decisiones tomadas",
+          "1. mm/h como fuente primaria de densidad, weather_code como fallback: Open-Meteo ya expone precipitation en current, así que lo usamos directamente en vez de depender solo de un mapping discreto de códigos WMO. El fallback cubre el caso de lluvia reportada sin mm/h explícita. 2. Canvas físico a dpr*0.75 en vez de dpr*1: reduce ~44% el número de píxeles que la GPU del móvil viejo tiene que rasterizar sin que se aprecie pérdida visual en gotas delgadas. 3. 30 fps fijo en lugar de 60: la lluvia no necesita suavidad cinematográfica y a 30 fps el consumo es la mitad. Guard por timestamp en el RAF, no setInterval. 4. Tintado de la gota por momento (no solo brillo): reutiliza el lenguaje de IU-12 (noche azul frío, amanecer dorado). Evita que la lluvia rompa la paleta del cielo. 5. IntersectionObserver propio del módulo: el que existe sobre #vista2 para CSS solo añade clase, pero el RAF del Canvas no respeta animation-play-state. Un observer dedicado en JS corta el trabajo en el tick cuando la vista no está visible. 6. Impactos como elipses y no salpicaduras multipartícula: con 50 gotas y respawn continuo, añadir partículas secundarias por impacto dispararía el coste sin aportar lectura visual a 30 fps en un movil viejo."
+        ],
+        [
+          "Problemas encontrados",
+          "PR05 (resuelto en la misma sesión): los logs de RainFX (init, cambio de meteo) no aparecían en el panel de debug porque usaba window.debug como guarda. El módulo debug.js declara 'const debug = ...' en el scope del script, y los const/let globales no se adjuntan a window en la web moderna. Arreglado cambiando las 5 guardas a 'typeof debug !== \"undefined\"'. Verificado en preview: los logs salen en el panel tras recarga."
+        ],
+        [
+          "Verificación",
+          "Dev server en python http.server 8766, simulador con ?sim=a6&speed=1&debug=1. (1) Al arrancar sin lluvia real (meteo real: nublado), el canvas existe pero CSS lo oculta. (2) Forzando data-meteo-cat='lluvia' + setMeteo con precipitacion=6 y viento 30km/h desde 90°, el canvas se muestra y se ven gotas inclinadas hacia la izquierda con pool=40. (3) Cambio a momento='noche' tinta las gotas de azul frío; a 'amanecer' las tinta de dorado cálido (captura de pantalla comparativa). (4) Deslizando a V1, v2-inactiva se activa y visibleEnViewport=false en el módulo (pausa el tick). (5) Cambio a categoría 'despejado' limpia el canvas y lo oculta via CSS. (6) Debug logs confirman 'RainFX init · dpr=1.50 · scale=0.75' y 'RainFX meteo · cat=lluvia · mm/h=6.0 · pool=40' en el panel."
+        ],
+        [
+          "Pendientes",
+          "Verificación humana de IU-13 en carretera (prueba en día con lluvia real) y en distintos momentos del día. Siguientes en cola: IU-14 (tormenta: densidad x2, rayo en rama y eco cálido sobre el mismo motor) e IU-15 (nieve en Canvas reusando el motor + niebla volumétrica SVG)."
+        ]
+      ]
     }
   ],
   "problemas_abiertos": [],
@@ -3174,6 +3212,24 @@
         [
           "Resolución",
           "Omitir lang o usar lang=en. Limitar a 5 osm_tag específicos cubriendo los tipos más frecuentes: castle, church, monastery, chapel, fort."
+        ]
+      ]
+    },
+    {
+      "id": "P26",
+      "titulo": "window.debug es undefined porque debug.js exporta const global",
+      "campos": [
+        [
+          "Sesión",
+          "30"
+        ],
+        [
+          "Descripción",
+          "En js/v2_rainfx.js (IU-13) las guardas iniciales usaban 'if (window.debug) debug.log(...)'. Los logs del módulo no aparecían en el panel ?debug=1. Causa: js/debug.js declara 'const debug = (() => { ... })()' en el scope del script; los const/let globales no se adjuntan a window en la web moderna. Por tanto window.debug === undefined aunque la variable debug sea accesible por scope lookup."
+        ],
+        [
+          "Resolución",
+          "Cambiar las guardas a 'typeof debug !== \"undefined\"' para que el scope lookup encuentre el const global. Patrón a seguir para cualquier módulo nuevo que quiera loguear al panel."
         ]
       ]
     }
