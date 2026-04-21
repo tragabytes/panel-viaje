@@ -7,9 +7,9 @@
     "nota_pie": "Actualizar al final de cada sesión de trabajo"
   },
   "estado_actual": {
-    "fase_actual": "Fase 3 completa. IU-14 cerrada en sesión 31: capa de tormenta sobre el motor de lluvia (pool x2, viento forzado, rayo SVG bifurcado con glow y eco cálido). Sustituye al flash blanco plano de IU-11.",
+    "fase_actual": "Bloque full-inmersión (IU-12 a IU-15) completo. IU-15 cerrada en sesión 32: nieve Canvas 2D (SnowFX) con copos blobby + halo nocturno y niebla volumétrica SVG (FogFX) con feTurbulence+feDisplacementMap. Fallback CSS por ?fogfallback=1. Sustituyen a la nieve y niebla CSS de IU-11.",
     "ultima_actualizacion": "21 de abril de 2026",
-    "siguiente_hito": "Verificación humana de IU-13 e IU-14. Última tarjeta del bloque full-inmersión: IU-15 (nieve en Canvas reusando el motor + niebla volumétrica SVG).",
+    "siguiente_hito": "Verificación humana de IU-13, IU-14 e IU-15 en carretera en distintos momentos del día y condiciones meteo reales.",
     "bloqueos": "Ninguno."
   },
   "fases": [
@@ -2449,6 +2449,40 @@
         [
           "Pendientes",
           "Verificación humana de IU-14 en tormenta real en carretera y en distintos momentos del día. Última tarjeta del bloque full-inmersión: IU-15 (nieve en Canvas reusando el motor de RainFX + niebla volumétrica SVG)."
+        ]
+      ]
+    },
+    {
+      "n": 32,
+      "titulo": "IU-15 — nieve Canvas y niebla volumétrica SVG con fallback",
+      "campos": [
+        [
+          "Fecha",
+          "21 de abril de 2026"
+        ],
+        [
+          "Fase trabajada",
+          "UI/Experiencia: última capa del bloque full-inmersión. Sustituye a la nieve y la niebla CSS de IU-11 por módulos dedicados."
+        ],
+        [
+          "Contexto de arranque",
+          "IU-13 verde (aprobada por Laureano tras la sesión 30), IU-14 cerrada en sesión 31 en cyan y IU-15 movida a roja para esta sesión. Última tarjeta del bloque de 4 (IU-12/13/14/15). La descripción de la tarjeta pedía reusar el motor Canvas de RainFX para la nieve; se interpretó como reutilizar el patrón (canvas dpr*0.75, 30 fps, IntersectionObserver, 4 paletas por momento) en un módulo separado con su propio canvas, para mantener el código ramificado mínimo."
+        ],
+        [
+          "Lo que se ha hecho",
+          "(A) Nuevo módulo js/v2_snowfx.js (~230 líneas): canvas .v2-snow-canvas hermano del de lluvia, con la misma escala dpr*0.75 y ciclo a 30 fps. Densidad por weather_code (71/73/75 snowfall, 77 grains, 85/86 snow showers) entre 22 y 35. Cada copo tiene size, rotación y velocidad angular propias, oscilación senoidal horizontal con amplitud 8-24 px y frecuencia 0.35-1.05 Hz. Caída 95-150 px/s según wc, modulada por el viento real (x14 factor, menor que lluvia porque los copos son menos sensibles al empuje horizontal). Cuerpo blobby compuesto por 4 elipses rotadas π/4 entre sí. De noche y en crepúsculos se dibuja primero un círculo halo (radio 1.9×size) con tinte azulado/cálido bajo el cuerpo para el 'brillo frío' que pide la tarjeta. De día el halo es nulo. (B) Nuevo módulo js/v2_fogfx.js (~130 líneas): crea un <svg> con 2 <defs> de filter, cada uno con feTurbulence (fractalNoise, seeds 3 y 7, baseFrequency 0.006-0.014 y 0.012-0.022) + feDisplacementMap (scale 42 y 58). Dos <rect> de 520x420 px (ligeramente mayores que el viewBox 400x300) con esos filtros. Las capas se desplazan con animaciones CSS 'v2-fog-drift-1' (60s, ease-in-out alterna) y 'v2-fog-drift-2' (80s, alterna) en direcciones opuestas. 4 paletas por momento (dia/amanecer/atardecer/noche) aplicadas como atributo fill de los rect. Opacidad por canal <= 0.4. (C) Fallback: FogFX.init detecta ?fogfallback=1 en la URL o ausencia de SVGFEDisplacementMapElement; si se cumple, añade la clase v2-fog-fallback a #vista2 y activa vía CSS las dos capas radiales originales de IU-11 (mantenidas en el HTML y en el CSS como fallback). (D) Integración en index.html: dos <script> tags nuevos, SnowFX.init() y FogFX.init() en el arranque, y en pintarMeteo SnowFX.setMomento/setMeteo y FogFX.setMomento junto a los otros motores. El CSS de #vista2[data-meteo-cat=niebla] muestra .v2-fog solo si NO hay clase v2-fog-fallback; si está la clase, se muestra .v2-anim-niebla en su lugar. El selector z-index:1 de los hijos de #vista2 excluye ahora también .v2-snow-canvas y .v2-fog. (E) Retirado: regla .v2-copo y @keyframes v2-copo-cae, sembrarCoposNieve(), div <div id=\"v2Copos\" class=\"v2-anim v2-anim-nieve\"></div>, y el selector CSS que mostraba .v2-anim-nieve. La regla antigua de .v2-niebla-capa y @keyframes v2-niebla-pulsa se conservan pero solo se aplican bajo .v2-fog-fallback."
+        ],
+        [
+          "Decisiones tomadas",
+          "1. Módulo separado (SnowFX) en vez de extender RainFX: los datos por copo (rotación, oscilación senoidal, blobs) son muy distintos de gota, y ramificar dentro de RainFX habría multiplicado condicionales en cada step/render. 2. Canvas dedicado para nieve: categorías lluvia/tormenta y nieve son excluyentes en el WMO, así que no colisionan aunque ambos canvas coexistan en el DOM. El coste de un canvas con display:none es despreciable. 3. feTurbulence+feDisplacementMap en lugar de trucar niebla con blur+gradients: la tarjeta lo pide explícitamente y da textura orgánica imposible con CSS. El coste medido en Chrome desktop es despreciable; en el móvil viejo (Chrome 146 sobre Android 10) se validará en prueba real, y si lag se activa el fallback con ?fogfallback=1 sin redeploy. 4. Fallback por query param en lugar de detección automática de coste: una detección tipo benchmark en init añadiría complejidad por un caso de borde. Con ?fogfallback=1 Laureano puede alternar en el coche si ve lag. 5. Paletas por momento con halo nulo de día para nieve: un halo diurno sobre cielo claro cocinaría demasiado el copo; el halo tiene valor narrativo solo bajo luz baja (noche, amanecer, atardecer). 6. Oscilación senoidal con tiempoSim local en SnowFX: más barato que recalcular Math.cos por copo y frame con timestamp del rAF; basta un acumulador global dividido por 30."
+        ],
+        [
+          "Verificación",
+          "Dev server panel-viaje, simulador ?sim=a6&speed=1&debug=1. (1) data-meteo-cat='nieve', data-momento='noche', setMeteo con wc=73: canvas nieve visible con pool=28, copos oscilando, halo azulado perceptible bajo cielo nocturno. debug.log 'SnowFX init · dpr=1.50 · scale=0.75' y 'SnowFX meteo · cat=nieve · wc=73 · pool=28'. (2) data-meteo-cat='niebla', data-momento='dia': el SVG .v2-fog se muestra; los dos rect tienen rgba(205,215,230,0.38) y rgba(185,195,215,0.28). Captura de pantalla confirma textura orgánica por el filter, no los radiales suaves antiguos. (3) data-momento='noche': rect1 pasa a rgba(155,170,200,0.32) y rect2 a rgba(130,145,175,0.24); la niebla se ve más sutil y fría. (4) Recarga con ?fogfallback=1: #vista2 recibe clase .v2-fog-fallback, el SVG .v2-fog queda con display:none y la .v2-anim-niebla original se muestra (dos radiales CSS con pulso). debug.log 'FogFX init · fallback CSS (radiales) activo'. (5) Categorías no-nieve mantienen snowDisp='none' por CSS. Logs de init de los 4 módulos (RainFX, LightningFX, SnowFX, FogFX) confirmados en el panel de debug tras recarga."
+        ],
+        [
+          "Pendientes",
+          "Verificación humana de IU-15 en condiciones reales (nevada en algún viaje invernal y niebla en serranía) y validación del coste del filter SVG en el móvil viejo. Si hay lag, activar con ?fogfallback=1 como workaround. Bloque full-inmersión (IU-12 a IU-15) cerrado en implementación; quedan las verificaciones humanas de IU-13, IU-14 e IU-15."
         ]
       ]
     }
