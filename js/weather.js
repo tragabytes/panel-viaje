@@ -27,7 +27,8 @@
     'weather_code',
     'is_day',
     'wind_speed_10m',
-    'wind_direction_10m'
+    'wind_direction_10m',
+    'precipitation'
   ].join(',');
 
   var CAMPOS_HOURLY = [
@@ -205,6 +206,8 @@
       vientoVelocidad: c.wind_speed_10m,
       vientoUnidad: u.wind_speed_10m || 'km/h',
       vientoDireccion: c.wind_direction_10m,
+      precipitacion: (typeof c.precipitation === 'number') ? c.precipitation : null,
+      precipitacionUnidad: u.precipitation || 'mm',
       hora: c.time,
       sunrise: sunrise,
       sunset: sunset,

@@ -234,26 +234,6 @@
 			"color": "4"
 		},
 		{
-			"id": "a4c6caca",
-			"type": "text",
-			"text": "## BPC-10 MotorwayExit no se activa porque el GPS del movil no reporta velocidad\nSintoma: 8+ minutos por la M-50 y MotorwayExit quedo en 'inactivo' sin un solo log mas. Hipotesis principal: coords.speed llega null en el movil viejo (comun en Android antiguos), y el modulo exige velocidad > 50 km/h sostenida para activarse. Pasos: (1) anadir log de debug que muestre el valor bruto de velocidadKmh recibido en cada tick, (2) si se confirma null o 0, implementar fallback que calcule km/h a partir de distancias entre fixes consecutivos (el panel ya detecta 'Movimiento detectado: 73m' cada 3s, lo que son ~87 km/h), (3) validar en simulador que la activacion por fallback funciona igual.",
-			"x": 1340,
-			"y": 1660,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "bb9d7f72",
-			"type": "text",
-			"text": "## BPC-11 Distancias de pueblos cercanos no cambian al moverse\nSintoma: de Las Rozas a Majadahonda por la M-50, la barra inferior de pueblos cercanos mostro distancias estaticas aunque el coche avanzaba. Observacion: pois.js tiene codigo que recalcula distancias desde la posicion actual (linea ~283) pero aparentemente el render no se repinta en cada tick, o solo se repinta al refrescar la cache de 'pueblos cercanos'. Pasos: (1) depurar el ciclo render, (2) decidir si hay que forzar repintado en cada tick de GPS o invalidar mas agresivamente la cache, (3) validar en simulador con una ruta que recorra varios kilometros sin cambiar de pueblo dominante.",
-			"x": 1340,
-			"y": 1840,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
 			"id": "360b9f70",
 			"type": "text",
 			"text": "## PO-04 Soporte de pedanías en POIModule\nLas pedanías (ejemplo: Castrillo de los Polvazares aparece como parte de Astorga en SPARQL, no como municipio independiente) no salen en la búsqueda estándar de municipios. Añadir una segunda capa de búsqueda que incluya entidades singulares de población. Identificado en sesión 05 como idea parqueada para Fase 2.",
@@ -399,26 +379,6 @@
 			"text": "## BPC-01 BP-01 Fix out tags→out body en MotorwayExit\nconstruirQuery usa 'out tags' que no incluye lat/lon. Todos los junctions son descartados. Cambiar a 'out body'. Una línea. Validar en simulador.",
 			"x": 1340,
 			"y": 40,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "a6140311",
-			"type": "text",
-			"text": "## BPC-12 Layout se rompe al volver a la vista principal tras deslizar\nSintoma: en Chrome Mobile, al deslizar a vista 2 o 3 y volver a la vista 1, la vista 1 pierde adaptacion y se corta informacion. El CSS ya usa 100dvh (index.html linea 28, 38), asi que el fix no es cambiar vh->dvh. Hipotesis a investigar: (a) el scroll-snap no reposiciona limpiamente al volver, (b) el viewport recalcula con retardo cuando la barra de Chrome se muestra/oculta, (c) el contenido en vista 1 asume una altura que ya no es valida tras el cambio. Probar: forzar recalculo con JS en visibilitychange o resize, o scroll-snap-stop: always, o recalcular alturas internas al evento scroll-end.",
-			"x": 1340,
-			"y": 2020,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "1258d06b",
-			"type": "text",
-			"text": "## BPC-13 BPC-13 Velocidad cortada por safe-area en vista 1\nEn el pantallazo de la sesión 26 (ruta ida al trabajo, M-501) la velocidad '34 km/h' aparece cortada por la derecha como '34 km/'. Causa probable: el viewport no respeta safe areas del navegador Android (iconos de estado, esquina redondeada, punch-hole). Solución: añadir viewport-fit=cover al meta viewport y aplicar env(safe-area-inset-right/top/bottom/left) en el padding del contenedor de vista 1. Validar en el móvil real, no sirve solo la preview de Claude. Si conviene, añadir un parametro ?safearea=N que pinte padding ficticio para iterar mas rapido en escritorio.",
-			"x": 1340,
-			"y": 2200,
 			"width": 280,
 			"height": 160,
 			"color": "4"
@@ -604,6 +564,46 @@
 			"color": "4"
 		},
 		{
+			"id": "849d45c4",
+			"type": "text",
+			"text": "## MO-07 Destinos legibles en salidas: query a motorway_link adyacentes\nLos node[motorway_junction] llevan ref pero rara vez name. Los ways adyacentes (motorway_link) sí suelen llevar destination y destination:ref con textos legibles ('Madrid', 'Zaragoza por A-2'). Cuando estamos a <2 km de una salida, hacer una segunda query Overpass a los motorway_link adyacentes y extraer los destinos. El cartel verde de vista 1 mostraría destinos como un cartel real en lugar de solo el número de salida.",
+			"x": 460,
+			"y": 1120,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "a5a802c1",
+			"type": "text",
+			"text": "## FN-07 Mejora de la consulta de comarcas (filtrar a comarca de España)\nLa consulta SPARQL actual usa wdt:P361 (part of) para obtener la comarca, pero P361 devuelve cualquier tipo de pertenencia, no solo comarcas. Filtrar a entidades que sean instancia de 'comarca de España' (Q56061) para mejorar precisión. Cuando no haya valor útil, omitir el campo en lugar de mostrar datos incorrectos.",
+			"x": 2660,
+			"y": 1120,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "1dd05750",
+			"type": "text",
+			"text": "## FN-08 Señal de velocidad invertida cuando se supera el límite\nCuando la velocidad GPS supera maxspeedActual, cambiar el estilo del .maxspeed-chip a fondo rojo sólido con número blanco (actualmente blanco con borde rojo y número negro). Activar con clase .exceso sobre el chip, disparada por el mismo umbral que ya colorea #v1Velocidad/#v2Velocidad. Sin barra diagonal — mantener aspecto de alerta limpia, no confundir con señal de tráfico real.",
+			"x": 2660,
+			"y": 1300,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "8a314bee",
+			"type": "text",
+			"text": "## FN-09 Barra compacta de gasolineras en vista principal (V1)\nLas gasolineras (Overpass amenity=fuel, radio 5 km, hasta 5 resultados por distancia) solo aparecen hoy en V3. Añadir versión compacta permanente en V1 con las 2 más cercanas (marca + distancia) en una fila discreta al pie de la vista o adyacente al bloque de próxima salida. Objetivo ampliado: orientar paradas (baño, comida, repostaje). Reutiliza los datos ya obtenidos por gasolineras.js sin peticiones extra. Medir impacto en el layout denso de V1 antes de confirmar posición.",
+			"x": 2660,
+			"y": 1480,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
 			"id": "212e4410",
 			"type": "text",
 			"text": "## PO-10 Normalización de labels: segunda pasada con sinónimos de patrimonio\nEn Trujillo solo se matchearon 3/8 POIs (37%) por diferencias de nombre: 'Palacio de Pizarro' vs 'Casa-Museo de Pizarro'. Añadir una segunda pasada de matching con sinónimos comunes (casa=palacio=casa-museo, iglesia=parroquia, etc.) o búsqueda parcial contra Wikidata cuando el primer intento falla. Objetivo: subir cobertura del 37% al ~65% en pueblos grandes.",
@@ -629,56 +629,6 @@
 			"text": "## PO-12 Photon como fallback final cuando Overpass+Wikidata quedan vacíos\nPhoton se descartó como geocodificador administrativo pero su capacidad de devolver el POI más cercano es útil como último eslabón de la cascada: Overpass → Wikipedia geosearch → Photon. Activar solo cuando los dos anteriores devuelven cero resultados. Evaluar cobertura en carretera antes de activar por defecto.",
 			"x": 900,
 			"y": 2020,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "849d45c4",
-			"type": "text",
-			"text": "## MO-07 Destinos legibles en salidas: query a motorway_link adyacentes\nLos node[motorway_junction] llevan ref pero rara vez name. Los ways adyacentes (motorway_link) sí suelen llevar destination y destination:ref con textos legibles ('Madrid', 'Zaragoza por A-2'). Cuando estamos a <2 km de una salida, hacer una segunda query Overpass a los motorway_link adyacentes y extraer los destinos. El cartel verde de vista 1 mostraría destinos como un cartel real en lugar de solo el número de salida.",
-			"x": 460,
-			"y": 1120,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "a5a802c1",
-			"type": "text",
-			"text": "## FN-07 Mejora de la consulta de comarcas (filtrar a comarca de España)\nLa consulta SPARQL actual usa wdt:P361 (part of) para obtener la comarca, pero P361 devuelve cualquier tipo de pertenencia, no solo comarcas. Filtrar a entidades que sean instancia de 'comarca de España' (Q56061) para mejorar precisión. Cuando no haya valor útil, omitir el campo en lugar de mostrar datos incorrectos.",
-			"x": 2660,
-			"y": 1120,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "4ef49f3e",
-			"type": "text",
-			"text": "## BPC-14 Indicador del simulador tapa el botón fullscreen\nEn modo simulación (?sim=<ruta>), el recuadro amarillo 'sim <ruta> xN' se dibuja en la esquina superior-derecha y solapa el botón fullscreen de IU-09, impidiendo pincharlo. Reubicar el indicador del simulador (p.ej. esquina inferior-derecha o superior-izquierda) para que el botón fullscreen siga siendo accesible durante pruebas con simulador.",
-			"x": 1340,
-			"y": 2380,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "1dd05750",
-			"type": "text",
-			"text": "## FN-08 Señal de velocidad invertida cuando se supera el límite\nCuando la velocidad GPS supera maxspeedActual, cambiar el estilo del .maxspeed-chip a fondo rojo sólido con número blanco (actualmente blanco con borde rojo y número negro). Activar con clase .exceso sobre el chip, disparada por el mismo umbral que ya colorea #v1Velocidad/#v2Velocidad. Sin barra diagonal — mantener aspecto de alerta limpia, no confundir con señal de tráfico real.",
-			"x": 2660,
-			"y": 1300,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "8a314bee",
-			"type": "text",
-			"text": "## FN-09 Barra compacta de gasolineras en vista principal (V1)\nLas gasolineras (Overpass amenity=fuel, radio 5 km, hasta 5 resultados por distancia) solo aparecen hoy en V3. Añadir versión compacta permanente en V1 con las 2 más cercanas (marca + distancia) en una fila discreta al pie de la vista o adyacente al bloque de próxima salida. Objetivo ampliado: orientar paradas (baño, comida, repostaje). Reutiliza los datos ya obtenidos por gasolineras.js sin peticiones extra. Medir impacto en el layout denso de V1 antes de confirmar posición.",
-			"x": 2660,
-			"y": 1480,
 			"width": 280,
 			"height": 160,
 			"color": "4"
@@ -711,7 +661,7 @@
 			"y": 2020,
 			"width": 280,
 			"height": 160,
-			"color": "5"
+			"color": "4"
 		},
 		{
 			"id": "93b56dae",
@@ -721,7 +671,7 @@
 			"y": 2200,
 			"width": 280,
 			"height": 160,
-			"color": "6"
+			"color": "5"
 		},
 		{
 			"id": "b064e806",
@@ -742,6 +692,56 @@
 			"width": 280,
 			"height": 160,
 			"color": "6"
+		},
+		{
+			"id": "a4c6caca",
+			"type": "text",
+			"text": "## BPC-10 MotorwayExit no se activa porque el GPS del movil no reporta velocidad\nSintoma: 8+ minutos por la M-50 y MotorwayExit quedo en 'inactivo' sin un solo log mas. Hipotesis principal: coords.speed llega null en el movil viejo (comun en Android antiguos), y el modulo exige velocidad > 50 km/h sostenida para activarse. Pasos: (1) anadir log de debug que muestre el valor bruto de velocidadKmh recibido en cada tick, (2) si se confirma null o 0, implementar fallback que calcule km/h a partir de distancias entre fixes consecutivos (el panel ya detecta 'Movimiento detectado: 73m' cada 3s, lo que son ~87 km/h), (3) validar en simulador que la activacion por fallback funciona igual.",
+			"x": 1340,
+			"y": 1660,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "bb9d7f72",
+			"type": "text",
+			"text": "## BPC-11 Distancias de pueblos cercanos no cambian al moverse\nSintoma: de Las Rozas a Majadahonda por la M-50, la barra inferior de pueblos cercanos mostro distancias estaticas aunque el coche avanzaba. Observacion: pois.js tiene codigo que recalcula distancias desde la posicion actual (linea ~283) pero aparentemente el render no se repinta en cada tick, o solo se repinta al refrescar la cache de 'pueblos cercanos'. Pasos: (1) depurar el ciclo render, (2) decidir si hay que forzar repintado en cada tick de GPS o invalidar mas agresivamente la cache, (3) validar en simulador con una ruta que recorra varios kilometros sin cambiar de pueblo dominante.",
+			"x": 1340,
+			"y": 1840,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "a6140311",
+			"type": "text",
+			"text": "## BPC-12 Layout se rompe al volver a la vista principal tras deslizar\nSintoma: en Chrome Mobile, al deslizar a vista 2 o 3 y volver a la vista 1, la vista 1 pierde adaptacion y se corta informacion. El CSS ya usa 100dvh (index.html linea 28, 38), asi que el fix no es cambiar vh->dvh. Hipotesis a investigar: (a) el scroll-snap no reposiciona limpiamente al volver, (b) el viewport recalcula con retardo cuando la barra de Chrome se muestra/oculta, (c) el contenido en vista 1 asume una altura que ya no es valida tras el cambio. Probar: forzar recalculo con JS en visibilitychange o resize, o scroll-snap-stop: always, o recalcular alturas internas al evento scroll-end.",
+			"x": 1340,
+			"y": 2020,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "1258d06b",
+			"type": "text",
+			"text": "## BPC-13 BPC-13 Velocidad cortada por safe-area en vista 1\nEn el pantallazo de la sesión 26 (ruta ida al trabajo, M-501) la velocidad '34 km/h' aparece cortada por la derecha como '34 km/'. Causa probable: el viewport no respeta safe areas del navegador Android (iconos de estado, esquina redondeada, punch-hole). Solución: añadir viewport-fit=cover al meta viewport y aplicar env(safe-area-inset-right/top/bottom/left) en el padding del contenedor de vista 1. Validar en el móvil real, no sirve solo la preview de Claude. Si conviene, añadir un parametro ?safearea=N que pinte padding ficticio para iterar mas rapido en escritorio.",
+			"x": 1340,
+			"y": 2200,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "4ef49f3e",
+			"type": "text",
+			"text": "## BPC-14 Indicador del simulador tapa el botón fullscreen\nEn modo simulación (?sim=<ruta>), el recuadro amarillo 'sim <ruta> xN' se dibuja en la esquina superior-derecha y solapa el botón fullscreen de IU-09, impidiendo pincharlo. Reubicar el indicador del simulador (p.ej. esquina inferior-derecha o superior-izquierda) para que el botón fullscreen siga siendo accesible durante pruebas con simulador.",
+			"x": 1340,
+			"y": 2380,
+			"width": 280,
+			"height": 160,
+			"color": "4"
 		}
 	],
 	"edges": [

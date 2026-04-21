@@ -759,12 +759,10 @@
     #vista2.v2-inactiva * {
       animation-play-state: paused !important;
     }
-    #vista2 > *:not(.v2-animacion):not(.v2-luminaria):not(.v2-ambient):not(.v2-rays) { position: relative; z-index: 1; }
+    #vista2 > *:not(.v2-animacion):not(.v2-luminaria):not(.v2-ambient):not(.v2-rays):not(.v2-rain-canvas) { position: relative; z-index: 1; }
     .v2-anim { display: none; position: absolute; inset: 0; }
     #vista2[data-meteo-cat="despejado"] .v2-anim-despejado { display: block; }
     #vista2[data-meteo-cat="nublado"]   .v2-anim-nublado   { display: block; }
-    #vista2[data-meteo-cat="lluvia"]    .v2-anim-lluvia    { display: block; }
-    #vista2[data-meteo-cat="tormenta"]  .v2-anim-lluvia    { display: block; }
     #vista2[data-meteo-cat="tormenta"]  .v2-anim-tormenta  { display: block; }
     #vista2[data-meteo-cat="nieve"]     .v2-anim-nieve     { display: block; }
     #vista2[data-meteo-cat="niebla"]    .v2-anim-niebla    { display: block; }
@@ -798,20 +796,18 @@
       to   { transform: translateX(calc(100vw + 220px)); }
     }
 
-    /* Lluvia (y tormenta): 18 gotas con delays escalonados. */
-    .v2-gota {
+    /* IU-13: lluvia servida por js/v2_rainfx.js (canvas 2D). El canvas
+       se inserta como primer hijo de #vista2 y se controla via CSS con
+       el selector .v2-rain-canvas más abajo. */
+    .v2-rain-canvas {
       position: absolute;
-      top: -10%;
-      width: 2px;
-      height: 18px;
-      background: linear-gradient(to bottom, rgba(180,200,230,0) 0%, rgba(180,200,230,0.45) 100%);
-      animation: v2-gota-cae 1.4s linear infinite;
+      inset: 0;
+      pointer-events: none;
+      display: none;
+      z-index: 0;
     }
-    @keyframes v2-gota-cae {
-      0%   { transform: translateY(0);         opacity: 0; }
-      10%  {                                    opacity: 0.55; }
-      100% { transform: translateY(120vh);     opacity: 0.1; }
-    }
+    #vista2[data-meteo-cat="lluvia"]   .v2-rain-canvas,
+    #vista2[data-meteo-cat="tormenta"] .v2-rain-canvas { display: block; }
 
     /* IU-11: nieve. Copos sembrados desde JS con delay/duration aleatorios.
        Animación mezcla caída con oscilación lateral senoidal. */
@@ -867,7 +863,7 @@
     }
 
     @media (prefers-reduced-motion: reduce) {
-      .v2-sol, .v2-nube, .v2-gota,
+      .v2-sol, .v2-nube,
       .v2-copo, .v2-niebla-capa, .v2-flash { animation: none !important; }
     }
 
@@ -1260,7 +1256,6 @@
           <ellipse cx="140" cy="38" rx="34" ry="18"/>
         </svg>
       </div>
-      <div class="v2-anim v2-anim-lluvia" id="v2Gotas"></div>
       <div class="v2-anim v2-anim-nieve" id="v2Copos"></div>
       <div class="v2-anim v2-anim-niebla">
         <div class="v2-niebla-capa"></div>
@@ -1317,6 +1312,7 @@
   <script src="js/pois.js"></script>
   <script src="js/rutas.js"></script>
   <script src="js/simulator.js"></script>
+  <script src="js/v2_rainfx.js"></script>
   <script>
     // Bloque etiquetado: envolvemos todo el bootstrap del panel para poder
     // cortar limpiamente con `break panelBlock;` en modo ?logs=1, evitando
@@ -1528,23 +1524,8 @@
       return 'noche';
     }
 
-    // IU-10: generar las gotas de lluvia una sola vez con delays/posiciones
-    // aleatorios. El selector CSS [data-meteo-cat="lluvia"] las hace visibles.
-    (function sembrarGotasLluvia() {
-      const cont = document.getElementById('v2Gotas');
-      if (!cont) return;
-      const n = 18;
-      const frag = document.createDocumentFragment();
-      for (let i = 0; i < n; i++) {
-        const g = document.createElement('div');
-        g.className = 'v2-gota';
-        g.style.left = (Math.random() * 100).toFixed(1) + '%';
-        g.style.animationDelay = (-Math.random() * 1.4).toFixed(2) + 's';
-        g.style.animationDuration = (1.1 + Math.random() * 0.8).toFixed(2) + 's';
-        frag.appendChild(g);
-      }
-      cont.appendChild(frag);
-    })();
+    // IU-13: motor Canvas 2D de lluvia. Sustituye al sembrado CSS de IU-10.
+    if (window.RainFX) RainFX.init();
 
     // IU-12: estrellas para noche despejada. Generadas una vez con posición
     // aleatoria y delay de twinkle desfasado. La visibilidad se controla
@@ -1881,7 +1862,13 @@
         // IU-12: momento del día (noche/amanecer/dia/atardecer) derivado de
         // sunrise/sunset de Open-Meteo. Modula colores de luminaria,
         // god-rays e iluminación ambiental.
-        $vista2.setAttribute('data-momento', calcularMomentoDia(meteo.sunrise, meteo.sunset, Date.now()));
+        const momentoV2 = calcularMomentoDia(meteo.sunrise, meteo.sunset, Date.now());
+        $vista2.setAttribute('data-momento', momentoV2);
+        // IU-13: alimentamos el motor de lluvia con meteo real y momento.
+        if (window.RainFX) {
+          RainFX.setMomento(momentoV2);
+          RainFX.setMeteo(meteo);
+        }
 
         const nHoras = meteo.previsionHoraria ? meteo.previsionHoraria.length : 0;
         const etiqueta = meteo.deCache ? ' [cache]' : '';
