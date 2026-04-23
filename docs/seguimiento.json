@@ -7,9 +7,9 @@
     "nota_pie": "Actualizar al final de cada sesión de trabajo"
   },
   "estado_actual": {
-    "fase_actual": "Bloque full-inmersión (IU-12 a IU-15) completo. IU-15 cerrada en sesión 32: nieve Canvas 2D (SnowFX) con copos blobby + halo nocturno y niebla volumétrica SVG (FogFX) con feTurbulence+feDisplacementMap. Fallback CSS por ?fogfallback=1. Sustituyen a la nieve y niebla CSS de IU-11.",
-    "ultima_actualizacion": "21 de abril de 2026",
-    "siguiente_hito": "Verificación humana de IU-13, IU-14 e IU-15 en carretera en distintos momentos del día y condiciones meteo reales.",
+    "fase_actual": "Deuda técnica (sesión 33): ultrareview del proyecto y 10 tarjetas DT-01 a DT-10 ejecutadas. PWA instalable con service worker (DT-01), helper geodésico centralizado (DT-02), rate-limiter global Overpass (DT-03), sanitizer de gasolineras unificado (DT-04), TTLs en caches (DT-05), bug enVuelo (DT-06), reintento destinos motorway (DT-07), extracción de 1000 líneas inline a js/main.js (DT-08), textContent en debug.js (DT-09), pois.js dividido en 4 submódulos (DT-10).",
+    "ultima_actualizacion": "23 de abril de 2026",
+    "siguiente_hito": "Verificación humana de las tarjetas DT-03, DT-08 y DT-10 en preview (actualmente en cian). Tras aprobación, prueba en carretera PEC-06 validando SW offline, rate-limiter en condiciones reales y estabilidad general tras el refactor grande.",
     "bloqueos": "Ninguno."
   },
   "fases": [
@@ -1157,6 +1157,156 @@
         [
           "Consecuencias",
           "(1) Cambios solo en index.html: bloque CSS del .visor y .vista, bloque JS nuevo con las funciones y listeners, referencia $visor. (2) La variable --app-height cae en cascada con fallback a 100dvh, por lo que cualquier navegador sin JS (improbable en este proyecto) sigue viendo layout razonable. (3) La validación fin-a-fin se hace en PEC-04 en el móvil viejo real, donde se reproduce Chrome Mobile con la barra dinámica."
+        ]
+      ]
+    },
+    {
+      "id": 28,
+      "titulo": "Helpers geodésicos centralizados en js/geo.js (DT-02)",
+      "campos": [
+        [
+          "Fecha",
+          "23 de abril de 2026, sesión 33"
+        ],
+        [
+          "Decisión",
+          "Las funciones distanciaMetros (Haversine), rumboHacia y diferenciaAngular viven en un único archivo js/geo.js que expone window.Geo. El resto de módulos consumen Geo.* directamente. overpass.js conserva los alias Overpass.distanciaMetros/rumboHacia/diferenciaAngular delegando a Geo, para no tocar call sites existentes."
+        ],
+        [
+          "Contexto",
+          "El ultrareview detectó que distanciaMetros estaba duplicada con implementación idéntica en 6 sitios (trayectos.js, location.js, weather.js, simulator.js, overpass.js y el inline de index.html), y rumboHacia en 3 (overpass.js y motorwayexit.js como rumboHaciaLocal). Mantener 6 copias invita a divergencias sutiles."
+        ],
+        [
+          "Alternativas consideradas",
+          "(A) Usar ES modules con import: rompe el patrón vanilla/IIFE del proyecto y obligaría a cambiar cómo se cargan los scripts. (B) Inyectar Geo por parámetro en cada módulo: añade boilerplate innecesario. (C) geo.js como IIFE que expone window.Geo (elegida): coherente con el resto, carga como primer <script>, tests Node pueden usar require(\"./geo.js\"). (D) Dejar la duplicación: cuesta mantenimiento futuro en contra de P. Karpathy 11.3 (cambios quirúrgicos) porque cualquier mejora tiene que replicarse."
+        ],
+        [
+          "Parámetros operativos",
+          "(1) js/geo.js es el primer <script> en index.html. (2) overpass.js comprueba typeof Geo para compat con tests Node (require). (3) weather.js mantiene estilo ES5 (var distanciaMetros = window.Geo.distanciaMetros) para coherencia con su archivo. (4) motorwayexit.js sustituye rumboHaciaLocal por un alias a Geo.rumboHacia con misma señal."
+        ],
+        [
+          "Consecuencias",
+          "(1) Una sola fuente de verdad para cálculos geodésicos. (2) Los consumidores siguen funcionando sin cambios de API. (3) Tests Node pueden usar require(\"./geo.js\") de forma estándar. (4) El service worker cachea geo.js en la lista de assets."
+        ]
+      ]
+    },
+    {
+      "id": 29,
+      "titulo": "Service worker PWA con CacheFirst + NetworkFirst y SW_VERSION como invalidador (DT-01)",
+      "campos": [
+        [
+          "Fecha",
+          "23 de abril de 2026, sesión 33"
+        ],
+        [
+          "Decisión",
+          "Service worker que precachea los 18 scripts JS + index.html + iconos con CacheFirst, y usa NetworkFirst para APIs externas (Overpass, Nominatim, Open-Meteo, Wikipedia, Wikidata, Photon) con fallback silencioso (Response vacía 503) cuando la red falla y no hay caché previa. La invalidación es por cambio explícito de SW_VERSION: al bumpear versión, los nombres de caché cambian (panel-viaje-app-v1-...→v2-...), el SW viejo se desactiva y el nuevo borra las caches antiguas."
+        ],
+        [
+          "Contexto",
+          "El ultrareview identificó como hallazgo más crítico que la app se declara PWA pero no tenía manifest ni SW: en una zona sin cobertura (precisamente el caso de uso del coche) la app quedaba en pantalla blanca. Era la ausencia más grave de todo el proyecto."
+        ],
+        [
+          "Alternativas consideradas",
+          "(A) SW con Workbox (librería): añade dependencia, contraria a la regla \"vanilla JS por defecto\". (B) Manifest de hashes tipo app-shell con comparación SHA: sobreingeniería para un proyecto de 18 archivos estables. (C) CacheFirst+NetworkFirst con SW_VERSION (elegida): simple, explícito, diagnosticable desde el panel de debug. (D) Sin SW, usar localStorage para algo de caché: solo cachea datos, no el shell; no resuelve pantalla blanca offline."
+        ],
+        [
+          "Parámetros operativos",
+          "(1) SW_VERSION en service-worker.js. Bumpear cada vez que se añadan/quiten archivos del precache o cambien rutas. (2) Nombres de cache: panel-viaje-app-${SW_VERSION} y panel-viaje-api-${SW_VERSION}. (3) Solo se interceptan GETs; los POST de Overpass van directos a la red para no romper. (4) Fallback silencioso: 503 con JSON vacío cuando ni red ni cache tienen la respuesta. Los consumidores ya manejan errores de red. (5) skipWaiting() + clients.claim() en install/activate para que el nuevo SW sirva inmediatamente. (6) Manifest.webmanifest: display standalone, orientation landscape-primary, iconos 192×192 y 512×512 generados con Canvas API (\"PV\" sobre fondo azul) — iconos temporales para no bloquear; pueden rediseñarse sin cambiar el manifest."
+        ],
+        [
+          "Consecuencias",
+          "(1) La app se puede instalar desde Chrome Android (icono en home, splash screen). (2) Al perder cobertura, el shell sigue funcionando con los últimos datos cacheados por NetworkFirst. (3) Al subir nueva versión, el proyecto debe bumpear SW_VERSION para que los usuarios reciban los cambios. (4) Los tiles de mapas no se cachean (no se usan, y ocuparían mucho); POIs y Weather sí se benefician de NetworkFirst."
+        ]
+      ]
+    },
+    {
+      "id": 30,
+      "titulo": "POIModule dividido por responsabilidad en 4 submódulos (DT-10)",
+      "campos": [
+        [
+          "Fecha",
+          "23 de abril de 2026, sesión 33"
+        ],
+        [
+          "Decisión",
+          "js/pois.js (924 líneas) se reemplaza por 4 archivos en js/pois/ organizados por responsabilidad, no por paso: match.js (lexicografía: tokenizar, jaccardSim, matchLabels, STOPWORDS), idb.js (wrapper IndexedDB con TTL 14 días), fuentes.js (fetch a Overpass, Wikipedia geosearch, Wikidata SPARQL, Photon) y core.js (orquestador: caches en memoria, enriquecimiento, race contra timeout). La API pública window.POIModule se preserva intacta."
+        ],
+        [
+          "Contexto",
+          "pois.js había crecido a 924 líneas mezclando 4 responsabilidades distintas. El ultrareview lo marcó como refactor necesario para que futuras mejoras (p. ej. swap de fuente externa) no toquen código de matching ni orquestación."
+        ],
+        [
+          "Alternativas consideradas",
+          "(A) División por paso (paso1.js, paso2.js, paso3.js, paso4.js): refleja el flujo temporal pero mezcla fetching y lógica de negocio en cada archivo. (B) División por responsabilidad (elegida): match.js es puro y testeable, idb.js reusable, fuentes.js concentra los endpoints. (C) Pasar a ES modules: mismo motivo que en D-28, romper el patrón vanilla sin beneficio claro."
+        ],
+        [
+          "Parámetros operativos",
+          "(1) Orden de carga en index.html: match.js → idb.js → fuentes.js → core.js. (2) Cada archivo IIFE con \"use strict\" expone su namespace en window (POIMatch, POIIdb, POIFuentes, POIModule). (3) Las constantes Jaccard viven en match.js, las de timeouts/radios en fuentes.js, las de orquestación (TIMEOUT_GLOBAL_ACTUALIZAR_MS, UMBRAL_REFRESCO_PUEBLOS_KM) en core.js. (4) core.js sigue siendo el archivo más grande (464 líneas) por la lógica del flujo y el race, pero ya no contiene fetch ni matching."
+        ],
+        [
+          "Consecuencias",
+          "(1) Ningún archivo supera 500 líneas. (2) El SW precache pasa de \"pois.js\" a \"pois/match.js + pois/idb.js + pois/fuentes.js + pois/core.js\" (SW_VERSION bump requerido). (3) Tarjetas históricas del grupo POIModule que citan líneas concretas de pois.js quedan desfasadas a nivel documental, pero las decisiones (PO-01..PO-12) siguen siendo válidas conceptualmente."
+        ]
+      ]
+    },
+    {
+      "id": 31,
+      "titulo": "Rate-limiter global Overpass con cola FIFO y mirror-penalty (DT-03)",
+      "campos": [
+        [
+          "Fecha",
+          "23 de abril de 2026, sesión 33"
+        ],
+        [
+          "Decisión",
+          "js/overpass.js añade un semáforo global con MAX_CONCURRENTES=2 al que pasan todas las queries de todos los consumidores (RoadRef, MotorwayExit, Gasolineras, POIs). Si un mirror devuelve HTTP 429/503/504 queda penalizado durante PENALTY_MS=60 s: sigue en el array de mirrors pero se prueba el último de la cascada hasta que expire. Una cola FIFO encola queries cuando se superan los 2 concurrentes; COLA_TIMEOUT_MS=30 s rechaza las que lleven demasiado esperando."
+        ],
+        [
+          "Contexto",
+          "El ultrareview detectó que alRecibirPosicion disparaba en paralelo LocationModule, Weather, POIModule, Gasolineras y MotorwayExit, sumando 5-10 peticiones concurrentes a Overpass en el primer tick. Overpass tiene límites por IP y podía responder 429 en silencio."
+        ],
+        [
+          "Alternativas consideradas",
+          "(A) Rate-limiter por consumidor (actual): cada módulo respeta su ritmo pero no conoce al resto; el burst no está acotado. (B) Semáforo global en overpass.js (elegida): todas las queries pasan por aquí, la limitación aplica sí o sí. (C) Cola por mirror: más complejo; con MAX_CONCURRENTES=2 no gana casi nada."
+        ],
+        [
+          "Parámetros operativos",
+          "(1) MAX_CONCURRENTES=2 conservador; ajustable tras pruebas en carretera reales. (2) COLA_TIMEOUT_MS=30 s: si una query encola más allá, reject con error \"cola_timeout\". (3) PENALTY_MS=60 s coherente con REINTENTO_ERROR_MS de MotorwayExit. (4) Logs de debug cuando hay cola y cuando se penaliza un mirror. (5) POST de Overpass sigue sin pasar por SW (no se cachean)."
+        ],
+        [
+          "Consecuencias",
+          "(1) El primer tick ya no puede tirar de más de 2 mirrors simultáneamente. (2) Si un mirror está caído sistemáticamente, se auto-relega al final durante 60 s y se recupera sin intervención. (3) Los consumidores no cambian (API Overpass.query preservada). (4) Si llegara a saturar la cola (>30 s en espera), el consumidor ve error como si fuese una red caída; su fallback (si lo tiene) entra."
+        ]
+      ]
+    },
+    {
+      "id": 32,
+      "titulo": "Bootstrap del panel extraído a js/main.js, fin del patrón panelBlock (DT-08)",
+      "campos": [
+        [
+          "Fecha",
+          "23 de abril de 2026, sesión 33"
+        ],
+        [
+          "Decisión",
+          "Las ~1000 líneas de JavaScript inline que vivían dentro de <script>panelBlock: { ... break panelBlock; }</script> en index.html se mueven a js/main.js. El label panelBlock (que permitía cortar el arranque en modo ?logs=1 con break) desaparece: una IIFE con dos funciones arrancarVistaLogs() y arrancarPanel() hace el routing explícito según el parámetro de URL. index.html cierra con un único <script src=\"js/main.js\"></script>."
+        ],
+        [
+          "Contexto",
+          "El archivo index.html tenía 2361 líneas, ~1350 de CSS y estructura HTML y ~1000 de JS inline con toda la lógica de bootstrap, orquestación de módulos, pintado y tick GPS. Imposible de testear como unidad y mezclaba responsabilidades (HTML + lógica de negocio)."
+        ],
+        [
+          "Alternativas consideradas",
+          "(A) Mantener el inline: cada mejora obliga a editar HTML. (B) Pasar a ES modules con import: rompe patrón vanilla. (C) js/main.js como último <script> cargado que accede a los globals ya definidos por los otros módulos (elegida): cambio mecánico, sin cambios de comportamiento, compatible con el resto del proyecto."
+        ],
+        [
+          "Parámetros operativos",
+          "(1) main.js se carga DESPUÉS de todos los módulos (geo, debug, overpass, ..., v2_fogfx, pois/*). (2) IIFE \"use strict\" con función arrancar() al final. (3) configurarBotonFullscreen y configurarSafeAreaDev se ejecutan siempre (también en modo logs). (4) El modo ?logs=1 va a arrancarVistaLogs() y termina sin llamar a arrancarPanel(); el GPS no se pide, los módulos de datos no tocan nada. (5) main.js añadido al precache del SW; SW_VERSION bumpeado a v3."
+        ],
+        [
+          "Consecuencias",
+          "(1) index.html queda limpio: 1352 líneas, CSS y HTML. (2) main.js puede refactorarse/testear sin tocar HTML. (3) El service worker cachea main.js como cualquier otro asset. (4) La diferencia de comportamiento respecto al panelBlock inline es cero (refactor mecánico confirmado en preview)."
         ]
       ]
     }
@@ -2485,6 +2635,40 @@
           "Verificación humana de IU-15 en condiciones reales (nevada en algún viaje invernal y niebla en serranía) y validación del coste del filter SVG en el móvil viejo. Si hay lag, activar con ?fogfallback=1 como workaround. Bloque full-inmersión (IU-12 a IU-15) cerrado en implementación; quedan las verificaciones humanas de IU-13, IU-14 e IU-15."
         ]
       ]
+    },
+    {
+      "n": 33,
+      "titulo": "Ultrareview + 10 tarjetas de deuda técnica (DT-01 a DT-10)",
+      "campos": [
+        [
+          "Fecha",
+          "23 de abril de 2026"
+        ],
+        [
+          "Fase trabajada",
+          "Deuda técnica transversal. Primera sesión que atraviesa todos los módulos del proyecto con un enfoque de revisión sistemática, no de producto nuevo."
+        ],
+        [
+          "Contexto de arranque",
+          "Tras cerrar el bloque full-inmersión (IU-12 a IU-15) y antes de una próxima prueba en carretera, Laureano pidió hacer un \"ultrareview\" del proyecto. Primero Sonnet produjo un informe; después se repitió con Opus y se contrastaron. La coincidencia en los 4 hallazgos críticos (PWA ausente, duplicación de distanciaMetros ×6, sin rate-limiter Overpass, 1000 líneas JS inline en index.html) dio confianza para convertirlos en 10 tarjetas Kanvas en un grupo nuevo \"Deuda técnica\" (prefijo DT-). Laureano aprobó hacer la revisión sin tarjeta previa (excepción al modo estricto) y el resto del trabajo con tarjetas regulares."
+        ],
+        [
+          "Lo que se ha hecho",
+          "DT-09 (P-DEBUGSAFE): js/debug.js repintar() pasa de innerHTML con interpolación a createElement+textContent. HTML accidental en nombres externos (POIs, municipios) ahora se ve literal y no desbarata el panel. Verificado inyectando <b>negrita</b> que aparece como texto.\n\nDT-04 (P-SAN): index.html líneas 2058 y 2063 — el saneamiento débil g.marca.replace(/[<>]/g, \"\") se sustituye por escapar() (textContent-encoded). Probado con marca \"Repsol & Cepsa\" → \"Repsol &amp; Cepsa\" y \"<img onerror=...>\" → \"&lt;img onerror=...&gt;\", cero tags reales en DOM.\n\nDT-06 (P-GAS): js/gasolineras.js — bug sutil en dedupe de promesa en vuelo. Cuando B llegaba mientras A estaba en curso, B recibía la promesa de A con distancias calculadas desde lat/lon de A. Nuevo helper recalcularDistancias(lista, lat, lon) usado tanto en el path de caché como en el de enVuelo (vía .then). Verificado con test sintético: A desde Las Rozas y B desde 10 km al NO devuelven distancias coherentes a sus posiciones respectivas, incluso con el orden de estaciones distinto.\n\nDT-02 (P-GEO): nuevo js/geo.js con distanciaMetros, rumboHacia y diferenciaAngular. Eliminada la duplicación en trayectos.js, location.js, weather.js, simulator.js, motorwayexit.js, overpass.js y el inline de index.html. overpass.js mantiene su API (Overpass.distanciaMetros etc.) delegando a Geo para no romper consumidores. Cargado como primer script.\n\nDT-07 (P-MEX): js/motorwayexit.js — consultarDestinos ahora distingue \"consulta OK sin destinos en OSM\" (completa=true, no reintentar) de \"fallo de red\" (completa=false + tsError, reintentar tras REINTENTO_DESTINOS_MS=2 min). Resuelve que una salida que fallase por timeout quedase muda todo el viaje.\n\nDT-05 (P-TTL): TTL adicional (complementario al radio) en location.js (30 min), roadref.js (5 min OK / 30 s null), gasolineras.js (2 h) y motorwayexit.js (60 min junctions). Si el coche para durante horas, los datos se renuevan al volver.\n\nDT-01 (P-SW): añadidos manifest.webmanifest (nombre, scope, display standalone, theme_color #0f1117, orientation landscape-primary), iconos PNG 192×192 y 512×512 generados con Canvas API (\"PV\" sobre fondo azul #1e5fb8), y service-worker.js con CacheFirst para assets propios (24 entradas precached) y NetworkFirst con fallback silencioso para APIs externas (Overpass, Nominatim, Open-Meteo, Wikipedia, Wikidata, Photon). SW_VERSION como mecanismo de invalidación total. <head> ampliado con theme-color, manifest, icon y apple-touch-icon. Registro en main.js con fire-and-forget.\n\nDT-10 (P-POIS): js/pois.js (924 líneas) dividido en js/pois/match.js (85 líneas: tokenizar, jaccardSim, matchLabels, STOPWORDS, EXCLUIR_GEOSEARCH), js/pois/idb.js (111 líneas: wrapper IDB con TTL 14 días), js/pois/fuentes.js (299 líneas: Overpass QL, Wikipedia geosearch, Wikidata SPARQL, Photon), js/pois/core.js (464 líneas: orquestador, caches en memoria, enriquecerPOI, obtenerDatosMunicipio). El API público window.POIModule se preserva. Orden de carga en index.html: match → idb → fuentes → core.\n\nDT-03 (P-RATE): js/overpass.js añade rate-limiter global con MAX_CONCURRENTES=2, cola FIFO con COLA_TIMEOUT_MS=30 s y mirror-penalty PENALTY_MS=60 s cuando un mirror responde 429/503/504. Los mirrors penalizados van al final del orden de cascada hasta que expire la penalización. Verificado con 4 queries simultáneas: solo 2 se ejecutan a la vez, las otras esperan.\n\nDT-08 (P-MAIN): el bloque panelBlock: { ... break panelBlock; } (~1000 líneas inline) sale de index.html a js/main.js. Una IIFE con tres funciones de alto nivel (configurarBotonFullscreen, configurarSafeAreaDev, arrancar) y dos ramas (arrancarVistaLogs para ?logs=1, arrancarPanel para el modo normal). index.html queda con un único <script src=\"js/main.js\"> al final.\n\nTodo verificado en el preview local (servidor Python http.server en :8766) con el simulador ?sim=a6&debug=1. Screenshot final confirma el panel pintando A-6 con chip 120 km/h, Las Rozas de Madrid (99.037 hab · 718 m), meteo 22°C nublado, velocidad 100 km/h, rumbo 284°, pueblos cercanos y gasolineras. Cero errores en consola tras cada cambio."
+        ],
+        [
+          "Decisiones tomadas",
+          "Ultrareview como proceso: primero Sonnet (~85 hallazgos), después Opus (~75 hallazgos propios + matices y 10 hallazgos nuevos). Los 4 hallazgos críticos coinciden, lo cual da confianza. Se descartan 3 hallazgos de Sonnet (12.2 \"shallow copy peligrosa en pois.js\" — el array se reasigna, no muta; 2.1 \"bufferMsg acumula\" — splice(0) limpia antes del try; 19.16 TDZ en poiPrimerResultadoPintado — inofensivo por orden de ejecución).\n\nSe crea un grupo nuevo \"Deuda técnica\" (DT-) en el tablero en lugar de repartir las 10 tarjetas entre los grupos existentes. Motivo: trazabilidad como batch del ultrareview; algunos cambios (P-GEO, P-MAIN) no encajan en ningún grupo existente.\n\nD-27: Helpers geodésicos en js/geo.js como fuente única; overpass.js alias de compat. La alternativa era pasar Geo como dependencia explícita a cada módulo, pero rompería el patrón IIFE vanilla del proyecto.\n\nD-28: Service worker con CacheFirst para assets propios y NetworkFirst para APIs externas, con fallback silencioso a Response vacía 503. Bumps explícitos de SW_VERSION como invalidación total (más simple que manifest de hashes).\n\nD-29: pois.js se divide por responsabilidad (matching / persistencia / red / orquestación) en vez de por \"paso\" (paso 1, paso 2...). Motivo: match.js es puro y testeable aislado, idb.js puede reusarse si se persisten más cosas en el futuro, fuentes.js concentra los endpoints externos."
+        ],
+        [
+          "Problemas encontrados",
+          "P31: sanitizer débil en pintarGasolineras (replace(/[<>]/g, \"\")). Cubierto por DT-04.\nP32: gasolineras.js devuelve distancias stale cuando reutiliza promesa en vuelo. Cubierto por DT-06.\nP33: motorwayexit.consultarDestinos no reintenta tras fallo de red, salidas quedan mudas. Cubierto por DT-07.\n\nEn el preview, Nominatim y Overpass devolvieron 503 / Failed to fetch en momentos puntuales por tantas recargas seguidas. Se confirmó vía Overpass directo que no era bug nuestro (los otros endpoints como Open-Meteo y el SW servían assets). No afecta al comportamiento en móvil real."
+        ],
+        [
+          "Pendientes",
+          "Aprobación humana de DT-03, DT-08 y DT-10 (actualmente en cian).\n\nNueva prueba en carretera (PEC-06) que valide en condiciones reales: (a) instalación como PWA desde Chrome Android, (b) funcionamiento offline al perder cobertura, (c) estabilidad tras el refactor de js/main.js y POIModule, (d) rate-limiter Overpass en el primer tick real, (e) mirror-penalty cuando algún mirror esté caído de verdad.\n\nDocumentar en el tablero que pois.js ya no existe como archivo (es ahora pois/ directorio). Tarjetas antiguas del grupo POIModule que referenciaban líneas concretas de pois.js están desfasadas (inocuo: solo trazabilidad histórica)."
+        ]
+      ]
     }
   ],
   "problemas_abiertos": [],
@@ -3298,6 +3482,60 @@
         [
           "Resolución",
           "Cambiar las guardas a 'typeof debug !== \"undefined\"' para que el scope lookup encuentre el const global. Patrón a seguir para cualquier módulo nuevo que quiera loguear al panel."
+        ]
+      ]
+    },
+    {
+      "id": "P31",
+      "titulo": "Sanitizer débil de marcas en pintarGasolineras",
+      "campos": [
+        [
+          "Sesión",
+          "33"
+        ],
+        [
+          "Descripción",
+          "index.html líneas 2058 y 2063 usaban (g.marca || g.nombre || \"Gasolinera\").replace(/[<>]/g, \"\") antes de interpolar en innerHTML. Solo escapaba < y >, no & ni comillas. Inconsistente con el resto del archivo, que usa escapar() (textContent-encoded). Las marcas de OSM (tags.brand) pueden contener caracteres especiales (ej. \"Repsol & Cepsa\")."
+        ],
+        [
+          "Resolución",
+          "DT-04: reemplazado por escapar(g.marca || g.nombre || \"Gasolinera\") en ambas líneas. Verificado inyectando \"<img onerror=...>\" y \"Repsol & Cepsa\": aparecen como \"&lt;img onerror=...&gt;\" y \"Repsol &amp; Cepsa\" respectivamente, cero elementos maliciosos en DOM."
+        ]
+      ]
+    },
+    {
+      "id": "P32",
+      "titulo": "Gasolineras: distancias stale al reutilizar promesa en vuelo",
+      "campos": [
+        [
+          "Sesión",
+          "33"
+        ],
+        [
+          "Descripción",
+          "js/gasolineras.js: si llegaba una segunda llamada a actualizar(lat,lon) mientras una primera estaba en curso, la segunda recibía tal cual la promesa de la primera. Dentro de esa promesa se calculan las distancias con el lat/lon de la primera llamada, por lo que la segunda acababa viendo distancias desde un punto que no era el suyo. El camino de caché ya recalculaba bien; el bug estaba solo en el dedupe de vuelo (enVuelo)."
+        ],
+        [
+          "Resolución",
+          "DT-06: nuevo helper recalcularDistancias(lista, lat, lon) con map+sort. El camino de caché lo usa directamente. El camino de enVuelo devuelve enVuelo.then(lista => recalcularDistancias(lista, lat, lon)), garantizando que cada llamante recibe distancias desde su propia posición. Test: A desde Las Rozas y B desde 10 km al NO en paralelo — distancias coherentes para cada uno y orden de estaciones distinto."
+        ]
+      ]
+    },
+    {
+      "id": "P33",
+      "titulo": "MotorwayExit: salidas quedaban sin destinos todo el viaje tras fallo de red",
+      "campos": [
+        [
+          "Sesión",
+          "33"
+        ],
+        [
+          "Descripción",
+          "js/motorwayexit.js consultarDestinos: si la consulta de destinos de una salida fallaba (timeout, 429), quedaba cacheada como { destinos: null, cargando: false } y nunca se reintentaba. El cartel verde mostraba el número pero sin destinos hasta fin del viaje. Un viaje puede tocar 50-100 salidas; si los mirrors estaban mal durante 1-2 min, esas salidas quedaban mudas permanentemente."
+        ],
+        [
+          "Resolución",
+          "DT-07: nuevo flag completa:true/false en el cache de destinosPorJunction. Si completa=true (la consulta terminó sin error, aunque OSM no tuviera destinos), no se reintenta. Si completa=false con tsError, se permite reintentar tras REINTENTO_DESTINOS_MS=2 min. Así no se martillea a la red en error pero tampoco se deja mudo lo que podría resolverse en el siguiente paso."
         ]
       ]
     }

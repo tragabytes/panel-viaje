@@ -15,9 +15,9 @@
               "state": {
                 "file": "tablero.canvas",
                 "viewState": {
-                  "x": 562.8433333333336,
-                  "y": 64.81277777777827,
-                  "zoom": -1.4835172371616105
+                  "x": 3004.4554710200787,
+                  "y": 1529.535551841033,
+                  "zoom": -0.8913954194872988
                 }
               },
               "icon": "lucide-layout-dashboard",
@@ -187,5 +187,29 @@
     }
   },
   "active": "92840a95ac70fffc",
-  "lastOpenFiles": []
+  "lastOpenFiles": [
+    "service-worker.js.tmp.8240.1776973372220",
+    "service-worker.js.tmp.8240.1776973367562",
+    "js/main.js",
+    "index.html.tmp.8240.1776972833301",
+    "js/pois/core.js",
+    "js/pois/fuentes.js",
+    "js/pois/idb.js",
+    "js/pois/match.js",
+    "js/pois",
+    "index.html.tmp.8240.1776972478911",
+    "service-worker.js",
+    "icons/icon-512.png",
+    "icons/icon-192.png",
+    "RULES.md",
+    "tablero.canvas",
+    "docs/node_modules/xml/readme.md",
+    "docs/node_modules/lie/README.md",
+    "docs/node_modules/string_decoder/README.md",
+    "docs/node_modules/lie/license.md",
+    "docs/node_modules/sax/LICENSE.md",
+    "docs/node_modules/process-nextick-args/readme.md",
+    "docs/node_modules/process-nextick-args/license.md",
+    "docs/node_modules/util-deprecate/README.md"
+  ]
 }
