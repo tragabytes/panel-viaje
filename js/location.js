@@ -30,23 +30,20 @@ const LocationModule = (() => {
 
   const RADIO_CACHE_UBICACION_M = 200;
   const RADIO_CACHE_CARRETERA_M = 80;
+  // DT-05 (sesión 33): TTL de red de seguridad. Si el coche se queda
+  // parado durante mucho rato (atasco, aparcamiento) las caches solo por
+  // radio no expiran nunca. 30 min es conservador; los municipios/vías
+  // no suelen cambiar dentro de esa ventana, pero fuerza re-chequeo.
+  const TTL_CACHE_MS = 30 * 60 * 1000;
 
   let ultimaPeticionTs = 0;
   let cacheUbicacion = null;
   let cacheCarretera = null;
 
   // --- Utilidades ---
-
-  function distanciaMetros(lat1, lon1, lat2, lon2) {
-    const R = 6371000;
-    const toRad = (g) => g * Math.PI / 180;
-    const dLat = toRad(lat2 - lat1);
-    const dLon = toRad(lon2 - lon1);
-    const a = Math.sin(dLat / 2) ** 2 +
-              Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-              Math.sin(dLon / 2) ** 2;
-    return 2 * R * Math.asin(Math.sqrt(a));
-  }
+  //
+  // DT-02 (sesión 33): distanciaMetros vive en js/geo.js.
+  const distanciaMetros = Geo.distanciaMetros;
 
   async function respetarLimite() {
     const ahora = Date.now();
@@ -122,8 +119,20 @@ const LocationModule = (() => {
 
   // --- API pública ---
 
+  // DT-05: invalida el cache si lleva más del TTL. Devuelve true si debe
+  // re-consultarse; false si la cache es válida por tiempo.
+  function cacheExpiradoPorTTL(cache, etiqueta) {
+    if (!cache) return true;
+    const edadMs = Date.now() - (cache.ts || 0);
+    if (edadMs > TTL_CACHE_MS) {
+      debug.log(`Location cache ${etiqueta} expirada por TTL (edad ${Math.round(edadMs / 60000)}min)`);
+      return true;
+    }
+    return false;
+  }
+
   async function obtenerUbicacion(lat, lon) {
-    if (cacheUbicacion) {
+    if (cacheUbicacion && !cacheExpiradoPorTTL(cacheUbicacion, 'ubicación')) {
       const dist = distanciaMetros(lat, lon, cacheUbicacion.lat, cacheUbicacion.lon);
       if (dist < RADIO_CACHE_UBICACION_M) {
         return { ...cacheUbicacion.resultado, fuente: 'cache' };
@@ -132,12 +141,12 @@ const LocationModule = (() => {
     await respetarLimite();
     const datos = await llamarNominatim(lat, lon, 14);
     const resultado = normalizarUbicacion(datos);
-    cacheUbicacion = { lat, lon, resultado };
+    cacheUbicacion = { lat, lon, resultado, ts: Date.now() };
     return { ...resultado, fuente: 'nominatim' };
   }
 
   async function obtenerCarretera(lat, lon) {
-    if (cacheCarretera) {
+    if (cacheCarretera && !cacheExpiradoPorTTL(cacheCarretera, 'carretera')) {
       const dist = distanciaMetros(lat, lon, cacheCarretera.lat, cacheCarretera.lon);
       if (dist < RADIO_CACHE_CARRETERA_M) {
         return { ...cacheCarretera.resultado, fuente: 'cache' };
@@ -146,7 +155,7 @@ const LocationModule = (() => {
     await respetarLimite();
     const datos = await llamarNominatim(lat, lon, 17);
     const resultado = normalizarCarretera(datos);
-    cacheCarretera = { lat, lon, resultado };
+    cacheCarretera = { lat, lon, resultado, ts: Date.now() };
     return { ...resultado, fuente: 'nominatim' };
   }
 

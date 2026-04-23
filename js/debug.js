@@ -284,10 +284,22 @@ const debug = (() => {
     // Mostrar solo los últimos `maxVisibles` en pantalla (para no ralentizar
     // el scroll del móvil). El historial completo (hasta `maxMensajes`) se
     // conserva en memoria y se vuelca entero al pulsar "copiar".
+    //
+    // DT-09 (sesión 33): usamos textContent sobre <div>s creados con
+    // createElement en vez de innerHTML con interpolación. Los mensajes
+    // llevan nombres externos de Nominatim / Wikidata / OSM que pueden
+    // contener HTML accidental; con textContent se ven literal y no
+    // desbaratan el panel.
     const visibles = mensajes.slice(-maxVisibles);
-    cuerpo.innerHTML = visibles
-      .map(m => `<div style="color:${m.color}">[${m.hora}] ${m.texto}</div>`)
-      .join('');
+    cuerpo.textContent = '';
+    const frag = document.createDocumentFragment();
+    for (const m of visibles) {
+      const div = document.createElement('div');
+      div.style.color = m.color;
+      div.textContent = `[${m.hora}] ${m.texto}`;
+      frag.appendChild(div);
+    }
+    cuerpo.appendChild(frag);
     // scroll automático al final solo si no está colapsado
     if (!colapsado) {
       cuerpo.scrollTop = cuerpo.scrollHeight;

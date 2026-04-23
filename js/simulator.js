@@ -71,28 +71,11 @@
   let callbackPosicion = null;
 
   // --- Utilidades geográficas ---
-  function distanciaMetros(lat1, lon1, lat2, lon2) {
-    const R = 6371000;
-    const toRad = (g) => g * Math.PI / 180;
-    const dLat = toRad(lat2 - lat1);
-    const dLon = toRad(lon2 - lon1);
-    const a = Math.sin(dLat / 2) ** 2 +
-              Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-              Math.sin(dLon / 2) ** 2;
-    return 2 * R * Math.asin(Math.sqrt(a));
-  }
-
-  // Rumbo geográfico entre dos puntos, en grados (0=N, 90=E, 180=S, 270=W)
-  function rumboGrados(lat1, lon1, lat2, lon2) {
-    const toRad = (g) => g * Math.PI / 180;
-    const toDeg = (r) => r * 180 / Math.PI;
-    const dLon = toRad(lon2 - lon1);
-    const y = Math.sin(dLon) * Math.cos(toRad(lat2));
-    const x = Math.cos(toRad(lat1)) * Math.sin(toRad(lat2)) -
-              Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(dLon);
-    let deg = toDeg(Math.atan2(y, x));
-    return (deg + 360) % 360;
-  }
+  // DT-02 (sesión 33): distanciaMetros y el "rumboGrados" local viven en
+  // js/geo.js como distanciaMetros y rumboHacia. Aliaseamos aquí para no
+  // cambiar los call sites del simulador.
+  const distanciaMetros = Geo.distanciaMetros;
+  const rumboGrados = Geo.rumboHacia;
 
   // --- Banner visual de simulación ---
   function mostrarBanner() {

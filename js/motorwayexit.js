@@ -87,6 +87,19 @@
   // 2 minutos: suficiente para que el servidor se recupere sin martillear.
   const REINTENTO_ERROR_MS = 120000;
 
+  // DT-07 (sesión 33): mismo plazo para reintentar la consulta de destinos
+  // de una salida concreta (motorway_link). Si la primera consulta falla
+  // (timeout, 429, red caída), antes quedaba como 'destinos: null' de forma
+  // permanente y el cartel verde se mostraba sin destinos todo el viaje.
+  const REINTENTO_DESTINOS_MS = 120000;
+
+  // DT-05 (sesión 33): TTL de la caché de junctions por vía. Si el coche
+  // queda parado durante una hora (sobremesa en área de servicio), fuerza
+  // re-consulta al volver a arrancar. Las salidas no se mueven, pero esto
+  // nos cubre cambios en OSM y asegura que no servimos datos rancios tras
+  // parada muy larga.
+  const TTL_CACHE_JUNCTIONS_MS = 60 * 60 * 1000;
+
   // --- Estado interno ---
 
   // Caché de junctions para la vía actual.
@@ -220,23 +233,12 @@
     return { lista, descartados };
   }
 
-  // Helper local: calcula el rumbo (grados 0-360) entre dos puntos.
-  // Duplica la lógica de Overpass.rumboHacia para no depender del módulo
-  // global cuando _parsearJunctions se usa aislado en tests.
-  function rumboHaciaLocal(lat1, lon1, lat2, lon2) {
-    if (typeof Overpass !== 'undefined' && Overpass.rumboHacia) {
-      return Overpass.rumboHacia(lat1, lon1, lat2, lon2);
-    }
-    const toRad = (g) => g * Math.PI / 180;
-    const toDeg = (r) => r * 180 / Math.PI;
-    const phi1 = toRad(lat1);
-    const phi2 = toRad(lat2);
-    const dLon = toRad(lon2 - lon1);
-    const y = Math.sin(dLon) * Math.cos(phi2);
-    const x = Math.cos(phi1) * Math.sin(phi2) -
-              Math.sin(phi1) * Math.cos(phi2) * Math.cos(dLon);
-    return (toDeg(Math.atan2(y, x)) + 360) % 360;
-  }
+  // DT-02 (sesión 33): rumboHaciaLocal duplicaba Overpass.rumboHacia como
+  // fallback para tests Node. Ahora Geo (js/geo.js) es la única fuente y
+  // tanto el navegador como Node (via require) la cargan.
+  const rumboHaciaLocal = (typeof Geo !== 'undefined')
+    ? Geo.rumboHacia
+    : (typeof require !== 'undefined' ? require('./geo.js').rumboHacia : null);
 
   async function consultarOverpass(lat, lon, refVia) {
     const queryQL = construirQuery(lat, lon, refVia);
@@ -266,10 +268,25 @@
 
   // Consulta los ways motorway_link que contienen el nodo junction dado
   // y extrae su tag destination. Resultado cacheado en destinosPorJunction.
-  // Solo se lanza una vez por junction ID; si ya está en caché no hace nada.
+  //
+  // DT-07 (sesión 33): las entradas llevan un campo `completa` que distingue:
+  //   - completa=true: la consulta acabó OK (con o sin destinos en OSM).
+  //     Nunca se reintenta — los destinos no cambian en OSM.
+  //   - completa=false + tsError: la consulta falló por red. Se reintenta
+  //     pasados REINTENTO_DESTINOS_MS para que la salida no quede muda
+  //     permanentemente si la red estaba temporalmente caída.
   function consultarDestinos(junctionId) {
-    if (destinosPorJunction[junctionId]) return; // ya está en caché (incluso si es cargando)
-    destinosPorJunction[junctionId] = { destinos: null, cargando: true };
+    const entrada = destinosPorJunction[junctionId];
+    if (entrada) {
+      if (entrada.cargando) return;        // ya hay una en vuelo
+      if (entrada.completa) return;        // consulta OK previa, no reintentar
+      // No completa: fallo previo. Comprobar TTL del error.
+      if (entrada.tsError && (Date.now() - entrada.tsError) < REINTENTO_DESTINOS_MS) {
+        return;                             // aún dentro de la ventana de no-reintentar
+      }
+      // Caído fuera de ventana: caer por debajo y relanzar.
+    }
+    destinosPorJunction[junctionId] = { destinos: null, cargando: true, completa: false };
     const queryQL = `[out:json][timeout:10];node(${junctionId});way(bn)[highway=motorway_link];out tags;`;
     Overpass.query(queryQL, 'MotorwayDestinos').then(({ datos }) => {
       let mejorDestino = null;
@@ -280,16 +297,17 @@
           if (d) { mejorDestino = d; break; } // tomamos el primer way con destination
         }
       }
-      destinosPorJunction[junctionId] = { destinos: mejorDestino, cargando: false };
+      destinosPorJunction[junctionId] = { destinos: mejorDestino, cargando: false, completa: true };
       if (typeof debug !== 'undefined') {
         debug.log(`MotorwayDestinos: junction ${junctionId} → ${mejorDestino || '(sin destination)'}`);
       }
     }).catch(() => {
-      // En caso de error de red, dejamos cargando=false y destinos=null.
-      // El cartel sigue mostrando el número sin destinos; no es crítico.
-      destinosPorJunction[junctionId] = { destinos: null, cargando: false };
+      // Error de red: guardar tsError para que tras REINTENTO_DESTINOS_MS
+      // la próxima llamada a consultarDestinos pueda reintentar.
+      destinosPorJunction[junctionId] = { destinos: null, cargando: false, completa: false, tsError: Date.now() };
       if (typeof debug !== 'undefined') {
-        debug.log(`MotorwayDestinos: fallo al consultar junction ${junctionId}`);
+        const previo = entrada && entrada.tsError ? ' (reintento fallido)' : '';
+        debug.log(`MotorwayDestinos: fallo al consultar junction ${junctionId}${previo}`);
       }
     });
   }
@@ -335,6 +353,7 @@
         cache.cargando = false;
         cache.refrescando = false;
         cache.error = false;
+        cache.ts = Date.now();  // DT-05: marca de tiempo para el TTL
       }
     }).catch(() => {
       if (cache && cache.ref === refVia) {
@@ -449,6 +468,18 @@
         return { activo: false, proxima: null, siguiente: null, estado: 'cargando' };
       }
       return { activo: false, proxima: null, siguiente: null, estado: 'error' };
+    }
+
+    // DT-05: caché expirada por TTL (p. ej. parada de >1h en área de servicio).
+    // Forzar re-consulta aunque el coche esté quieto.
+    if (cache.ts && (ahoraMs - cache.ts) > TTL_CACHE_JUNCTIONS_MS) {
+      if (typeof debug !== 'undefined') {
+        const edadMin = Math.round((ahoraMs - cache.ts) / 60000);
+        debug.log(`MotorwayExit: caché junctions expirada por TTL (edad ${edadMin}min), relanzando`);
+      }
+      cache = null;
+      lanzarConsultaAsincrona(lat, lon, refEfectiva);
+      return { activo: false, proxima: null, siguiente: null, estado: 'cargando' };
     }
 
     // Caché presente y cargada. ¿Toca refrescar por distancia?

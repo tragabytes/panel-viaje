@@ -55,17 +55,12 @@
   let flushTimer = null;
 
   // --- Utilidades ---
-
-  function distanciaMetros(lat1, lon1, lat2, lon2) {
-    const R = 6371000;
-    const toRad = (g) => g * Math.PI / 180;
-    const dLat = toRad(lat2 - lat1);
-    const dLon = toRad(lon2 - lon1);
-    const a = Math.sin(dLat / 2) ** 2 +
-              Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-              Math.sin(dLon / 2) ** 2;
-    return 2 * R * Math.asin(Math.sqrt(a));
-  }
+  //
+  // DT-02 (sesión 33): distanciaMetros vive en js/geo.js. Aliasamos aquí
+  // para no cambiar la lógica interna.
+  const distanciaMetros = (typeof Geo !== 'undefined' && Geo.distanciaMetros)
+    ? Geo.distanciaMetros
+    : (typeof require !== 'undefined' ? require('./geo.js').distanciaMetros : null);
 
   function abrirDb() {
     if (dbPromise) return dbPromise;

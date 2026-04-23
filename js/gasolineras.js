@@ -30,6 +30,10 @@
   const RADIO_KM = 5;
   const REFRESCO_KM = 2;
   const MAX_RESULTADOS = 5;
+  // DT-05 (sesión 33): TTL 2h como red de seguridad. Las gasolineras no
+  // cambian con frecuencia pero precios/aperturas sí; si el coche se queda
+  // parado mucho, no queremos mostrar datos de hace medio día.
+  const TTL_CACHE_MS = 2 * 60 * 60 * 1000;
 
   let cache = null; // { lat, lon, lista, ts }
   let enVuelo = null; // Promise compartida si ya hay una consulta en curso
@@ -84,20 +88,43 @@
     }
   }
 
+  // Recalcula distancias de cada gasolinera desde la posición dada y
+  // reordena por cercanía. Extraído como helper (DT-06, sesión 33) para
+  // usarlo también en el path de "petición en vuelo": antes, cuando B
+  // llegaba mientras A estaba en curso, B recibía la promesa de A tal
+  // cual y las distancias eran las calculadas por consultar() respecto
+  // a la posición de A, no de B.
+  function recalcularDistancias(lista, lat, lon) {
+    return lista
+      .map(g => ({ ...g, distM: O.distanciaMetros(lat, lon, g.lat, g.lon) }))
+      .sort((a, b) => a.distM - b.distM);
+  }
+
   async function actualizar(lat, lon) {
     if (typeof lat !== 'number' || typeof lon !== 'number') return [];
 
     if (cache) {
-      const dKm = O.distanciaMetros(lat, lon, cache.lat, cache.lon) / 1000;
-      if (dKm < REFRESCO_KM) {
-        // Caché válida: recalcular distancias desde la posición actual y devolver.
-        return cache.lista
-          .map(g => ({ ...g, distM: O.distanciaMetros(lat, lon, g.lat, g.lon) }))
-          .sort((a, b) => a.distM - b.distM);
+      // DT-05: invalidar por TTL si lleva demasiado tiempo.
+      const edadMs = Date.now() - (cache.ts || 0);
+      if (edadMs > TTL_CACHE_MS) {
+        if (typeof debug !== 'undefined') {
+          debug.log(`Gasolineras cache expirada por TTL (edad ${Math.round(edadMs / 60000)}min)`);
+        }
+        cache = null;
+      } else {
+        const dKm = O.distanciaMetros(lat, lon, cache.lat, cache.lon) / 1000;
+        if (dKm < REFRESCO_KM) {
+          // Caché válida: recalcular distancias desde la posición actual y devolver.
+          return recalcularDistancias(cache.lista, lat, lon);
+        }
       }
     }
 
-    if (enVuelo) return enVuelo;
+    if (enVuelo) {
+      // DT-06: recomputar con lat/lon del llamante actual, no reusar las
+      // distancias tal cual venían de la consulta original.
+      return enVuelo.then(lista => recalcularDistancias(lista, lat, lon));
+    }
 
     enVuelo = (async () => {
       const lista = await consultar(lat, lon);

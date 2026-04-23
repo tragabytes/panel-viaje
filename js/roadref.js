@@ -39,6 +39,12 @@ const __global__ = (typeof window !== 'undefined') ? window : globalThis;
 __global__.RoadRef = (() => {
   const RADIO_CACHE_M = 300;
   const RADIO_BUSQUEDA_M = 25;
+  // DT-05 (sesión 33): TTL para refrescar más allá del radio.
+  //  · 5 min para caches con ref válida (raro que cambie más rápido).
+  //  · 30 s cuando la caché es ref:null: cubre fallos transitorios de
+  //    Overpass; tras 30 s probamos de nuevo aunque el coche no se mueva.
+  const TTL_OK_MS = 5 * 60 * 1000;
+  const TTL_NULL_MS = 30 * 1000;
 
   // La misma regex que carreteras.js usa internamente, replicada aquí
   // para no crear un acoplamiento circular. Si algún día la movemos a
@@ -118,10 +124,25 @@ __global__.RoadRef = (() => {
     return elegirInfo(datos).ref;
   }
 
+  // DT-05: devuelve true si la cache actual ha expirado por tiempo
+  // (según TTL_OK_MS si hay ref, TTL_NULL_MS si es null).
+  function cacheExpiradoPorTTL() {
+    if (!cache) return true;
+    const edadMs = Date.now() - (cache.ts || 0);
+    const ttl = cache.ref ? TTL_OK_MS : TTL_NULL_MS;
+    if (edadMs > ttl) {
+      if (typeof debug !== 'undefined') {
+        debug.log(`RoadRef caché expirada por TTL (edad ${Math.round(edadMs / 1000)}s, era ${cache.ref || 'null'})`);
+      }
+      return true;
+    }
+    return false;
+  }
+
   // API pública. Devuelve siempre { ref, maxspeedKmh } (cualquiera puede ser null).
   async function consultar(lat, lon) {
-    // 1) Caché por proximidad
-    if (cache) {
+    // 1) Caché por proximidad + TTL
+    if (cache && !cacheExpiradoPorTTL()) {
       const d = Overpass.distanciaMetros(lat, lon, cache.lat, cache.lon);
       if (d < RADIO_CACHE_M) {
         if (typeof debug !== 'undefined') {
@@ -141,13 +162,13 @@ __global__.RoadRef = (() => {
         const n = (datos.elements || []).length;
         debug.log(`RoadRef · ${n} ways · ref=${info.ref || 'null'}${info.maxspeedKmh != null ? ' · max ' + info.maxspeedKmh + 'km/h' : ''}`);
       }
-      cache = { lat, lon, ref: info.ref, maxspeedKmh: info.maxspeedKmh };
+      cache = { lat, lon, ref: info.ref, maxspeedKmh: info.maxspeedKmh, ts: Date.now() };
       return info;
     } catch (err) {
-      // Todos los mirrors fallaron. Cacheamos null para no martillear en
-      // tics sucesivos dentro del radio; el próximo movimiento >300 m
-      // volverá a intentar.
-      cache = { lat, lon, ref: null, maxspeedKmh: null };
+      // Todos los mirrors fallaron. Cacheamos null con TTL corto (TTL_NULL_MS)
+      // para no martillear en tics sucesivos pero reintentar pronto si la red
+      // se recupera aunque el coche esté parado.
+      cache = { lat, lon, ref: null, maxspeedKmh: null, ts: Date.now() };
       return { ref: null, maxspeedKmh: null };
     }
   }

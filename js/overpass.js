@@ -25,36 +25,96 @@
 
   const TIMEOUT_MS = 8000;
 
+  // DT-03 (sesión 33): rate-limiter global y mirror-penalty.
+  //   · MAX_CONCURRENTES: cuántas queries Overpass pueden estar en vuelo
+  //     a la vez a través de este módulo. Todas las queries de RoadRef,
+  //     MotorwayExit, Gasolineras y POIs pasan por aquí, así que el burst
+  //     del primer tick queda acotado.
+  //   · COLA_TIMEOUT_MS: tiempo máximo que una query espera en cola antes
+  //     de rendirse con un error (no bloquea el panel indefinidamente).
+  //   · PENALTY_MS: si un mirror responde 429 o 504, lo penalizamos durante
+  //     este tiempo. Sigue en el array pero se prueba el último en la
+  //     cascada hasta que la penalización expire.
+  const MAX_CONCURRENTES = 2;
+  const COLA_TIMEOUT_MS = 30000;
+  const PENALTY_MS = 60000;
+
+  let enVueloCount = 0;
+  const cola = [];  // array de { resolve, reject, etiqueta, tsEncolado }
+  const penalizadoHasta = Object.create(null); // mirrorUrl → timestamp fin
+
+  function esperarTurno(etiqueta) {
+    if (enVueloCount < MAX_CONCURRENTES) {
+      enVueloCount++;
+      return Promise.resolve();
+    }
+    if (typeof debug !== 'undefined') {
+      debug.log(`Overpass cola: ${etiqueta} esperando (${enVueloCount} activas, ${cola.length} en cola)`);
+    }
+    return new Promise((resolve, reject) => {
+      const entrada = { resolve, reject, etiqueta, tsEncolado: Date.now() };
+      cola.push(entrada);
+      // Timeout anti-bloqueo: si llevan demasiado en cola, rechazar.
+      entrada.timerId = setTimeout(() => {
+        const i = cola.indexOf(entrada);
+        if (i !== -1) {
+          cola.splice(i, 1);
+          if (typeof debug !== 'undefined') {
+            debug.warn(`Overpass cola: ${etiqueta} timeout en cola (${COLA_TIMEOUT_MS / 1000}s)`);
+          }
+          reject(new Error('cola_timeout'));
+        }
+      }, COLA_TIMEOUT_MS);
+    });
+  }
+
+  function liberarTurno() {
+    if (cola.length > 0) {
+      const siguiente = cola.shift();
+      clearTimeout(siguiente.timerId);
+      // enVueloCount no baja; el turno se pasa directamente al siguiente.
+      siguiente.resolve();
+    } else {
+      enVueloCount = Math.max(0, enVueloCount - 1);
+    }
+  }
+
+  // Devuelve la lista de mirrors ordenados: primero los no penalizados
+  // en su orden natural, luego los penalizados al final.
+  function mirrorsOrdenados() {
+    const ahora = Date.now();
+    const libres = [];
+    const penalizados = [];
+    for (const m of MIRRORS) {
+      if (penalizadoHasta[m] && ahora < penalizadoHasta[m]) {
+        penalizados.push(m);
+      } else {
+        libres.push(m);
+      }
+    }
+    return libres.concat(penalizados);
+  }
+
+  function penalizarMirror(url, motivo) {
+    penalizadoHasta[url] = Date.now() + PENALTY_MS;
+    if (typeof debug !== 'undefined') {
+      const host = url.split('/')[2];
+      debug.warn(`Overpass penaliza ${host} ${PENALTY_MS / 1000}s (${motivo})`);
+    }
+  }
+
   // --- Utilidades geodésicas ---
-
-  function distanciaMetros(lat1, lon1, lat2, lon2) {
-    const R = 6371000;
-    const toRad = (g) => g * Math.PI / 180;
-    const dLat = toRad(lat2 - lat1);
-    const dLon = toRad(lon2 - lon1);
-    const a = Math.sin(dLat / 2) ** 2 +
-              Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
-              Math.sin(dLon / 2) ** 2;
-    return 2 * R * Math.asin(Math.sqrt(a));
+  //
+  // DT-02 (sesión 33): las 3 funciones viven ahora en js/geo.js. Aquí las
+  // exponemos como alias (Overpass.distanciaMetros, etc.) para no romper
+  // consumidores existentes. Nuevo código debería usar Geo.* directamente.
+  const _Geo = (typeof Geo !== 'undefined') ? Geo : (typeof require !== 'undefined' ? require('./geo.js') : null);
+  if (!_Geo) {
+    throw new Error('overpass.js requiere que js/geo.js esté cargado antes');
   }
-
-  function rumboHacia(lat1, lon1, lat2, lon2) {
-    const toRad = (g) => g * Math.PI / 180;
-    const toDeg = (r) => r * 180 / Math.PI;
-    const phi1 = toRad(lat1);
-    const phi2 = toRad(lat2);
-    const dLon = toRad(lon2 - lon1);
-    const y = Math.sin(dLon) * Math.cos(phi2);
-    const x = Math.cos(phi1) * Math.sin(phi2) -
-              Math.sin(phi1) * Math.cos(phi2) * Math.cos(dLon);
-    const theta = Math.atan2(y, x);
-    return (toDeg(theta) + 360) % 360;
-  }
-
-  function diferenciaAngular(a, b) {
-    const d = Math.abs(a - b) % 360;
-    return d > 180 ? 360 - d : d;
-  }
+  const distanciaMetros = _Geo.distanciaMetros;
+  const rumboHacia = _Geo.rumboHacia;
+  const diferenciaAngular = _Geo.diferenciaAngular;
 
   // --- Cascada de mirrors ---
 
@@ -69,7 +129,13 @@
         body: 'data=' + encodeURIComponent(queryQL),
         signal: controller.signal,
       });
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      if (!resp.ok) {
+        // DT-03: errores que indican saturación del mirror → penalizar.
+        if (resp.status === 429 || resp.status === 504 || resp.status === 503) {
+          penalizarMirror(url, `HTTP ${resp.status}`);
+        }
+        throw new Error(`HTTP ${resp.status}`);
+      }
       const datos = await resp.json();
       const dt = Math.round(
         ((typeof performance !== 'undefined') ? performance.now() : Date.now()) - t0
@@ -84,25 +150,32 @@
   }
 
   async function query(queryQL, etiqueta) {
-    for (let i = 0; i < MIRRORS.length; i++) {
-      const url = MIRRORS[i];
-      const nombreMirror = url.split('/')[2];
-      try {
-        const { datos, dt } = await llamarMirror(url, queryQL);
-        if (typeof debug !== 'undefined') {
-          debug.log(`${etiqueta} ${nombreMirror} OK en ${dt}ms`);
-        }
-        return { datos, mirror: nombreMirror, dt };
-      } catch (err) {
-        if (typeof debug !== 'undefined') {
-          debug.log(`${etiqueta} ${nombreMirror} fallo: ${err.message}`);
+    // DT-03: esperar turno en el rate-limiter global antes de tocar mirrors.
+    await esperarTurno(etiqueta);
+    try {
+      const mirrors = mirrorsOrdenados();
+      for (let i = 0; i < mirrors.length; i++) {
+        const url = mirrors[i];
+        const nombreMirror = url.split('/')[2];
+        try {
+          const { datos, dt } = await llamarMirror(url, queryQL);
+          if (typeof debug !== 'undefined') {
+            debug.log(`${etiqueta} ${nombreMirror} OK en ${dt}ms`);
+          }
+          return { datos, mirror: nombreMirror, dt };
+        } catch (err) {
+          if (typeof debug !== 'undefined') {
+            debug.log(`${etiqueta} ${nombreMirror} fallo: ${err.message}`);
+          }
         }
       }
+      if (typeof debug !== 'undefined') {
+        debug.error(`${etiqueta}: todos los mirrors fallaron`);
+      }
+      throw new Error('todos_mirrors_fallaron');
+    } finally {
+      liberarTurno();
     }
-    if (typeof debug !== 'undefined') {
-      debug.error(`${etiqueta}: todos los mirrors fallaron`);
-    }
-    throw new Error('todos_mirrors_fallaron');
   }
 
   __global__.Overpass = {
