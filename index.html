@@ -146,9 +146,41 @@
     }
     .p1-speed-lim:not(:empty)::before { content: '/ '; }
 
-    /* Exceso de velocidad (IU-23 cerrará el efecto completo; placeholder aquí) */
+    /* Exceso de velocidad (IU-23): el número cambia de color + un halo en el
+       borde interior de la V1. El pulso se aplica solo al grave (>15 km/h
+       sobre el límite) para no distraer con excesos leves de GPS. */
     .p1-speed-num.exceso       { color: var(--amber); }
     .p1-speed-num.exceso-grave { color: var(--danger); }
+
+    #vista1 {
+      transition: box-shadow 0.35s ease;
+    }
+    #vista1[data-speeding="leve"] {
+      box-shadow:
+        inset 0 0 0 1px rgba(255, 181, 71, 0.55),
+        inset 0 0 26px 2px rgba(255, 181, 71, 0.12);
+    }
+    #vista1[data-speeding="grave"] {
+      box-shadow:
+        inset 0 0 0 2px rgba(255, 59, 59, 0.7),
+        inset 0 0 40px 6px var(--danger-halo);
+      animation: p1-speeding-pulse 1.1s ease-in-out infinite;
+    }
+    @keyframes p1-speeding-pulse {
+      0%, 100% { box-shadow:
+        inset 0 0 0 2px rgba(255, 59, 59, 0.55),
+        inset 0 0 30px 4px rgba(255, 59, 59, 0.20);
+      }
+      50% { box-shadow:
+        inset 0 0 0 2px rgba(255, 59, 59, 0.85),
+        inset 0 0 50px 8px rgba(255, 59, 59, 0.40);
+      }
+    }
+
+    /* Respeto a usuarios que prefieren sin animación */
+    @media (prefers-reduced-motion: reduce) {
+      #vista1[data-speeding="grave"] { animation: none; }
+    }
 
     /* -------- Grid principal 2 columnas -------- */
     .p1-grid {
@@ -2079,7 +2111,7 @@
   <script src="js/v2_lightningfx.js"></script>
   <script src="js/v2_snowfx.js"></script>
   <script src="js/v2_fogfx.js"></script>
-  <script src="js/main.js?v=iu21"></script>
+  <script src="js/main.js?v=iu23"></script>
 
 </body>
 </html>

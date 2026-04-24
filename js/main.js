@@ -210,6 +210,7 @@
     const $hora             = document.getElementById('hora');
 
     // Vista 2 elements
+    const $vista1           = document.getElementById('vista1');
     const $vista2           = document.getElementById('vista2');
     const $v2Municipio      = document.getElementById('v2Municipio');
     const $v2Admin          = document.getElementById('v2Admin');
@@ -1093,6 +1094,18 @@
         else if (exceso > 5) claseExceso = 'exceso';
       }
       $v1Velocidad.className = 'p1-speed-num u-tab' + (claseExceso ? ' ' + claseExceso : '');
+
+      // IU-23: halo de exceso sobre V1. "leve" = 5-15 km/h (amarillo, sin pulso),
+      // "grave" = >15 km/h sobre el límite (rojo + pulso). Sin data-speeding
+      // cuando no hay exceso para que el panel quede limpio.
+      const speedingAttr =
+        claseExceso === 'exceso-grave' ? 'grave' :
+        claseExceso === 'exceso'       ? 'leve'  : null;
+      if (speedingAttr) {
+        $vista1.setAttribute('data-speeding', speedingAttr);
+      } else {
+        $vista1.removeAttribute('data-speeding');
+      }
       // FN-08: invertir los chips .maxspeed-chip cuando hay exceso.
       document.querySelectorAll('.maxspeed-chip').forEach(chip => {
         chip.classList.toggle('exceso', !!claseExceso);
