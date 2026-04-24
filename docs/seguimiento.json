@@ -7,9 +7,9 @@
     "nota_pie": "Actualizar al final de cada sesión de trabajo"
   },
   "estado_actual": {
-    "fase_actual": "UI/Experiencia V2 (sesion 37 cerrada): IU-19 V1 Principal aprobada en verde tras 5 commits de ajustes posteriores (thumbnail POI fuera, icono bomba gasolina ambar, pueblo bajo POI en gris marca, nube meteo a outline). Sistema HUD operativo en V1 con datos reales del simulador. Pendiente desde sesion 34: BPC-15 e IU-16 en verde.",
+    "fase_actual": "UI/Experiencia V2 (sesion 38): IU-20 V2 Meteo cerrada en cian. V2 con palabra gigante (Archivo Black <=10 chars por D-36), temperatura monumental fosforo peso 200, story line derivada del forecast y timeline vertical de 6 horas cuyo peso tipografico y alpha fosforo crecen con la probabilidad de lluvia. Los motores de fondo IU-10..15 siguen trabajando debajo sin tocar. Pendiente desde sesion 34: BPC-15 e IU-16 en verde.",
     "ultima_actualizacion": "24 de abril de 2026",
-    "siguiente_hito": "Arranque de IU-20 V2 Meteo tipografia expresiva: palabra gigante (DESPEJADO/NUBOSO/LLUVIA/TORMENTA/NIEVE/NIEBLA con Archivo Black <=10 caracteres por D-36) derivada del codigo WMO, temperatura en JetBrains Mono 76px peso 200, timeline horaria 8h con lineas que cambian peso segun intensidad de lluvia, preservando canvas meteo y animaciones IU-10..15 (RainFX, LightningFX, SnowFX, FogFX).",
+    "siguiente_hito": "Aprobacion humana de IU-20 (cian -> verde) y arranque de IU-21 V3 POIs grid HUD.",
     "bloqueos": "Ninguno."
   },
   "fases": [
@@ -2927,6 +2927,40 @@
         [
           "Ajustes tras primera revision (aprobada en verde)",
           "Laureano pidio 4 retoques iterativos que se aplicaron in situ antes de aprobar IU-19: (1) Strip POI sin miniatura — el ancho del area se usa para mostrar el nombre completo del POI con line-clamp a 2 lineas, separados por borde vertical .p1-poi-item (primero fosforo phos-400, resto grid-line-strong). Grid inferior reajustado a minmax(0, 1.9fr) minmax(0, 1fr) para ensanchar POI. (2) Strip GAS. con icono SVG inline de bomba de gasolina 14x14 (dibujado ad-hoc, no copiado de flaticon para evitar atribucion CC BY), color var(--amber) coherente con precio de gasolinera y escudo autonomica. (3) Primera version del icono con fill transparente + stroke ambar, luego relleno ambar + stroke gris atenuado, finalmente todo ambar (fill y stroke = currentColor) por preferencia de Laureano. (4) Debajo de cada POI se añade el nombre del pueblo al que pertenece (.p1-poi-pueblo uppercase, color var(--hud-white-dim) = #8a9a95, mismo gris que la marca de gasolinera). (5) Simbolo #meteo-nube reescrito como outline (fill=none, stroke=currentColor, stroke-width 1.4) para coherencia con el estilo HUD del prototipo — aplica a V1 y V2. main.js pusheado para incluir el pueblo en los POIs extraidos de los pueblos cercanos. Cache-busters incrementados ?v=iu19 -> ?v=iu19b -> ?v=iu19c en main.js a cada cambio de contrato DOM. IU-19 aprobada por Laureano (cian -> verde) al final."
+        ]
+      ]
+    },
+    {
+      "n": 38,
+      "titulo": "IU-20 V2 Meteo: tipografia expresiva + timeline reactiva al forecast",
+      "campos": [
+        [
+          "Fecha",
+          "24 de abril de 2026"
+        ],
+        [
+          "Fase trabajada",
+          "UI/Experiencia V2. Tercera tarjeta del redisenio (IU-20) - V2 Meteo convertida en pantalla expresiva donde la tipografia es el dato."
+        ],
+        [
+          "Contexto de arranque",
+          "Con IU-18 e IU-19 en verde y las 3 reglas duras de Laureano interiorizadas, IU-20 arranco con 7 decisiones de alcance acordadas: 6 horas en timeline, motores de fondo intactos, municipio como caption y no como titulo, velocidad oculta en V2, humedad solo para alimentar story si relevante, story con HH:00 en fosforo + rafagas si viento > 15 km/h, unidades visibles."
+        ],
+        [
+          "Lo que se ha hecho",
+          "(1) Arrancada IU-20 rojo -> naranja. (2) js/meteo_codigos.js ampliado con campo etiqueta <=10 chars en cada codigo WMO (D-36): DESPEJADO, NUBOSO, NIEBLA, LLOVIZNA, LLUVIA, AGUANIEVE (codigos 56/57/66/67 de lluvia helada), NIEVE, GRANOS (codigo 77 granos de nieve), CHUBASCOS, TORMENTA. Expuesto en traducir() y el FALLBACK incluye etiqueta guion. (3) js/weather.js propaga etiqueta tanto en current como en cada hora de previsionHoraria. (4) index.html #vista2 reescrito: las 4 capas de animacion de fondo quedan intactas (.v2-ambient, .v2-rays, .v2-luminaria, .v2-animacion con todos sus sub-elementos); encima se aniade .p2-inner (position absolute inset 0 z-index 2) con: caption discreto, .p2-word palabra gigante Archivo Black letra por span con wobble escalonado 4s, .p2-temp 76px JetBrains Mono peso 200 fosforo, .p2-story u-caps, .p2-timeline 6 filas grid 32px 48px 1fr. IDs v2MeteoIcono/Viento/Humedad/Prevision y v2Velocidad preservados pero con clase .p2-off display:none !important. (5) js/main.js: 3 helpers nuevos (renderPalabraGigante, renderStoryV2, renderTimelineV2) y la seccion V2 de actualizarMeteo reescrita. Los elementos clasicos siguen recibiendo datos pero ocultos; $v2Velocidad ya no se reasigna className para no pisar .p2-off. (6) Cache-busters: meteo_codigos.js y weather.js a ?v=iu20, main.js a ?v=iu20b. (7) Verificacion en preview: Torrelodones 21 grados NUBOSO con 6 horas secas (SIN LLUVIA PREVISTA); pruebas inyectando etiquetas DESPEJADO (9), TORMENTA (8) y AGUANIEVE (9 chars, 332px sobre 365px) caben. Barras horizontales crecen con intensity simulada 0/20/90/70/30/10% en 6h; font-weight salta de 315 a 750 en la hora pico. (8) IU-20 movida a cian."
+        ],
+        [
+          "Decisiones tomadas",
+          "Sin nuevas decisiones formales - se ejecuta D-36 (etiquetas meteo cortas) ya establecida en sesion 35. Decisiones tacticas: codigo 77 (granos de nieve) etiquetado GRANOS para distinguir de granizo; codigos 56/57/66/67 etiquetados AGUANIEVE porque el termino es mas reconocible que variantes de lluvia helada en conduccion; ambiguedad 1 (mayormente despejado) vs 2 (parcialmente nublado): 1 => DESPEJADO, 2 => NUBOSO, priorizando la tendencia dominante."
+        ],
+        [
+          "Problemas encontrados",
+          "Uno: tras reescribir actualizarMeteo la velocidad seguia apareciendo arriba-derecha de V2. Causa: $v2Velocidad.className = \"v2-velocidad\" en el bloque FN-06 pisaba la clase .p2-off del HTML, y .v2-velocidad tiene position:absolute top:6px right:44px. Resuelto quitando la asignacion de className (el elemento ya no se muestra en V2). Preservado el textContent por retrocompatibilidad con debug/tests."
+        ],
+        [
+          "Pendientes",
+          "IU-20 espera verificacion humana (cian -> verde). Siguiente: IU-21 V3 POIs grid HUD."
         ]
       ]
     }
