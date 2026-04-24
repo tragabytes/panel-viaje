@@ -219,6 +219,8 @@
     const $v2MeteoViento    = document.getElementById('v2MeteoViento');
     const $v2MeteoHumedad   = document.getElementById('v2MeteoHumedad');
     const $v2MeteoPrevision = document.getElementById('v2MeteoPrevision');
+    const $v2MeteoStory     = document.getElementById('v2MeteoStory');
+    const $v2MeteoTimeline  = document.getElementById('v2MeteoTimeline');
     const $v2Velocidad      = document.getElementById('v2Velocidad');
 
     const $v1Velocidad      = document.getElementById('v1Velocidad');
@@ -285,6 +287,73 @@
       if (deg == null || isNaN(deg)) return '';
       const puntos = ['N','NE','E','SE','S','SO','O','NO'];
       return puntos[Math.round(deg / 45) % 8];
+    }
+
+    // IU-20 V2: renderiza la palabra gigante letra a letra (una <span> por
+    // carácter) para que el CSS .p2-word span pueda animar cada letra con un
+    // wobble suave escalonado. Si etiqueta viene vacía o null, devuelve "".
+    function renderPalabraGigante(etiqueta) {
+      if (!etiqueta) return '';
+      return String(etiqueta).split('').map(ch =>
+        `<span>${escapar(ch)}</span>`
+      ).join('');
+    }
+
+    // IU-20 V2: construye la "story line" debajo de la temperatura grande.
+    // Prioriza el dato más útil al conducir:
+    //   - si NO llueve ahora y hay lluvia >=30% en las próximas 6h: "Va a llover a las HH:00"
+    //   - si SÍ llueve ahora: "Para hacia las HH:00" (primera hora con <30%)
+    //   - si nada: "Sin lluvia prevista"
+    // Añade "· ráfagas N km/h" cuando el viento actual es notable (>15 km/h).
+    function renderStoryV2(meteo, horas) {
+      const partes = [];
+      const esAhoraLluvia = meteo.categoria === 'lluvia' || meteo.categoria === 'tormenta';
+      const finestras = horas || [];
+      if (esAhoraLluvia) {
+        const paraEn = finestras.find(h => (h.precipProbabilidad || 0) < 30);
+        if (paraEn && paraEn.hora) {
+          partes.push(`Para hacia las <span class="u-phos u-tab">${escapar(paraEn.hora.slice(11, 16))}</span>`);
+        } else {
+          partes.push('Lluvia persistente');
+        }
+      } else {
+        const empiezaEn = finestras.find(h => (h.precipProbabilidad || 0) >= 30);
+        if (empiezaEn && empiezaEn.hora) {
+          partes.push(`Va a llover a las <span class="u-phos u-tab">${escapar(empiezaEn.hora.slice(11, 16))}</span>`);
+        } else {
+          partes.push('Sin lluvia prevista');
+        }
+      }
+      if (meteo.vientoVelocidad != null && Math.round(meteo.vientoVelocidad) > 15) {
+        partes.push(
+          `<span class="u-dim"> · ráfagas </span>` +
+          `<span class="u-tab">${Math.round(meteo.vientoVelocidad)} ${escapar(meteo.vientoUnidad || 'km/h')}</span>`
+        );
+      }
+      return partes.join('');
+    }
+
+    // IU-20 V2: timeline vertical de 6 horas. Cada fila tiene hora, temp y
+    // una barra horizontal cuyo ancho = precipProbabilidad (0-100 → 0-100%).
+    // El peso tipográfico crece con la intensidad (300 en seco → 800 a 100%),
+    // y el color fósforo gana alpha — así la tormenta salta a la vista.
+    function renderTimelineV2(horas) {
+      if (!horas || horas.length === 0) return '';
+      const n = Math.min(6, horas.length);
+      return horas.slice(0, n).map(h => {
+        const intensity = Math.min(1, Math.max(0, (h.precipProbabilidad || 0) / 100));
+        const fontWeight = Math.round(300 + intensity * 500);
+        const alpha = (0.4 + intensity * 0.6).toFixed(2);
+        const hora = h.hora ? h.hora.slice(11, 13) + 'h' : '';
+        const temp = h.temperatura != null ? Math.round(h.temperatura) + '°' : '—';
+        const widthPct = Math.round(intensity * 100);
+        const color = `rgba(125, 255, 160, ${alpha})`;
+        return `<div class="p2-hr" style="font-weight:${fontWeight}; color:${color}">
+          <span class="p2-hr-hour">${escapar(hora)}</span>
+          <span class="p2-hr-temp">${escapar(temp)}</span>
+          <div class="p2-hr-bar" style="width:${widthPct}%"></div>
+        </div>`;
+      }).join('');
     }
 
     // Mini-forecast 4 horas para V1 (IU-19): columna con hora, barra proporcional
@@ -749,10 +818,16 @@
         // Resumen textual se sigue generando para V2.
         const resumen = construirResumenPrevision(meteo.previsionHoraria);
 
-        // V2: meteo glanceable
+        // V2 HUD expresivo (IU-20): palabra gigante + temperatura + story + timeline.
+        // Los elementos clásicos (icono, viento, humedad, previsión) siguen
+        // recibiendo datos pero están ocultos con .p2-off — así no se pierde
+        // la retrocompatibilidad con otros consumidores (debug, tests).
+        $v2MeteoDesc.innerHTML = renderPalabraGigante(meteo.etiqueta || meteo.descripcion);
+        $v2MeteoTemp.textContent = `${Math.round(meteo.temperatura)}°`;
+        $v2MeteoStory.innerHTML = renderStoryV2(meteo, meteo.previsionHoraria || []);
+        $v2MeteoTimeline.innerHTML = renderTimelineV2(meteo.previsionHoraria || []);
+        // Retrocompatibilidad — ocultos por CSS:
         $v2MeteoIcono.innerHTML = MeteoCodigos.iconoSVG(meteo.icono);
-        $v2MeteoTemp.textContent = `${Math.round(meteo.temperatura)}${meteo.temperaturaUnidad}`;
-        $v2MeteoDesc.textContent = meteo.descripcion;
         $v2MeteoViento.textContent = `Viento ${Math.round(meteo.vientoVelocidad)} ${meteo.vientoUnidad}`;
         $v2MeteoHumedad.textContent = `Humedad ${meteo.humedad}${meteo.humedadUnidad}`;
         $v2MeteoPrevision.innerHTML =
@@ -941,6 +1016,9 @@
         : '';
       $v1Velocidad.textContent = velNum;
       $v1VelocidadLimite.textContent = maxspeedActual != null ? String(maxspeedActual) : '';
+      // V2 HUD (IU-20): la V2 ya no muestra velocidad (dedicada a meteo).
+      // Mantenemos el textContent por retrocompatibilidad (debug/tests)
+      // pero la className no se actualiza: el elemento sigue con .p2-off.
       $v2Velocidad.textContent = velTexto;
       // FN-06: color de velocidad según exceso sobre maxspeedActual.
       let claseExceso = '';
@@ -950,7 +1028,6 @@
         else if (exceso > 5) claseExceso = 'exceso';
       }
       $v1Velocidad.className = 'p1-speed-num u-tab' + (claseExceso ? ' ' + claseExceso : '');
-      $v2Velocidad.className = 'v2-velocidad' + (claseExceso ? ' ' + claseExceso : '');
       // FN-08: invertir los chips .maxspeed-chip cuando hay exceso.
       document.querySelectorAll('.maxspeed-chip').forEach(chip => {
         chip.classList.toggle('exceso', !!claseExceso);

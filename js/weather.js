@@ -156,6 +156,7 @@
         precipProbabilidad: hourly.precipitation_probability ? hourly.precipitation_probability[i] : null,
         // Campos traducidos
         descripcion: traduccion.texto,
+        etiqueta: traduccion.etiqueta,
         categoria: traduccion.categoria,
         icono: traduccion.icono
       });
@@ -210,6 +211,7 @@
       previsionHoraria: transformarHourly(json.hourly, uHourly, esDia),
       // Campos traducidos del current
       descripcion: traduccionCurrent.texto,
+      etiqueta: traduccionCurrent.etiqueta,
       categoria: traduccionCurrent.categoria,
       icono: traduccionCurrent.icono,
       deCache: false

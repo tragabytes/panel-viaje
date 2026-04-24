@@ -18,45 +18,48 @@
 
   // Tabla interna. Cada entrada puede definir iconos separados para día y
   // noche. Si solo hay un icono, se usa en ambos.
+  // IU-20 (D-36): campo `etiqueta` <=10 caracteres para usar como palabra
+  // gigante en la V2 expresiva. Se simplifica por categoría — no se pierde
+  // detalle: el `texto` completo sigue disponible para otras vistas.
   var TABLA = {
-    0:  { texto: 'Despejado',               categoria: 'despejado', dia: 'meteo-sol',      noche: 'meteo-luna' },
-    1:  { texto: 'Mayormente despejado',    categoria: 'despejado', dia: 'meteo-sol-nube', noche: 'meteo-luna' },
-    2:  { texto: 'Parcialmente nublado',    categoria: 'nublado',   dia: 'meteo-sol-nube', noche: 'meteo-nube' },
-    3:  { texto: 'Nublado',                 categoria: 'nublado',   dia: 'meteo-nube',     noche: 'meteo-nube' },
+    0:  { texto: 'Despejado',               etiqueta: 'DESPEJADO', categoria: 'despejado', dia: 'meteo-sol',      noche: 'meteo-luna' },
+    1:  { texto: 'Mayormente despejado',    etiqueta: 'DESPEJADO', categoria: 'despejado', dia: 'meteo-sol-nube', noche: 'meteo-luna' },
+    2:  { texto: 'Parcialmente nublado',    etiqueta: 'NUBOSO',    categoria: 'nublado',   dia: 'meteo-sol-nube', noche: 'meteo-nube' },
+    3:  { texto: 'Nublado',                 etiqueta: 'NUBOSO',    categoria: 'nublado',   dia: 'meteo-nube',     noche: 'meteo-nube' },
 
-    45: { texto: 'Niebla',                  categoria: 'niebla',    dia: 'meteo-niebla', noche: 'meteo-niebla' },
-    48: { texto: 'Niebla escarchada',       categoria: 'niebla',    dia: 'meteo-niebla', noche: 'meteo-niebla' },
+    45: { texto: 'Niebla',                  etiqueta: 'NIEBLA',    categoria: 'niebla',    dia: 'meteo-niebla', noche: 'meteo-niebla' },
+    48: { texto: 'Niebla escarchada',       etiqueta: 'NIEBLA',    categoria: 'niebla',    dia: 'meteo-niebla', noche: 'meteo-niebla' },
 
-    51: { texto: 'Llovizna ligera',         categoria: 'lluvia',    dia: 'meteo-lluvia', noche: 'meteo-lluvia' },
-    53: { texto: 'Llovizna moderada',       categoria: 'lluvia',    dia: 'meteo-lluvia', noche: 'meteo-lluvia' },
-    55: { texto: 'Llovizna densa',          categoria: 'lluvia',    dia: 'meteo-lluvia', noche: 'meteo-lluvia' },
+    51: { texto: 'Llovizna ligera',         etiqueta: 'LLOVIZNA',  categoria: 'lluvia',    dia: 'meteo-lluvia', noche: 'meteo-lluvia' },
+    53: { texto: 'Llovizna moderada',       etiqueta: 'LLOVIZNA',  categoria: 'lluvia',    dia: 'meteo-lluvia', noche: 'meteo-lluvia' },
+    55: { texto: 'Llovizna densa',          etiqueta: 'LLOVIZNA',  categoria: 'lluvia',    dia: 'meteo-lluvia', noche: 'meteo-lluvia' },
 
-    56: { texto: 'Llovizna helada ligera',  categoria: 'lluvia',    dia: 'meteo-nieve',  noche: 'meteo-nieve' },
-    57: { texto: 'Llovizna helada densa',   categoria: 'lluvia',    dia: 'meteo-nieve',  noche: 'meteo-nieve' },
+    56: { texto: 'Llovizna helada ligera',  etiqueta: 'AGUANIEVE', categoria: 'lluvia',    dia: 'meteo-nieve',  noche: 'meteo-nieve' },
+    57: { texto: 'Llovizna helada densa',   etiqueta: 'AGUANIEVE', categoria: 'lluvia',    dia: 'meteo-nieve',  noche: 'meteo-nieve' },
 
-    61: { texto: 'Lluvia ligera',           categoria: 'lluvia',    dia: 'meteo-lluvia', noche: 'meteo-lluvia' },
-    63: { texto: 'Lluvia moderada',         categoria: 'lluvia',    dia: 'meteo-lluvia', noche: 'meteo-lluvia' },
-    65: { texto: 'Lluvia intensa',          categoria: 'lluvia',    dia: 'meteo-lluvia', noche: 'meteo-lluvia' },
+    61: { texto: 'Lluvia ligera',           etiqueta: 'LLUVIA',    categoria: 'lluvia',    dia: 'meteo-lluvia', noche: 'meteo-lluvia' },
+    63: { texto: 'Lluvia moderada',         etiqueta: 'LLUVIA',    categoria: 'lluvia',    dia: 'meteo-lluvia', noche: 'meteo-lluvia' },
+    65: { texto: 'Lluvia intensa',          etiqueta: 'LLUVIA',    categoria: 'lluvia',    dia: 'meteo-lluvia', noche: 'meteo-lluvia' },
 
-    66: { texto: 'Lluvia helada ligera',    categoria: 'lluvia',    dia: 'meteo-nieve',  noche: 'meteo-nieve' },
-    67: { texto: 'Lluvia helada intensa',   categoria: 'lluvia',    dia: 'meteo-nieve',  noche: 'meteo-nieve' },
+    66: { texto: 'Lluvia helada ligera',    etiqueta: 'AGUANIEVE', categoria: 'lluvia',    dia: 'meteo-nieve',  noche: 'meteo-nieve' },
+    67: { texto: 'Lluvia helada intensa',   etiqueta: 'AGUANIEVE', categoria: 'lluvia',    dia: 'meteo-nieve',  noche: 'meteo-nieve' },
 
-    71: { texto: 'Nevada ligera',           categoria: 'nieve',     dia: 'meteo-nieve',  noche: 'meteo-nieve' },
-    73: { texto: 'Nevada moderada',         categoria: 'nieve',     dia: 'meteo-nieve',  noche: 'meteo-nieve' },
-    75: { texto: 'Nevada intensa',          categoria: 'nieve',     dia: 'meteo-nieve',  noche: 'meteo-nieve' },
+    71: { texto: 'Nevada ligera',           etiqueta: 'NIEVE',     categoria: 'nieve',     dia: 'meteo-nieve',  noche: 'meteo-nieve' },
+    73: { texto: 'Nevada moderada',         etiqueta: 'NIEVE',     categoria: 'nieve',     dia: 'meteo-nieve',  noche: 'meteo-nieve' },
+    75: { texto: 'Nevada intensa',          etiqueta: 'NIEVE',     categoria: 'nieve',     dia: 'meteo-nieve',  noche: 'meteo-nieve' },
 
-    77: { texto: 'Granos de nieve',         categoria: 'nieve',     dia: 'meteo-nieve',  noche: 'meteo-nieve' },
+    77: { texto: 'Granos de nieve',         etiqueta: 'GRANOS',    categoria: 'nieve',     dia: 'meteo-nieve',  noche: 'meteo-nieve' },
 
-    80: { texto: 'Chubascos ligeros',       categoria: 'lluvia',    dia: 'meteo-lluvia', noche: 'meteo-lluvia' },
-    81: { texto: 'Chubascos moderados',     categoria: 'lluvia',    dia: 'meteo-lluvia', noche: 'meteo-lluvia' },
-    82: { texto: 'Chubascos violentos',     categoria: 'lluvia',    dia: 'meteo-lluvia', noche: 'meteo-lluvia' },
+    80: { texto: 'Chubascos ligeros',       etiqueta: 'CHUBASCOS', categoria: 'lluvia',    dia: 'meteo-lluvia', noche: 'meteo-lluvia' },
+    81: { texto: 'Chubascos moderados',     etiqueta: 'CHUBASCOS', categoria: 'lluvia',    dia: 'meteo-lluvia', noche: 'meteo-lluvia' },
+    82: { texto: 'Chubascos violentos',     etiqueta: 'CHUBASCOS', categoria: 'lluvia',    dia: 'meteo-lluvia', noche: 'meteo-lluvia' },
 
-    85: { texto: 'Chubascos de nieve ligeros',  categoria: 'nieve', dia: 'meteo-nieve',  noche: 'meteo-nieve' },
-    86: { texto: 'Chubascos de nieve intensos', categoria: 'nieve', dia: 'meteo-nieve',  noche: 'meteo-nieve' },
+    85: { texto: 'Chubascos de nieve ligeros',  etiqueta: 'NIEVE', categoria: 'nieve',     dia: 'meteo-nieve',  noche: 'meteo-nieve' },
+    86: { texto: 'Chubascos de nieve intensos', etiqueta: 'NIEVE', categoria: 'nieve',     dia: 'meteo-nieve',  noche: 'meteo-nieve' },
 
-    95: { texto: 'Tormenta',                    categoria: 'tormenta', dia: 'meteo-tormenta', noche: 'meteo-tormenta' },
-    96: { texto: 'Tormenta con granizo ligero', categoria: 'tormenta', dia: 'meteo-tormenta', noche: 'meteo-tormenta' },
-    99: { texto: 'Tormenta con granizo intenso',categoria: 'tormenta', dia: 'meteo-tormenta', noche: 'meteo-tormenta' }
+    95: { texto: 'Tormenta',                    etiqueta: 'TORMENTA', categoria: 'tormenta', dia: 'meteo-tormenta', noche: 'meteo-tormenta' },
+    96: { texto: 'Tormenta con granizo ligero', etiqueta: 'TORMENTA', categoria: 'tormenta', dia: 'meteo-tormenta', noche: 'meteo-tormenta' },
+    99: { texto: 'Tormenta con granizo intenso',etiqueta: 'TORMENTA', categoria: 'tormenta', dia: 'meteo-tormenta', noche: 'meteo-tormenta' }
   };
 
   // Jerarquía de severidad de menor a mayor. Se usa para decidir qué
@@ -73,6 +76,7 @@
 
   var FALLBACK = {
     texto: 'Condiciones desconocidas',
+    etiqueta: '—',
     categoria: 'desconocido',
     dia: 'meteo-desconocido',
     noche: 'meteo-desconocido'
@@ -88,6 +92,7 @@
     }
     return {
       texto: entrada.texto,
+      etiqueta: entrada.etiqueta,
       categoria: entrada.categoria,
       icono: esDia ? entrada.dia : entrada.noche
     };

@@ -1211,6 +1211,128 @@
       line-height: 26px;
       z-index: 2;
     }
+    /* =========================================================
+       V2 HUD expresivo (IU-20): tipografía dominante + timeline
+       reactiva. El contenedor p2-inner se posiciona encima de las
+       capas de animación (.v2-ambient/rays/luminaria/animacion).
+       ========================================================= */
+    .p2-off { display: none !important; }
+
+    .p2-inner {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      padding:
+        calc(16px + var(--safe-top))
+        calc(22px + var(--safe-right) + var(--safe-extra))
+        calc(16px + var(--safe-bottom))
+        calc(22px + var(--safe-left));
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      color: var(--hud-white);
+      font-family: 'JetBrains Mono', ui-monospace, monospace;
+      font-feature-settings: 'tnum' 1, 'zero' 1;
+      overflow: hidden;
+    }
+
+    /* Caption: municipio + admin en lo alto, discreto */
+    .p2-caption {
+      font-size: 10px;
+      display: flex;
+      gap: 7px;
+      align-items: baseline;
+      color: var(--hud-white);
+      letter-spacing: 0.12em;
+      min-width: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .p2-caption-sep { color: var(--hud-white-mute); }
+    .p2-caption-admin { font-size: 10px; }
+
+    /* Palabra gigante: una letra por span, wobble suave. Archivo Black con
+       tracking negativo (-0.03em) para empaquetarla fuerte. */
+    .p2-word {
+      font-family: 'Archivo Black', 'Space Grotesk', sans-serif;
+      font-size: clamp(52px, 11.5vw, 78px);
+      line-height: 0.9;
+      letter-spacing: -0.03em;
+      color: var(--hud-white);
+      margin-top: 10px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: clip;
+    }
+    .p2-word span {
+      display: inline-block;
+      animation: p2-wobble 4s ease-in-out infinite;
+    }
+    .p2-word span:nth-child(1) { animation-delay: 0s; }
+    .p2-word span:nth-child(2) { animation-delay: 0.1s; }
+    .p2-word span:nth-child(3) { animation-delay: 0.2s; }
+    .p2-word span:nth-child(4) { animation-delay: 0.3s; }
+    .p2-word span:nth-child(5) { animation-delay: 0.4s; }
+    .p2-word span:nth-child(6) { animation-delay: 0.5s; }
+    .p2-word span:nth-child(7) { animation-delay: 0.6s; }
+    .p2-word span:nth-child(8) { animation-delay: 0.7s; }
+    .p2-word span:nth-child(9) { animation-delay: 0.8s; }
+    .p2-word span:nth-child(10) { animation-delay: 0.9s; }
+    @keyframes p2-wobble {
+      0%, 100% { transform: translateY(0); }
+      50%      { transform: translateY(-2px); }
+    }
+
+    /* Temperatura: número grande, peso ligero para que la "palabra" mande.
+       JetBrains Mono para mantener tabular-nums y garantizar legibilidad. */
+    .p2-temp {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: clamp(56px, 12vw, 82px);
+      font-weight: 200;
+      line-height: 0.9;
+      letter-spacing: -0.04em;
+      color: var(--phos-300);
+      margin-top: 2px;
+    }
+
+    /* Story line: frase derivada del forecast. Hora en fósforo, número en tab. */
+    .p2-story {
+      font-size: 11px;
+      color: var(--hud-white-dim);
+      margin-top: 6px;
+      letter-spacing: 0.08em;
+    }
+    .p2-story:empty { display: none; }
+    .p2-story .u-phos { color: var(--phos-300); }
+
+    /* Timeline vertical: 6 filas hora + temp + barra lluvia. Peso del texto
+       crece con la intensidad de lluvia (300 a 800), color fósforo con alpha
+       proporcional. La barra de lluvia ocupa hasta el 100% del ancho libre. */
+    .p2-timeline {
+      margin-top: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .p2-hr {
+      display: grid;
+      grid-template-columns: 32px 48px 1fr;
+      align-items: center;
+      gap: 10px;
+      font-size: 11px;
+      transition: font-weight 0.6s ease;
+    }
+    .p2-hr-hour { font-weight: 400; opacity: 0.55; }
+    .p2-hr-temp { font-variant-numeric: tabular-nums; }
+    .p2-hr-bar {
+      height: 2px;
+      background: currentColor;
+      border-radius: 1px;
+      opacity: 0.85;
+    }
+
     /* ---- Fin Vista 2 ---- */
 
     /* ---- Vista 3: POIs grid a pantalla completa ---- */
@@ -1620,24 +1742,29 @@
         <div class="v2-niebla-capa v2-niebla-capa-2"></div>
       </div>
     </div>
-    <div class="v2-ubicacion">
-      <div id="v2Municipio" class="v2-municipio">—</div>
-      <div id="v2Admin" class="v2-admin">—</div>
-    </div>
-    <div class="v2-meteo">
-      <div class="v2-temp-fila">
-        <span id="v2MeteoIcono" class="v2-icono">—</span>
-        <span id="v2MeteoTemp" class="v2-temp">—</span>
+    <!-- Contenido HUD expresivo (IU-20). Va por encima de las animaciones
+         de fondo vía z-index. Palabra gigante + temp grande + story derivada
+         + timeline vertical reactiva a la intensidad de lluvia. -->
+    <div class="p2-inner">
+      <div class="p2-caption u-caps">
+        <span id="v2Municipio" class="p2-caption-place"></span>
+        <span class="p2-caption-sep">·</span>
+        <span id="v2Admin" class="p2-caption-admin u-dim"></span>
       </div>
-      <div id="v2MeteoDesc" class="v2-desc">—</div>
-      <div class="v2-sub-fila">
-        <span id="v2MeteoViento" class="v2-sub">—</span>
-        <span class="v2-sub-sep">·</span>
-        <span id="v2MeteoHumedad" class="v2-sub">—</span>
-      </div>
-      <div id="v2MeteoPrevision" class="v2-prevision">—</div>
+
+      <div id="v2MeteoDesc" class="p2-word" aria-live="polite"></div>
+      <div id="v2MeteoTemp" class="p2-temp u-tab">—</div>
+      <div id="v2MeteoStory" class="p2-story u-caps"></div>
+      <div id="v2MeteoTimeline" class="p2-timeline"></div>
     </div>
-    <div id="v2Velocidad" class="v2-velocidad"></div>
+
+    <!-- Elementos alimentados por main.js pero no visibles en V2 (el JS sigue
+         escribiendo texto plano sin romper el contrato previo). -->
+    <span id="v2MeteoIcono" class="p2-off"></span>
+    <span id="v2MeteoViento" class="p2-off"></span>
+    <span id="v2MeteoHumedad" class="p2-off"></span>
+    <span id="v2MeteoPrevision" class="p2-off"></span>
+    <span id="v2Velocidad" class="p2-off"></span>
   </section>
 
   <section class="vista" id="vista3">
@@ -1661,10 +1788,10 @@
   <script src="js/overpass.js"></script>
   <script src="js/roadref.js"></script>
   <script src="js/location.js"></script>
-  <script src="js/meteo_codigos.js"></script>
-  <!-- ?v=iu19: cache-buster para cambios de layout/contrato en IU-19.
+  <script src="js/meteo_codigos.js?v=iu20"></script>
+  <!-- ?v=iuXX: cache-buster por cambios de contrato DOM/datos.
        Bumpear cuando se modifique el módulo de forma incompatible. -->
-  <script src="js/weather.js?v=iu19"></script>
+  <script src="js/weather.js?v=iu20"></script>
   <script src="js/motorwayexit.js"></script>
   <script src="js/gasolineras.js"></script>
   <!-- POIModule (DT-10): dividido en 4 submódulos; el orden importa -->
@@ -1678,7 +1805,7 @@
   <script src="js/v2_lightningfx.js"></script>
   <script src="js/v2_snowfx.js"></script>
   <script src="js/v2_fogfx.js"></script>
-  <script src="js/main.js?v=iu19c"></script>
+  <script src="js/main.js?v=iu20b"></script>
 
 </body>
 </html>
