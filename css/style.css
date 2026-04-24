@@ -1,0 +1,110 @@
+/* =============================================================
+   PANEL DE VIAJE — Sistema de diseño V2 (base)
+   IU-18: tokens, fuentes self-host, utilidades tipográficas.
+   Se carga antes del <style> inline de cada vista. Los tokens
+   (--phos-*, --ink-*, --hud-*, --amber*, --danger*, --grid-line*)
+   quedan disponibles para cualquier módulo CSS o JS.
+   ============================================================= */
+
+/* --- Fuentes self-host (subset latin, cubre ñ, acentos, €) --- */
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url('../fonts/JetBrainsMono-Variable.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 300 700;
+  font-display: swap;
+  src: url('../fonts/SpaceGrotesk-Variable.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Archivo Black';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('../fonts/ArchivoBlack-Regular.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* --- Tokens globales --- */
+
+:root {
+  /* Paleta base (negros y grises oscuros) */
+  --ink-0: #000000;
+  --ink-1: #050708;
+  --ink-2: #0b0f11;
+  --ink-3: #141a1d;
+  --ink-4: #1f282c;
+
+  /* Fósforo (verde HUD aeronáutico) */
+  --phos-100: #c8ffd6;
+  --phos-200: #7dffa0;
+  --phos-300: #3dff6e;
+  --phos-400: #00e04b;
+  --phos-500: #00a838;
+  --phos-dim: #0b2a17;
+
+  /* Blancos HUD */
+  --hud-white: #e8f3ef;
+  --hud-white-dim: #8a9a95;
+  --hud-white-mute: #4a5955;
+
+  /* Acentos funcionales */
+  --amber: #ffb547;
+  --amber-dim: #4a3418;
+  --danger: #ff3b3b;
+  --danger-halo: rgba(255, 59, 59, 0.35);
+
+  /* Líneas de grid HUD */
+  --grid-line: rgba(125, 255, 160, 0.06);
+  --grid-line-strong: rgba(125, 255, 160, 0.12);
+}
+
+/* --- Utilidades tipográficas reutilizables entre vistas --- */
+
+.u-mono  { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+.u-sans  { font-family: 'Space Grotesk', system-ui, sans-serif; }
+.u-black { font-family: 'Archivo Black', 'Space Grotesk', sans-serif; }
+
+.u-caps  { text-transform: uppercase; letter-spacing: 0.1em; }
+.u-tab   { font-variant-numeric: tabular-nums; font-feature-settings: 'tnum' 1, 'zero' 1; }
+
+.u-dim   { color: var(--hud-white-dim); }
+.u-mute  { color: var(--hud-white-mute); }
+.u-phos  { color: var(--phos-300); }
+.u-amber { color: var(--amber); }
+.u-danger{ color: var(--danger); }
+
+/* --- Placeholder para miniaturas POI mientras cargan --- */
+
+.poi-ph {
+  background:
+    repeating-linear-gradient(
+      135deg,
+      rgba(125, 255, 160, 0.12) 0 4px,
+      rgba(125, 255, 160, 0.02) 4px 8px
+    ),
+    var(--ink-3);
+  position: relative;
+}
+.poi-ph::after {
+  content: attr(data-label);
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 9px;
+  color: var(--hud-white-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}

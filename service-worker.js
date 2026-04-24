@@ -9,7 +9,7 @@
 //
 // Para forzar actualización, subir SW_VERSION.
 
-const SW_VERSION = 'v3-2026-04-23';
+const SW_VERSION = 'v4-2026-04-24';
 const APP_CACHE = `panel-viaje-app-${SW_VERSION}`;
 const API_CACHE = `panel-viaje-api-${SW_VERSION}`;
 
@@ -21,6 +21,10 @@ const PRECACHE = [
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',
+  './css/style.css',
+  './fonts/JetBrainsMono-Variable.woff2',
+  './fonts/SpaceGrotesk-Variable.woff2',
+  './fonts/ArchivoBlack-Regular.woff2',
   './js/geo.js',
   './js/trayectos.js',
   './js/debug.js',
