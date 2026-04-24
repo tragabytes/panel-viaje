@@ -410,29 +410,51 @@
         $v4Pins.innerHTML = '';
         return;
       }
-      const RADIO_PX = 130;
-      const lista = pueblos.slice(0, 8);
-      // Escala adaptativa: si los pueblos están concentrados a pocos km, se
-      // estiran para ocupar el radio visible (mínimo 5 km para evitar saltos
-      // al entrar/salir de clusters densos). Si hay alguno fuera de 25 km,
-      // la escala se congela a 25 y el resto queda en el mapa.
+      // Elipse: más ancho horizontal que vertical, aprovecha el viewport
+      // apaisado 640×360. AQUÍ queda centrado en (0,0).
+      const RADIO_X = 270;
+      const RADIO_Y = 155;
+      const MIN_R  = 0.35;  // fracción mínima para no caer sobre AQUÍ
+      const lista = pueblos.slice(0, 6);
       const distancias = lista.map(p => p.distKm != null ? p.distKm : 0);
       const maxDist = Math.max.apply(null, distancias);
       const escalaKm = Math.min(25, Math.max(5, maxDist * 1.05));
-      $v4Pins.innerHTML = lista.map(p => {
-        const distKm = p.distKm != null ? p.distKm : 0;
-        const rumboDeg = (p.lat != null && p.lon != null && window.Geo && Geo.rumboHacia)
+
+      // Distribución angular uniforme: los pueblos cercanos tienden a estar
+      // en el mismo sector geográfico (ej. todos al norte), lo que amontona
+      // las chinchetas. Cartografía abstracta: ordenamos por rumbo real y
+      // los repartimos uniformemente en 360° partiendo del rumbo del primero.
+      // Así cada pueblo ocupa su propio sector y el orden visual (horario)
+      // sigue el orden geográfico real.
+      const conRumbo = lista.map(p => {
+        const rumbo = (p.lat != null && p.lon != null && window.Geo && Geo.rumboHacia)
           ? Geo.rumboHacia(userLat, userLon, p.lat, p.lon)
           : 0;
-        const rad = rumboDeg * Math.PI / 180;
-        const r = Math.min(distKm / escalaKm, 1.15);
-        const dx = Math.sin(rad) * r * RADIO_PX;
-        const dy = -Math.cos(rad) * r * RADIO_PX;
+        return { p, rumbo };
+      });
+      const ordenados = conRumbo.slice().sort((a, b) => a.rumbo - b.rumbo);
+      const stride = 360 / ordenados.length;
+      const offset = ordenados[0] ? ordenados[0].rumbo : 0;
+      const anguloVisual = new Map();
+      ordenados.forEach((item, i) => {
+        anguloVisual.set(item.p, (offset + i * stride) % 360);
+      });
+      $v4Pins.innerHTML = lista.map(p => {
+        const distKm = p.distKm != null ? p.distKm : 0;
+        const anguloDeg = anguloVisual.has(p) ? anguloVisual.get(p) : 0;
+        const rad = anguloDeg * Math.PI / 180;
+        const rNorm = Math.max(MIN_R, Math.min(distKm / escalaKm, 1.0));
+        const dx = Math.sin(rad) * rNorm * RADIO_X;
+        const dy = -Math.cos(rad) * rNorm * RADIO_Y;
         const far = distKm > 25 ? ' p4-pin-far' : '';
+        // Label al lado opuesto del centro: a la derecha si el pin está al
+        // este del usuario, a la izquierda si al oeste. Así los nombres
+        // "apuntan hacia afuera" y se pisan menos entre sí.
+        const side = (dx >= 0) ? 'right' : 'left';
         const distTxt = distKm < 1
           ? Math.round(distKm * 1000) + ' m'
           : distKm.toFixed(1) + ' km';
-        return `<div class="p4-pin${far}" style="left:calc(50% + ${dx.toFixed(0)}px); top:calc(50% + ${dy.toFixed(0)}px)">
+        return `<div class="p4-pin${far}" data-side="${side}" style="left:calc(50% + ${dx.toFixed(0)}px); top:calc(50% + ${dy.toFixed(0)}px)">
           <div class="p4-pin-dot"></div>
           <div class="p4-pin-label">
             <div class="p4-pin-name">${escapar(p.nombre || '')}</div>

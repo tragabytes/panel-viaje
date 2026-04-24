@@ -1726,30 +1726,39 @@
       position: absolute;
       inset: 0;
     }
+    /* Pin = contenedor puntual (0x0). El dot se centra en (0,0) y el label
+       se offsetea a la izquierda o a la derecha según data-side, lo que
+       reduce mucho el solapamiento cuando los pueblos están agrupados. */
     .p4-pin {
       position: absolute;
-      transform: translate(-50%, -50%);
-      display: flex;
-      align-items: center;
-      gap: 5px;
+      width: 0;
+      height: 0;
       pointer-events: none;
     }
     .p4-pin-far { opacity: 0.55; }
     .p4-pin-dot {
-      width: 7px;
-      height: 7px;
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 8px;
+      height: 8px;
+      margin-left: -4px;
+      margin-top: -4px;
       border-radius: 50%;
       background: var(--phos-300);
       box-shadow: 0 0 0 2px rgba(125, 255, 160, 0.15);
-      flex-shrink: 0;
     }
     .p4-pin-far .p4-pin-dot { background: var(--hud-white-mute); box-shadow: none; }
     .p4-pin-label {
+      position: absolute;
+      top: -8px;
       display: flex;
       flex-direction: column;
       gap: 1px;
-      line-height: 1;
+      line-height: 1.1;
     }
+    .p4-pin[data-side="right"] .p4-pin-label { left: 10px;  text-align: left; }
+    .p4-pin[data-side="left"]  .p4-pin-label { right: 10px; text-align: right; }
     .p4-pin-name {
       font-size: 10px;
       color: var(--hud-white);
@@ -2298,7 +2307,7 @@
   <script src="js/v2_lightningfx.js"></script>
   <script src="js/v2_snowfx.js"></script>
   <script src="js/v2_fogfx.js"></script>
-  <script src="js/main.js?v=iu22"></script>
+  <script src="js/main.js?v=iu22b"></script>
 
 </body>
 </html>
