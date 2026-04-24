@@ -7,9 +7,9 @@
     "nota_pie": "Actualizar al final de cada sesión de trabajo"
   },
   "estado_actual": {
-    "fase_actual": "UI/Experiencia V2 (sesion 40): IU-23 Exceso de velocidad aprobada en verde. V1 tiene ahora halo reactivo al exceso sobre maxspeed con dos niveles (leve ambar sin pulso, grave rojo con pulso 1.1s), respetando prefers-reduced-motion. 5 de las 7 tarjetas del grupo UI/Experiencia V2 ya en verde (IU-18, IU-19, IU-20, IU-21, IU-23). Pendiente: IU-22 V4 Entorno (nueva vista cartografia) y IU-24 Pulido.",
+    "fase_actual": "UI/Experiencia V2 (sesion 41): IU-22 V4 Entorno cartografia aprobada en verde. Cuarta vista del visor con fondo de reticula topografica SVG, coordenadas GMS, nombre del entorno gigante (comarca/provincia/ccaa) en Archivo Black, AQUI central pulsante con glow fosforo y chinchetas de 6 pueblos cercanos distribuidas como cartografia abstracta en 360° (elipse 270x155). 6 de 7 tarjetas del grupo UI/Experiencia V2 ya en verde — solo queda IU-24 (pulido).",
     "ultima_actualizacion": "24 de abril de 2026",
-    "siguiente_hito": "Arranque de IU-22 V4 Entorno cartografia: cuarta vista del visor con reticula topografica de fondo, coordenadas, nombre del entorno gigante en Archivo Black y POIs como chinchetas posicionadas pseudo-mapa. Implica ampliar el visor a 4 vistas (scroll-snap + logica de deteccion activa).",
+    "siguiente_hito": "Arranque de IU-24 Pulido visual y prueba en simulador: limpieza de CSS muerto de las V1/V2/V3 antiguas (.v1-*, .v2-*, .v3-* ya sin HTML), revision integral de consistencia visual entre las 4 vistas, ajustes finos que surjan al probar en el movil real o en rutas diversas del simulador.",
     "bloqueos": "Ninguno."
   },
   "fases": [
@@ -3037,6 +3037,40 @@
         [
           "Pendientes",
           "IU-23 aprobada. Siguiente: IU-22 V4 Entorno cartografia."
+        ]
+      ]
+    },
+    {
+      "n": 41,
+      "titulo": "IU-22 V4 Entorno cartografia + ajuste dispersion chinchetas",
+      "campos": [
+        [
+          "Fecha",
+          "24 de abril de 2026"
+        ],
+        [
+          "Fase trabajada",
+          "UI/Experiencia V2. Sexta tarjeta del redisenio — cuarta vista NUEVA del visor que no existia antes."
+        ],
+        [
+          "Contexto de arranque",
+          "Con IU-18 a IU-21 y IU-23 en verde, IU-22 arranca como la unica tarjeta que introduce una cuarta vista al visor. Decisiones de alcance previas: usar los pueblos cercanos (no POIs individuales) como chinchetas porque cada pueblo trae lat/lon y agrupa la info; mantener el radio conceptual de 25 km para coherencia con V3 pero con escala visual adaptativa (5-25 km) para que los pueblos cercanos se dispersen; respetar prefers-reduced-motion en el pulso del usuario; mantener el visor actual (flex + scroll-snap) sin tocar logica de paginacion al añadir simplemente una section mas."
+        ],
+        [
+          "Lo que se ha hecho",
+          "(1) Arrancada IU-22 (morada -> roja -> naranja). (2) HTML #vista4: SVG topografica decorativa con pattern #p4-grid (reticula 40px verde muy tenue) + 3 curvas de nivel abstractas; .p4-coords arriba-derecha con coords GMS; .p4-title abajo-izquierda con \"ENTORNO · RADIO 25 KM\" + .p4-placename gigante en Archivo Black; .p4-map con .p4-user (ring pulsante 2s + core fosforo + glow) y .p4-pins donde main.js inyecta las chinchetas. (3) CSS .p4-*: fondo radial centrado, .p4-placename clamp(28, min(6.5vw, 11vh), 44)px, animation p4-pulse 2s sobre .p4-user-ring con ease-in-out, @media prefers-reduced-motion desactiva; pin contenedor 0x0 con dot 8x8 margin -4 y label positioned absolute con data-side=\"left|right\" para offset adaptativo; .p4-pin-far con opacidad 0.55 y dot gris para pueblos fuera de 25 km. (4) main.js: referencias $v4Coords, $v4Placename, $v4Pins; formatearCoordsGMS(lat, lon) con padStart y hemisferios N/S/E/O; pintarV4Mapa(pueblos, userLat, userLon) usa Geo.rumboHacia; coords se refrescan en cada tick GPS; placename en actualizarUbicacion usa comarca > provincia > ccaa > municipio; pintarV4Mapa llamada al final de pintarPOIs con ultimoFixVelocidad. (5) Ajuste post-revision tras feedback de Laureano — las chinchetas salian amontonadas en el mismo sector cuando los pueblos estaban geograficamente cercanos. Tres cambios: elipse 270x155 en vez de circulo 130, distribucion angular uniforme (ordenar por rumbo real + stride 360/n partiendo del rumbo del primero), labels con posicion dinamica data-side derecha/izquierda segun hemisferio del pin. Radio minimo 35% del maximo para no solapar AQUI. (6) Cache-busters main.js ?v=iu22 -> ?v=iu22b. (7) Verificacion en preview con simulador ruta a6 en Torrelodones: AQUI central con pulso visible, 5 pueblos distribuidos en todo el circulo (Torrelodones Colonia arriba, Canto del Pico derecha-arriba, Torrelodones derecha, Finca Nueva El Enebrillo abajo, Urbanizacion Montealegria izquierda), cada uno con su label sin solape, coords 40°35′N · 3°57′O, placename COMUNIDAD DE MADRID. (8) IU-22 movida a cian y aprobada en verde."
+        ],
+        [
+          "Decisiones tomadas",
+          "Una decision de diseno importante: cartografia ABSTRACTA en lugar de literal. Cuando los pueblos estan concentrados en el mismo cuadrante, se redistribuyen uniformemente en 360° manteniendo el ORDEN HORARIO del rumbo real (el mas al norte sigue al norte, el resto se reparte en sentido horario). Trade-off: se pierde fidelidad direccional exacta pero se gana legibilidad consistente — cada chincheta ocupa su propio sector. En pueblos dispersos de forma natural, el efecto es indistinguible."
+        ],
+        [
+          "Problemas encontrados",
+          "Dos iteraciones: (a) primera version con circulo de radio 130 y distancia proporcional a km (cartografia literal) producia amontonamiento severo cuando los pueblos estaban en el mismo cuadrante; jitter radial ±18% para vecinos angulares <22° no era suficiente. (b) Resuelto en segunda iteracion con distribucion angular uniforme + elipse y labels con data-side."
+        ],
+        [
+          "Pendientes",
+          "IU-22 aprobada. Siguiente y ultima del grupo V2: IU-24 Pulido visual y prueba en simulador."
         ]
       ]
     }
