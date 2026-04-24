@@ -7,9 +7,9 @@
     "nota_pie": "Actualizar al final de cada sesión de trabajo"
   },
   "estado_actual": {
-    "fase_actual": "UI/Experiencia V2 (sesion 39): IU-21 V3 POIs aprobada en verde. V3 con header \"PUNTOS DE INTERES\" + ubicacion actual + contador N / RADIO 25 KM, grid 3x2 de 6 tarjetas POI individuales (flat, no agrupadas por pueblo), foto real cuando hay o placeholder rayas diagonales, meta con pueblo en gris uppercase + distancia en fosforo tabular; strip inferior de gasolineras con icono bomba ambar. 3 de las 4 vistas del grupo UI/Experiencia V2 ya en verde (IU-18, IU-19, IU-20, IU-21). Pendiente: IU-22 V4 Entorno cartografia (NUEVA FEATURE), IU-23 Exceso velocidad HUD, IU-24 Pulido.",
+    "fase_actual": "UI/Experiencia V2 (sesion 40): IU-23 Exceso de velocidad aprobada en verde. V1 tiene ahora halo reactivo al exceso sobre maxspeed con dos niveles (leve ambar sin pulso, grave rojo con pulso 1.1s), respetando prefers-reduced-motion. 5 de las 7 tarjetas del grupo UI/Experiencia V2 ya en verde (IU-18, IU-19, IU-20, IU-21, IU-23). Pendiente: IU-22 V4 Entorno (nueva vista cartografia) y IU-24 Pulido.",
     "ultima_actualizacion": "24 de abril de 2026",
-    "siguiente_hito": "Arranque de IU-22 V4 Entorno cartografia: vista nueva con retícula topografica de fondo, coordenadas, nombre del entorno gigante y POIs posicionados como chinchetas en mapa. Es la unica tarjeta que introduce una cuarta vista al visor — implica ampliar el scroll-snap, el indicador de paginas y la logica de deteccion de vista activa.",
+    "siguiente_hito": "Arranque de IU-22 V4 Entorno cartografia: cuarta vista del visor con reticula topografica de fondo, coordenadas, nombre del entorno gigante en Archivo Black y POIs como chinchetas posicionadas pseudo-mapa. Implica ampliar el visor a 4 vistas (scroll-snap + logica de deteccion activa).",
     "bloqueos": "Ninguno."
   },
   "fases": [
@@ -3003,6 +3003,40 @@
         [
           "Pendientes",
           "IU-21 aprobada. Siguiente: IU-22 V4 Entorno cartografia (nueva vista)."
+        ]
+      ]
+    },
+    {
+      "n": 40,
+      "titulo": "IU-23 Exceso de velocidad: halo HUD reactivo sobre V1",
+      "campos": [
+        [
+          "Fecha",
+          "24 de abril de 2026"
+        ],
+        [
+          "Fase trabajada",
+          "UI/Experiencia V2. Quinta tarjeta del rediseño — estado visual reactivo al exceso de velocidad sobre el limite de la via, que hasta ahora solo cambiaba el color del numero (FN-06/FN-08)."
+        ],
+        [
+          "Contexto de arranque",
+          "Con IU-18 a IU-21 en verde, IU-23 arranco como tarea puntual: envolver V1 en un halo cuando se supere el limite de velocidad. Decision de disen niveles: el calculo FN-06 ya distingue exceso leve (5-15 km/h) y exceso grave (>15) — se reutiliza esa semantica. Para no distraer con ruido de GPS en el tramo leve, el pulso solo se aplica al grave."
+        ],
+        [
+          "Lo que se ha hecho",
+          "(1) Arrancada IU-23 (se movio manualmente de morada a roja; dependencia IU-19 ya verde). (2) CSS en index.html: #vista1 con transition box-shadow 0.35s; #vista1[data-speeding=\"leve\"] con inset 0 0 0 1px rgba(255,181,71,0.55) + inset 0 0 26px 2px rgba(255,181,71,0.12); #vista1[data-speeding=\"grave\"] con inset 0 0 0 2px rgba(255,59,59,0.7) + inset 0 0 40px 6px var(--danger-halo) y animation p1-speeding-pulse 1.1s ease-in-out infinite que oscila entre alpha 0.55 y 0.85 en el borde y 0.20 a 0.40 en el halo; media query prefers-reduced-motion desactiva la animacion. (3) main.js: añadida referencia $vista1; tras calcular claseExceso (exceso | exceso-grave | \"\") se mapea a data-speeding (\"leve\" | \"grave\" | remover atributo) con setAttribute / removeAttribute. La velocidad numerica sigue cambiando a ambar/danger via .p1-speed-num.exceso[.exceso-grave] (ya existentes en IU-19). (4) Cache-buster main.js -> ?v=iu23. (5) Verificacion forzando data-speeding + className via preview_eval: 137/120 -> grave (rojo + pulso + velocidad en danger visible); 128/120 -> leve (ambar discreto sin pulso); remover atributo vuelve a V1 limpia. (6) IU-23 movida a cian y aprobada en verde."
+        ],
+        [
+          "Decisiones tomadas",
+          "Sin decisiones formales nuevas. Tacticas: dos niveles de halo (leve vs grave) para respetar la semantica ya establecida por FN-06; pulso solo en grave para no saturar la mirada del conductor con excesos menores; respeto a prefers-reduced-motion; transition-on-change en lugar de animation-on-change para que la activacion sea suave."
+        ],
+        [
+          "Problemas encontrados",
+          "Ninguno. Unica nota: canvas-tool no permite mover manualmente morada -> roja (solo red->orange/cyan); se edito tablero.canvas directamente por Python cambiando color \"6\" -> \"1\"."
+        ],
+        [
+          "Pendientes",
+          "IU-23 aprobada. Siguiente: IU-22 V4 Entorno cartografia."
         ]
       ]
     }
