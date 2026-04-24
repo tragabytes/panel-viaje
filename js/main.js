@@ -230,6 +230,7 @@
     const $v3Carretera      = document.getElementById('v3Carretera');
     const $v3Ubicacion      = document.getElementById('v3Ubicacion');
     const $v3Grid           = document.getElementById('v3Grid');
+    const $v3PoiCounter     = document.getElementById('v3PoiCounter');
 
     // --- Helpers ---
 
@@ -621,6 +622,8 @@
       if (pueblos.length === 0) {
         $poiScroll.innerHTML = '';
         $poiBloque.style.display = 'none';
+        $v3Grid.innerHTML = '<div class="poi-cargando">Sin puntos de interés cerca</div>';
+        if ($v3PoiCounter) $v3PoiCounter.innerHTML = '<span class="u-phos">0</span> · RADIO 25 KM';
       } else {
         // V1 HUD: lista plana "distancia + nombre", 3 pueblos máximo (IU-19).
         $poiScroll.innerHTML = pueblos.slice(0, 3).map(pueblo => {
@@ -661,27 +664,46 @@
         }
       }
 
-      // V3: grid de tarjetas de pueblo con hasta 2 POIs cada una
-      $v3Grid.innerHTML = pueblos.map(pueblo => {
-        const dist = pueblo.distKm < 1
-          ? Math.round(pueblo.distKm * 1000) + ' m'
-          : pueblo.distKm.toFixed(1) + ' km';
-
-        const poisV3 = pueblo.pois.slice(0, 2).map(poi =>
-          `<div class="v3-poi">
-            <span class="v3-poi-icono">${escapar(poi.icono)}</span>
-            <span class="v3-poi-nombre">${escapar(poi.nombre)}</span>
-          </div>`
-        ).join('');
-
-        return `<div class="v3-pueblo">
-          <div class="v3-pueblo-cab">
-            <span class="v3-pueblo-nombre">${escapar(pueblo.nombre)}</span>
-            <span class="v3-pueblo-dist">${escapar(dist)}</span>
-          </div>
-          ${poisV3}
-        </div>`;
-      }).join('');
+      // V3 HUD (IU-21): grid 3x2 flat de POIs individuales. Se aplana la
+      // jerarquía pueblo → pois, se toma foto del POI si existe y se usa el
+      // nombre del pueblo como meta para dar contexto geográfico.
+      const poisV3 = [];
+      for (const p of pueblos) {
+        for (const poi of (p.pois || [])) {
+          poisV3.push({
+            nombre: poi.nombre,
+            foto: poi.foto,
+            pueblo: p.nombre,
+            distKm: p.distKm,
+          });
+        }
+      }
+      const top6 = poisV3.slice(0, 6);
+      if (top6.length === 0) {
+        $v3Grid.innerHTML = '<div class="poi-cargando">Sin puntos de interés cerca</div>';
+      } else {
+        $v3Grid.innerHTML = top6.map(poi => {
+          const dist = poi.distKm < 1
+            ? Math.round(poi.distKm * 1000) + ' m'
+            : poi.distKm.toFixed(1) + ' km';
+          const thumb = poi.foto
+            ? `<div class="p3-v3-thumb"><img src="${escapar(poi.foto)}" alt="" loading="lazy"></div>`
+            : `<div class="p3-v3-thumb poi-ph" data-label="PHOTO"></div>`;
+          return `<div class="p3-v3-card">
+            ${thumb}
+            <div class="p3-v3-name">${escapar(poi.nombre)}</div>
+            <div class="p3-v3-meta">
+              <span class="p3-v3-meta-pueblo u-caps">${escapar(poi.pueblo)}</span>
+              <span class="p3-v3-meta-dist u-tab">${escapar(dist)}</span>
+            </div>
+          </div>`;
+        }).join('');
+      }
+      // Contador del head: "6 · RADIO 25 KM"
+      if ($v3PoiCounter) {
+        $v3PoiCounter.innerHTML =
+          `<span class="u-phos">${top6.length}</span> · RADIO 25 KM`;
+      }
     }
 
     // FN-01: pinta lista de gasolineras en V3. FN-09 / IU-19: 3 primeras en V1
@@ -699,7 +721,10 @@
       $v3Gasolineras.style.display = '';
       $v3GasolinerasL.innerHTML = lista.map(g => {
         const marca = escapar(g.marca || g.nombre || 'Gasolinera');
-        return `<div class="v3-gasolinera"><span class="v3-gasolinera-marca">${marca}</span><span class="v3-gasolinera-dist">${fmtDist(g.distM)}</span></div>`;
+        return `<div class="p3-v3-fuel-item">
+          <span class="p3-v3-fuel-dist u-tab">${fmtDist(g.distM)}</span>
+          <span class="p3-v3-fuel-marca">${marca}</span>
+        </div>`;
       }).join('');
       $v1Gasolineras.style.display = '';
       if ($v1FuelList) {
