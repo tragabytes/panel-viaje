@@ -190,6 +190,7 @@
     const $municipioDesc    = document.getElementById('municipioDesc');
     const $poiBloque        = document.getElementById('poiBloque');
     const $poiScroll        = document.getElementById('poiScroll');
+    const $poiV1Lista       = document.getElementById('poiV1Lista');
     const $v3Gasolineras    = document.getElementById('v3Gasolineras');
     const $v3GasolinerasL   = document.getElementById('v3GasolinerasLista');
     const $v1Gasolineras    = document.getElementById('v1Gasolineras');
@@ -197,7 +198,10 @@
     const $meteoDescripcion = document.getElementById('meteoDescripcion');
     const $meteoViento      = document.getElementById('meteoViento');
     const $meteoHumedad     = document.getElementById('meteoHumedad');
+    const $meteoLluvia      = document.getElementById('meteoLluvia');
+    const $meteoVisib       = document.getElementById('meteoVisib');
     const $meteoPrevision   = document.getElementById('meteoPrevision');
+    const $v1VelocidadLimite = document.getElementById('v1VelocidadLimite');
     const $lat              = document.getElementById('lat');
     const $lon              = document.getElementById('lon');
     const $precision        = document.getElementById('precision');
@@ -252,8 +256,10 @@
     const distanciaMetros = Geo.distanciaMetros;
 
     function mostrarEstado(texto, clase) {
+      // IU-19: $estado vive en el topbar V1 (.p1-estado). CSS esconde .ok y
+      // deja error/aviso visibles en color. Se mantiene la API previa.
       $estado.textContent = texto;
-      $estado.className = 'estado ' + (clase || '');
+      $estado.className = 'p1-estado ' + (clase || '');
     }
 
     function formatearAdmin(info) {
@@ -262,6 +268,51 @@
         return `${info.provincia} · ${info.ccaa}`;
       }
       return info.provincia || info.ccaa;
+    }
+
+    // V1 HUD (IU-19): crumbs territoriales con separador fósforo intermedio.
+    // Usa HTML mínimo en lugar de textContent para poder atenuar el "·".
+    function formatearAdminV1Html(info) {
+      if (!info.ccaa && !info.provincia) return '';
+      const partes = [];
+      if (info.ccaa) partes.push(escapar(info.ccaa));
+      if (info.provincia && info.provincia !== info.ccaa) partes.push(escapar(info.provincia));
+      return partes.join(' <span class="p1-sep">·</span> ');
+    }
+
+    // Convierte grados (0-360) a punto cardinal castellano para V1.
+    function gradosACardinal(deg) {
+      if (deg == null || isNaN(deg)) return '';
+      const puntos = ['N','NE','E','SE','S','SO','O','NO'];
+      return puntos[Math.round(deg / 45) % 8];
+    }
+
+    // Mini-forecast 4 horas para V1 (IU-19): columna con hora, barra proporcional
+    // a la temperatura, temperatura numérica, marca si se esperan ≥0.1 mm de lluvia.
+    function renderMiniForecast4h(horas) {
+      if (!horas || horas.length === 0) return '';
+      const n = Math.min(4, horas.length);
+      const subset = horas.slice(0, n);
+      const temps = subset.map(h => h.temperatura).filter(t => t != null);
+      if (!temps.length) return '';
+      const max = Math.max(...temps);
+      const min = Math.min(...temps);
+      const rango = max - min || 1;
+      return subset.map(h => {
+        const hora = h.hora ? h.hora.slice(11, 13) + 'h' : '';
+        const temp = h.temperatura != null ? Math.round(h.temperatura) + '°' : '—';
+        const pctBarra = h.temperatura != null ? 30 + ((h.temperatura - min) / rango) * 70 : 40;
+        const pLluvia = h.precipProbabilidad;
+        const marcaLluvia = (pLluvia != null && pLluvia >= 30)
+          ? `<div class="p1-wx-fc-rain">${pLluvia}%</div>`
+          : '';
+        return `<div class="p1-wx-fc">
+          <div class="p1-wx-fc-temp u-tab">${escapar(temp)}</div>
+          <div class="p1-wx-fc-bar" style="height:${pctBarra.toFixed(0)}%"></div>
+          ${marcaLluvia}
+          <div class="p1-wx-fc-hour u-tab">${escapar(hora)}</div>
+        </div>`;
+      }).join('');
     }
 
     // --- Efectos visuales de V2 ---
@@ -354,23 +405,43 @@
     // --- Pintado ---
 
     function pintarCarretera(info) {
+      // V1 HUD (IU-19): etiqueta "VÍA" + escudo fósforo + textoCrudo como label.
+      // Nombre oficial, destino y PK no están disponibles hoy — se añadirán si
+      // se consulta tags Overpass en una tarjeta futura.
+      // V3 mantiene el patrón clásico (pastilla + chip) hasta IU-21.
       if (info && info.codigo) {
-        const claseExtra = info.tipo === 'autonomica' ? ' autonomica' : '';
+        const claseShield = info.tipo === 'autonomica' ? ' p1-road-shield--autonomica' : '';
+        const claseExtra  = info.tipo === 'autonomica' ? ' autonomica' : '';
         const chipMax = (maxspeedActual != null)
           ? `<span class="maxspeed-chip" title="Velocidad límite">${maxspeedActual}</span>`
           : '';
+        const label = info.textoCrudo && info.textoCrudo !== info.codigo
+          ? `<span class="p1-road-label">${escapar(info.textoCrudo)}</span>`
+          : '';
         $carreteraBloque.innerHTML =
-          `<span class="pastilla${claseExtra}">${escapar(info.codigo)}</span>${chipMax}`;
-        // V3 cabecera: pastilla mini
+          `<div class="p1-road-tag u-caps u-dim">VÍA</div>
+           <div class="p1-road-name">
+             <span class="p1-road-shield${claseShield}">${escapar(info.codigo)}</span>
+             ${label}
+           </div>`;
+        // V3 cabecera
         $v3Carretera.innerHTML =
           `<span class="pastilla${claseExtra}">${escapar(info.codigo)}</span>${chipMax}`;
       } else if (info && info.textoCrudo) {
         $carreteraBloque.innerHTML =
-          `<span class="calle">${escapar(info.textoCrudo)}</span>`;
+          `<div class="p1-road-tag u-caps u-dim">VÍA</div>
+           <div class="p1-road-name">
+             <span class="p1-road-shield p1-road-shield--empty">—</span>
+             <span class="p1-road-label">${escapar(info.textoCrudo)}</span>
+           </div>`;
         $v3Carretera.textContent = info.textoCrudo;
       } else {
         $carreteraBloque.innerHTML =
-          `<span class="sin-carretera">Sin vía identificada</span>`;
+          `<div class="p1-road-tag u-caps u-dim">VÍA</div>
+           <div class="p1-road-name">
+             <span class="p1-road-shield p1-road-shield--empty">—</span>
+             <span class="p1-road-label">Sin vía identificada</span>
+           </div>`;
         $v3Carretera.textContent = '';
       }
     }
@@ -440,42 +511,43 @@
 
       const pueblos = resultado.pueblosCercanos || [];
       if (pueblos.length === 0) {
+        $poiScroll.innerHTML = '';
         $poiBloque.style.display = 'none';
-        return;
-      }
-
-      $poiScroll.innerHTML = pueblos.map(pueblo => {
-        const dist = pueblo.distKm < 1
-          ? Math.round(pueblo.distKm * 1000) + ' m'
-          : pueblo.distKm.toFixed(1) + ' km';
-
-        const poisHtml = pueblo.pois.map((poi, i) => {
-          if (i === 0) {
-            const mediaHtml = poi.foto
-              ? `<img class="poi-foto" src="${escapar(poi.foto)}" alt="" loading="lazy">`
-              : `<span class="poi-icono-box">${escapar(poi.icono)}</span>`;
-            return `<div class="poi-item">
-              ${mediaHtml}
-              <span class="poi-nombre">${escapar(poi.nombre)}</span>
-            </div>`;
-          } else {
-            return `<div class="poi-item">
-              <span style="font-size:14px;opacity:0.5;flex-shrink:0">${escapar(poi.icono)}</span>
-              <span class="poi-nombre-sec">${escapar(poi.nombre)}</span>
-            </div>`;
-          }
+      } else {
+        // V1 HUD: lista plana "distancia + nombre", 3 pueblos máximo (IU-19).
+        $poiScroll.innerHTML = pueblos.slice(0, 3).map(pueblo => {
+          const dist = pueblo.distKm < 1
+            ? Math.round(pueblo.distKm * 1000) + ' m'
+            : pueblo.distKm.toFixed(1) + ' km';
+          return `<li>
+            <span class="p1-near-dist u-tab u-phos">${escapar(dist)}</span>
+            <span class="p1-near-name">${escapar(pueblo.nombre)}</span>
+          </li>`;
         }).join('');
 
-        return `<div class="poi-pueblo">
-          <div class="poi-pueblo-cab">
-            <span class="poi-pueblo-nombre">${escapar(pueblo.nombre)}</span>
-            <span class="poi-pueblo-dist">${escapar(dist)}</span>
-          </div>
-          ${poisHtml}
-        </div>`;
-      }).join('');
-
-      $poiBloque.style.display = '';
+        // V1 HUD: strip inferior con 3 POIs primeros entre todos los pueblos.
+        const todosPois = [];
+        for (const p of pueblos) {
+          for (const poi of (p.pois || [])) todosPois.push(poi);
+          if (todosPois.length >= 3) break;
+        }
+        const top3 = todosPois.slice(0, 3);
+        if (top3.length) {
+          $poiV1Lista.innerHTML = top3.map(poi => {
+            const thumb = poi.foto
+              ? `<img class="p1-poi-thumb" src="${escapar(poi.foto)}" alt="" loading="lazy">`
+              : `<div class="p1-poi-thumb poi-ph" data-label="PHOTO"></div>`;
+            return `<div class="p1-poi-item">
+              ${thumb}
+              <div class="p1-poi-name">${escapar(poi.nombre)}</div>
+            </div>`;
+          }).join('');
+          $poiBloque.style.display = '';
+        } else {
+          $poiV1Lista.innerHTML = '';
+          $poiBloque.style.display = 'none';
+        }
+      }
 
       // V3: grid de tarjetas de pueblo con hasta 2 POIs cada una
       $v3Grid.innerHTML = pueblos.map(pueblo => {
@@ -500,13 +572,15 @@
       }).join('');
     }
 
-    // FN-01: pinta lista de gasolineras en V3. FN-09: las 2 primeras en V1.
+    // FN-01: pinta lista de gasolineras en V3. FN-09 / IU-19: 3 primeras en V1
+    // con estilo HUD fósforo (distancia en verde, marca en dim).
     function pintarGasolineras(lista) {
+      const $v1FuelList = $v1Gasolineras.querySelector('.p1-fuel-list');
       if (!lista || lista.length === 0) {
         $v3Gasolineras.style.display = 'none';
         $v3GasolinerasL.innerHTML = '';
         $v1Gasolineras.style.display = 'none';
-        $v1Gasolineras.innerHTML = '';
+        if ($v1FuelList) $v1FuelList.innerHTML = '';
         return;
       }
       const fmtDist = d => d < 1000 ? Math.round(d) + ' m' : (d / 1000).toFixed(1) + ' km';
@@ -516,10 +590,15 @@
         return `<div class="v3-gasolinera"><span class="v3-gasolinera-marca">${marca}</span><span class="v3-gasolinera-dist">${fmtDist(g.distM)}</span></div>`;
       }).join('');
       $v1Gasolineras.style.display = '';
-      $v1Gasolineras.innerHTML = lista.slice(0, 2).map(g => {
-        const marca = escapar(g.marca || g.nombre || 'Gasolinera');
-        return `<div class="v1-gasolinera"><span class="v1-gasolinera-marca">${marca}</span><span class="v1-gasolinera-dist">${fmtDist(g.distM)}</span></div>`;
-      }).join('');
+      if ($v1FuelList) {
+        $v1FuelList.innerHTML = lista.slice(0, 3).map(g => {
+          const marca = escapar(g.marca || g.nombre || 'Gasolinera');
+          return `<div class="p1-fuel-item">
+            <span class="p1-fuel-dist u-tab">${fmtDist(g.distM)}</span>
+            <span class="p1-fuel-marca">${marca}</span>
+          </div>`;
+        }).join('');
+      }
     }
 
     // --- Actualización por datos ---
@@ -533,7 +612,7 @@
 
         municipioActual = info.municipio || null;
         $municipio.textContent = info.municipio || '(municipio desconocido)';
-        $admin.textContent = formatearAdmin(info);
+        $admin.innerHTML = formatearAdminV1Html(info);
         // V2
         $v2Municipio.textContent = info.municipio || '(municipio desconocido)';
         $v2Admin.textContent = formatearAdmin(info);
@@ -637,22 +716,34 @@
         if (clave === ultimaMeteoMostrada && !meteoEnError) return;
         ultimaMeteoMostrada = clave;
 
-        $meteoTemp.textContent =
-          `${Math.round(meteo.temperatura)}${meteo.temperaturaUnidad} · sensación ${Math.round(meteo.sensacion)}${meteo.sensacionUnidad}`;
+        // V1 HUD (IU-19): temp compacta (sólo actual), icono, filas lluvia/viento/visib
+        // y mini-forecast 4h. Humedad y sensación se muestran sólo en V2.
+        $meteoTemp.textContent = `${Math.round(meteo.temperatura)}${meteo.temperaturaUnidad}`;
 
-        $meteoDescripcion.innerHTML =
-          `<span class="icono">${MeteoCodigos.iconoSVG(meteo.icono)}</span><span class="texto">${escapar(meteo.descripcion)}</span>`;
+        $meteoDescripcion.innerHTML = MeteoCodigos.iconoSVG(meteo.icono);
 
-        $meteoViento.className = 'sub';
+        const mm = (meteo.precipitacion != null) ? meteo.precipitacion : 0;
+        const unidadMm = meteo.precipitacionUnidad || 'mm';
+        $meteoLluvia.textContent = `${mm.toFixed(1)} ${unidadMm}`;
+
+        const cardinal = gradosACardinal(meteo.vientoDireccion);
         $meteoViento.textContent =
-          `Viento ${Math.round(meteo.vientoVelocidad)} ${meteo.vientoUnidad} · ${meteo.vientoDireccion}°`;
-        $meteoHumedad.className = 'sub';
-        $meteoHumedad.textContent =
-          `Humedad ${meteo.humedad}${meteo.humedadUnidad}`;
+          `${Math.round(meteo.vientoVelocidad)} ${meteo.vientoUnidad}${cardinal ? ' ' + cardinal : ''}`;
 
+        if (meteo.visibilidad != null) {
+          const visibKm = Math.round(meteo.visibilidad / 1000);
+          $meteoVisib.textContent = `${visibKm} km`;
+        } else {
+          $meteoVisib.textContent = '—';
+        }
+
+        // V2 sigue usando $meteoHumedad (oculto en V1 por .p1-off).
+        $meteoHumedad.textContent = `${meteo.humedad}${meteo.humedadUnidad}`;
+
+        $meteoPrevision.innerHTML = renderMiniForecast4h(meteo.previsionHoraria || []);
+
+        // Resumen textual se sigue generando para V2.
         const resumen = construirResumenPrevision(meteo.previsionHoraria);
-        $meteoPrevision.innerHTML =
-          `<span>${MeteoCodigos.iconoSVG(resumen.icono)}</span><span>${escapar(resumen.texto)}</span>`;
 
         // V2: meteo glanceable
         $v2MeteoIcono.innerHTML = MeteoCodigos.iconoSVG(meteo.icono);
@@ -687,12 +778,13 @@
 
         meteoEnError = false;
       } catch (err) {
-        $meteoTemp.textContent = 'Error meteo';
-        $meteoDescripcion.innerHTML =
-          `<span class="icono">⚠️</span><span class="texto">${escapar(err.message || 'fallo')}</span>`;
+        $meteoTemp.textContent = '—';
+        $meteoDescripcion.innerHTML = '';
         $meteoViento.textContent = '—';
         $meteoHumedad.textContent = '—';
-        $meteoPrevision.textContent = '—';
+        $meteoLluvia.textContent = '—';
+        $meteoVisib.textContent = '—';
+        $meteoPrevision.innerHTML = '';
         meteoEnError = true;
         debug.error(`Weather: ${err.message}`);
       }
@@ -834,10 +926,17 @@
         : 'no disponible';
       $hora.textContent = new Date().toTimeString().slice(0, 8);
 
+      // V1 HUD (IU-19): número y unidad viven en nodos separados. Sólo el número
+      // cambia aquí; "km/h" está en el HTML y no se retoca. Prefijo "~" si la
+      // velocidad viene del fallback calculado (coord. previas).
+      const velNum = velEfectivaKmh != null
+        ? `${fuenteVelocidad === 'fallback' ? '~' : ''}${Math.round(velEfectivaKmh)}`
+        : '—';
       const velTexto = velEfectivaKmh != null
         ? `${fuenteVelocidad === 'fallback' ? '~' : ''}${Math.round(velEfectivaKmh)} km/h`
         : '';
-      $v1Velocidad.textContent = velTexto;
+      $v1Velocidad.textContent = velNum;
+      $v1VelocidadLimite.textContent = maxspeedActual != null ? String(maxspeedActual) : '';
       $v2Velocidad.textContent = velTexto;
       // FN-06: color de velocidad según exceso sobre maxspeedActual.
       let claseExceso = '';
@@ -846,7 +945,7 @@
         if (exceso > 15) claseExceso = 'exceso-grave';
         else if (exceso > 5) claseExceso = 'exceso';
       }
-      $v1Velocidad.className = 'v1-velocidad' + (claseExceso ? ' ' + claseExceso : '');
+      $v1Velocidad.className = 'p1-speed-num u-tab' + (claseExceso ? ' ' + claseExceso : '');
       $v2Velocidad.className = 'v2-velocidad' + (claseExceso ? ' ' + claseExceso : '');
       // FN-08: invertir los chips .maxspeed-chip cuando hay exceso.
       document.querySelectorAll('.maxspeed-chip').forEach(chip => {

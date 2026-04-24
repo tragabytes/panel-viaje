@@ -28,7 +28,8 @@
     'is_day',
     'wind_speed_10m',
     'wind_direction_10m',
-    'precipitation'
+    'precipitation',
+    'visibility'
   ].join(',');
 
   var CAMPOS_HOURLY = [
@@ -200,6 +201,8 @@
       vientoDireccion: c.wind_direction_10m,
       precipitacion: (typeof c.precipitation === 'number') ? c.precipitation : null,
       precipitacionUnidad: u.precipitation || 'mm',
+      visibilidad: (typeof c.visibility === 'number') ? c.visibility : null,
+      visibilidadUnidad: u.visibility || 'm',
       hora: c.time,
       sunrise: sunrise,
       sunset: sunset,

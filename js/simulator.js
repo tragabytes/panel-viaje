@@ -83,18 +83,19 @@
     banner.id = 'sim-banner';
     banner.style.cssText = `
       position: fixed;
-      top: 4px;
+      bottom: 4px;
       left: 4px;
       z-index: 10000;
-      background: rgba(220, 140, 20, 0.92);
+      background: rgba(220, 140, 20, 0.55);
       color: #000;
       font-family: monospace;
-      font-size: 11px;
+      font-size: 9px;
       font-weight: 700;
-      padding: 4px 10px;
-      border-radius: 4px;
-      letter-spacing: 0.5px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+      padding: 2px 6px;
+      border-radius: 3px;
+      letter-spacing: 0.3px;
+      opacity: 0.65;
+      pointer-events: none;
     `;
     banner.textContent = `SIM · ${nombreRuta} · x${factor}`;
     document.body.appendChild(banner);
