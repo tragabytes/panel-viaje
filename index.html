@@ -42,11 +42,14 @@
     .visor::-webkit-scrollbar { display: none; }
 
     /* Cada vista ocupa la pantalla completa. scroll-snap-stop: always
-       evita que el swipe pare a medias entre dos vistas. */
+       evita que el swipe pare a medias entre dos vistas.
+       width (no min-width): evita que contenido interno con intrinsic
+       min-content (ej. fila de gasolineras con flex-wrap:nowrap) fuerce
+       un grid más ancho que 100vw y saque la columna derecha de pantalla. */
     .vista {
       scroll-snap-align: start;
       scroll-snap-stop: always;
-      min-width: 100vw;
+      width: 100vw;
       height: 100vh;
       height: 100dvh;
       height: var(--app-height, 100dvh);
@@ -67,10 +70,12 @@
       --safe-extra:  0px;
     }
 
-    /* Vista 1: grid 2 columnas compacto para 640×360 */
+    /* Vista 1: grid 2 columnas compacto para 640×360.
+       minmax(0, 58%) evita que el contenido mínimo de la fila de
+       gasolineras (flex-wrap:nowrap) fuerce un ancho superior al 100vw. */
     #vista1 {
       display: grid;
-      grid-template-columns: 58% 42%;
+      grid-template-columns: minmax(0, 58%) minmax(0, 42%);
       grid-template-rows: 22px 1fr auto auto;
       grid-template-areas:
         "estado estado"
@@ -96,17 +101,20 @@
       gap: 3px;
       padding-top: 4px;
       min-height: 0;
+      min-width: 0;
     }
 
     .v1-der {
       grid-area: der;
       display: flex;
       flex-direction: column;
+      justify-content: center;
       gap: 3px;
       padding-top: 4px;
       padding-left: 10px;
       border-left: 1px solid rgba(255,255,255,0.1);
       min-height: 0;
+      min-width: 0;
     }
 
     .v1-poi {
@@ -143,16 +151,29 @@
     #vista1 .salida { margin-bottom: 3px; }
     #vista1 .salida-num { font-size: 18px; }
     #vista1 .ubicacion { margin: 0; padding: 0; border: none; }
-    #vista1 .municipio { font-size: 20px; }
-    #vista1 .admin { font-size: 12px; }
-    #vista1 .datos-municipio { font-size: 11px; margin-top: 1px; }
-    #vista1 .municipio-info { display: none; }
+    /* IU-16: tamaños ampliados para legibilidad al conducir. Los bases
+       de 20/13/11 quedaban pequeños en el móvil del coche. Se suben sin
+       romper el grid: verificado con el simulador a 640×360 con municipio
+       largo + descripción Wikipedia activa. */
+    #vista1 .municipio { font-size: 26px; }
+    #vista1 .admin { font-size: 14px; }
+    #vista1 .datos-municipio { font-size: 13px; margin-top: 2px; }
     #vista1 .meteo { margin: 0; padding: 0; border: none; }
-    #vista1 .meteo .temp { font-size: 20px; margin-bottom: 2px; }
-    #vista1 .meteo .descripcion { font-size: 13px; margin-bottom: 2px; }
-    #vista1 .meteo .descripcion .icono { width: 16px; height: 16px; }
-    #vista1 .meteo .sub { font-size: 11px; }
-    #vista1 .meteo .prevision { font-size: 11px; margin-top: 4px; padding-top: 4px; }
+    /* IU-16: temp no debe romperse a dos líneas con "X°C · sensación Y°C".
+       Ancho útil de la columna derecha a 640×360 ≈ 259px; a 28px la cadena
+       ("16°C · sensación 15°C") desborda y se trunca. A 24px entra entera
+       y sigue siendo mucho más legible que los 20px originales. */
+    #vista1 .meteo .temp {
+      font-size: 24px;
+      margin-bottom: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #vista1 .meteo .descripcion { font-size: 16px; margin-bottom: 4px; }
+    #vista1 .meteo .descripcion .icono { width: 20px; height: 20px; }
+    #vista1 .meteo .sub { font-size: 13px; }
+    #vista1 .meteo .prevision { font-size: 13px; margin-top: 4px; padding-top: 4px; }
 
     /* POI compacto en Vista 1: chips sin iconos */
     #vista1 .poi-seccion { margin: 0; padding: 0; border: none; }
@@ -568,6 +589,7 @@
       display: -webkit-box;
       -webkit-line-clamp: 3;
       -webkit-box-orient: vertical;
+      min-width: 0;
     }
 
     /* ---- Vista 2: Ubicación + Meteo glanceable ---- */
@@ -765,7 +787,7 @@
     #vista2.v2-inactiva * {
       animation-play-state: paused !important;
     }
-    #vista2 > *:not(.v2-animacion):not(.v2-luminaria):not(.v2-ambient):not(.v2-rays):not(.v2-rain-canvas):not(.v2-snow-canvas):not(.v2-fog):not(.v2-lightning):not(.v2-lightning-eco) { position: relative; z-index: 1; }
+    #vista2 > *:not(.v2-animacion):not(.v2-luminaria):not(.v2-ambient):not(.v2-rays):not(.v2-rain-canvas):not(.v2-snow-canvas):not(.v2-fog):not(.v2-lightning):not(.v2-lightning-eco):not(.v2-velocidad) { position: relative; z-index: 1; }
     .v2-anim { display: none; position: absolute; inset: 0; }
     #vista2[data-meteo-cat="despejado"] .v2-anim-despejado { display: block; }
     #vista2[data-meteo-cat="nublado"]   .v2-anim-nublado   { display: block; }
@@ -933,12 +955,18 @@
       vertical-align: -0.1em;
     }
 
+    /* BPC-15: movida a esquina superior derecha para no solapar la
+       previsión meteo, que ocupa el borde inferior del bloque centrado.
+       Se sitúa a la izquierda del botón fullscreen (26px ancho + 6px
+       right + 6px hueco ≈ 38px → usamos 44px para respirar). */
     .v2-velocidad {
       position: absolute;
-      bottom: 12px;
-      right: 16px;
+      top: calc(6px + var(--safe-top));
+      right: calc(44px + var(--safe-right) + var(--safe-extra));
       font-size: 18px;
       opacity: 0.7;
+      line-height: 26px;
+      z-index: 2;
     }
     /* ---- Fin Vista 2 ---- */
 
