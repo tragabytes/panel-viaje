@@ -1615,6 +1615,157 @@
     .p3-v3-fuel-dist { color: var(--phos-300); font-variant-numeric: tabular-nums; }
     .p3-v3-fuel-marca { color: var(--hud-white-dim); }
 
+    /* =========================================================
+       V4 HUD (IU-22): cartografía abstracta con chinchetas.
+       Topografía decorativa de fondo + usuario pulsante al centro
+       + POIs posicionados según proyección cartesiana simple.
+       ========================================================= */
+    #vista4 {
+      position: relative;
+      background: radial-gradient(ellipse at 50% 50%, #050a08 0%, #000 80%);
+      color: var(--hud-white);
+      font-family: 'JetBrains Mono', ui-monospace, monospace;
+      font-feature-settings: 'tnum' 1, 'zero' 1;
+      overflow: hidden;
+    }
+    .p4-topo {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+    }
+    .p4-coords {
+      position: absolute;
+      top: calc(12px + var(--safe-top));
+      right: calc(40px + var(--safe-right) + var(--safe-extra));
+      font-size: 10px;
+      color: var(--hud-white-dim);
+      letter-spacing: 0.14em;
+      z-index: 2;
+    }
+    .p4-title {
+      position: absolute;
+      left: calc(16px + var(--safe-left));
+      top: calc(12px + var(--safe-top));
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .p4-title .u-caps { font-size: 10px; letter-spacing: 0.1em; }
+    .p4-placename {
+      font-family: 'Archivo Black', 'Space Grotesk', sans-serif;
+      font-size: clamp(28px, min(6.5vw, 11vh), 44px);
+      letter-spacing: 0.14em;
+      color: var(--hud-white);
+      line-height: 1;
+    }
+
+    /* Mapa: contenedor centrado. El usuario es el punto (0,0) local. */
+    .p4-map {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      overflow: hidden;
+    }
+    .p4-user {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 0;
+      height: 0;
+      transform: translate(-50%, -50%);
+      z-index: 3;
+    }
+    .p4-user-ring {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 28px;
+      height: 28px;
+      margin-left: -14px;
+      margin-top: -14px;
+      border: 1px solid var(--phos-300);
+      border-radius: 50%;
+      animation: p4-pulse 2s ease-in-out infinite;
+    }
+    @keyframes p4-pulse {
+      0%, 100% { opacity: 0.85; transform: scale(0.75); }
+      50%      { opacity: 0.15; transform: scale(1.4); }
+    }
+    .p4-user-core {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 9px;
+      height: 9px;
+      margin-left: -4.5px;
+      margin-top: -4.5px;
+      background: var(--phos-300);
+      border-radius: 50%;
+      box-shadow: 0 0 10px var(--phos-300);
+    }
+    .p4-user-label {
+      position: absolute;
+      left: 50%;
+      top: 16px;
+      transform: translateX(-50%);
+      font-size: 9px;
+      color: var(--phos-300);
+      letter-spacing: 0.14em;
+      white-space: nowrap;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .p4-user-ring { animation: none; opacity: 0.5; }
+    }
+
+    /* Chinchetas de pueblos/POIs. Posición calculada por JS desde el centro. */
+    .p4-pins {
+      position: absolute;
+      inset: 0;
+    }
+    .p4-pin {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      pointer-events: none;
+    }
+    .p4-pin-far { opacity: 0.55; }
+    .p4-pin-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--phos-300);
+      box-shadow: 0 0 0 2px rgba(125, 255, 160, 0.15);
+      flex-shrink: 0;
+    }
+    .p4-pin-far .p4-pin-dot { background: var(--hud-white-mute); box-shadow: none; }
+    .p4-pin-label {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+      line-height: 1;
+    }
+    .p4-pin-name {
+      font-size: 10px;
+      color: var(--hud-white);
+      font-family: 'Space Grotesk', system-ui, sans-serif;
+      letter-spacing: 0.02em;
+      text-shadow: 0 0 6px rgba(0, 0, 0, 0.85);
+      white-space: nowrap;
+    }
+    .p4-pin-dist {
+      font-size: 9px;
+      color: var(--phos-300);
+      font-variant-numeric: tabular-nums;
+      text-shadow: 0 0 6px rgba(0, 0, 0, 0.85);
+    }
+    .p4-pin-far .p4-pin-dist { color: var(--hud-white-dim); }
+
     /* ======================= */
     /* Vista 3 clásica (muerta tras IU-21; se preserva por inercia) */
     .v3-cabecera {
@@ -2084,6 +2235,42 @@
       <div id="v3GasolinerasLista" class="p3-v3-fuel-list"></div>
     </div>
   </section>
+
+  <!-- V4 (IU-22): cartografía abstracta del entorno con chinchetas de
+       pueblos/POIs reales. El fondo es una retícula topográfica decorativa;
+       el usuario es el centro del mapa (radio 25 km). -->
+  <section class="vista" id="vista4">
+    <svg class="p4-topo" viewBox="0 0 640 360" preserveAspectRatio="none" aria-hidden="true">
+      <defs>
+        <pattern id="p4-grid" width="40" height="40" patternUnits="userSpaceOnUse">
+          <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(125, 255, 160, 0.05)" stroke-width="1"/>
+        </pattern>
+      </defs>
+      <rect width="640" height="360" fill="url(#p4-grid)"/>
+      <path d="M 0 120 Q 160 80 320 140 T 640 110" fill="none" stroke="rgba(125, 255, 160, 0.08)" stroke-width="1"/>
+      <path d="M 0 200 Q 200 180 380 220 T 640 200" fill="none" stroke="rgba(125, 255, 160, 0.08)" stroke-width="1"/>
+      <path d="M 0 280 Q 220 250 420 290 T 640 270" fill="none" stroke="rgba(125, 255, 160, 0.05)" stroke-width="1"/>
+    </svg>
+
+    <!-- Coordenadas lat/lon en formato grados-minutos arriba a la derecha -->
+    <div id="v4Coords" class="p4-coords u-caps">—</div>
+
+    <!-- Título + nombre del entorno gigante abajo-izquierda -->
+    <div class="p4-title">
+      <div class="u-caps u-dim">ENTORNO · RADIO 25 KM</div>
+      <div id="v4Placename" class="p4-placename">—</div>
+    </div>
+
+    <!-- Mapa: capa de pins + usuario centrado -->
+    <div class="p4-map">
+      <div id="v4Pins" class="p4-pins"></div>
+      <div class="p4-user">
+        <div class="p4-user-ring"></div>
+        <div class="p4-user-core"></div>
+        <div class="p4-user-label u-caps">AQUÍ</div>
+      </div>
+    </div>
+  </section>
 </div><!-- /visor -->
 
   <script src="js/geo.js"></script>
@@ -2111,7 +2298,7 @@
   <script src="js/v2_lightningfx.js"></script>
   <script src="js/v2_snowfx.js"></script>
   <script src="js/v2_fogfx.js"></script>
-  <script src="js/main.js?v=iu23"></script>
+  <script src="js/main.js?v=iu22"></script>
 
 </body>
 </html>

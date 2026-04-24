@@ -232,6 +232,10 @@
     const $v3Ubicacion      = document.getElementById('v3Ubicacion');
     const $v3Grid           = document.getElementById('v3Grid');
     const $v3PoiCounter     = document.getElementById('v3PoiCounter');
+    // IU-22: V4 Entorno (cartografía)
+    const $v4Coords         = document.getElementById('v4Coords');
+    const $v4Placename      = document.getElementById('v4Placename');
+    const $v4Pins           = document.getElementById('v4Pins');
 
     // --- Helpers ---
 
@@ -395,6 +399,62 @@
         );
       }
       return partes.join('');
+    }
+
+    // IU-22 V4: pinta chinchetas de pueblos posicionadas geográficamente
+    // respecto al usuario centrado. El radio visible cubre 25 km (radio fijo
+    // 130px); los pueblos más lejanos quedan atenuados con .p4-pin-far.
+    function pintarV4Mapa(pueblos, userLat, userLon) {
+      if (!$v4Pins) return;
+      if (!pueblos || pueblos.length === 0 || userLat == null || userLon == null) {
+        $v4Pins.innerHTML = '';
+        return;
+      }
+      const RADIO_PX = 130;
+      const lista = pueblos.slice(0, 8);
+      // Escala adaptativa: si los pueblos están concentrados a pocos km, se
+      // estiran para ocupar el radio visible (mínimo 5 km para evitar saltos
+      // al entrar/salir de clusters densos). Si hay alguno fuera de 25 km,
+      // la escala se congela a 25 y el resto queda en el mapa.
+      const distancias = lista.map(p => p.distKm != null ? p.distKm : 0);
+      const maxDist = Math.max.apply(null, distancias);
+      const escalaKm = Math.min(25, Math.max(5, maxDist * 1.05));
+      $v4Pins.innerHTML = lista.map(p => {
+        const distKm = p.distKm != null ? p.distKm : 0;
+        const rumboDeg = (p.lat != null && p.lon != null && window.Geo && Geo.rumboHacia)
+          ? Geo.rumboHacia(userLat, userLon, p.lat, p.lon)
+          : 0;
+        const rad = rumboDeg * Math.PI / 180;
+        const r = Math.min(distKm / escalaKm, 1.15);
+        const dx = Math.sin(rad) * r * RADIO_PX;
+        const dy = -Math.cos(rad) * r * RADIO_PX;
+        const far = distKm > 25 ? ' p4-pin-far' : '';
+        const distTxt = distKm < 1
+          ? Math.round(distKm * 1000) + ' m'
+          : distKm.toFixed(1) + ' km';
+        return `<div class="p4-pin${far}" style="left:calc(50% + ${dx.toFixed(0)}px); top:calc(50% + ${dy.toFixed(0)}px)">
+          <div class="p4-pin-dot"></div>
+          <div class="p4-pin-label">
+            <div class="p4-pin-name">${escapar(p.nombre || '')}</div>
+            <div class="p4-pin-dist">${escapar(distTxt)}</div>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    // IU-22 V4: formatea coordenadas GPS a formato grados-minutos con
+    // hemisferio (ej. "40°34′N · 3°54′O"). Se muestra en la esquina superior
+    // derecha del mapa como cartografía.
+    function formatearCoordsGMS(lat, lon) {
+      const fmt = (v, pos, neg) => {
+        const deg = Math.abs(Math.trunc(v));
+        const min = Math.round(Math.abs(v - Math.trunc(v)) * 60);
+        const m = (min === 60) ? 0 : min;
+        const d = (min === 60) ? deg + 1 : deg;
+        const h = v >= 0 ? pos : neg;
+        return `${d}°${String(m).padStart(2, '0')}′${h}`;
+      };
+      return `${fmt(lat, 'N', 'S')} · ${fmt(lon, 'E', 'O')}`;
     }
 
     // Mini-forecast 4 horas para V1 (IU-19): columna con hora, barra proporcional
@@ -705,6 +765,10 @@
         $v3PoiCounter.innerHTML =
           `<span class="u-phos">${top6.length}</span> · RADIO 25 KM`;
       }
+      // IU-22 V4: chinchetas de pueblos en cartografía
+      if (ultimoFixVelocidad) {
+        pintarV4Mapa(pueblos, ultimoFixVelocidad.lat, ultimoFixVelocidad.lon);
+      }
     }
 
     // FN-01: pinta lista de gasolineras en V3. FN-09 / IU-19: 3 primeras en V1
@@ -759,6 +823,12 @@
         $v3Ubicacion.textContent = adminCorto
           ? `${info.municipio || '—'} · ${adminCorto}`
           : info.municipio || '—';
+        // V4 placename (IU-22): prefiere comarca (nombre geográfico) sobre
+        // provincia/ccaa. Cae a municipio si no hay nada mejor.
+        if ($v4Placename) {
+          const entorno = info.comarca || info.provincia || info.ccaa || info.municipio || '—';
+          $v4Placename.textContent = String(entorno).toUpperCase();
+        }
         debug.log(`Ubicación [${info.fuente}]: ${info.municipio} · ${formatearAdmin(info)}`);
       } catch (err) {
         debug.error(`LocationModule.ubicacion: ${err.message}`);
@@ -1062,6 +1132,9 @@
 
       $lat.textContent = c.latitude.toFixed(6);
       $lon.textContent = c.longitude.toFixed(6);
+
+      // IU-22 V4: coordenadas formato grados-minutos arriba derecha del mapa
+      if ($v4Coords) $v4Coords.textContent = formatearCoordsGMS(c.latitude, c.longitude);
       $precision.textContent = c.accuracy != null ? `${c.accuracy.toFixed(1)} m` : '—';
       $velocidad.textContent = velEfectivaKmh != null
         ? `${velEfectivaKmh.toFixed(1)} km/h${fuenteVelocidad === 'fallback' ? ' (calc)' : ''}`
