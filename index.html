@@ -1232,13 +1232,13 @@
       height: 100%;
       z-index: 2;
       padding:
-        calc(12px + var(--safe-top))
+        calc(10px + var(--safe-top))
         calc(22px + var(--safe-right) + var(--safe-extra))
-        calc(12px + var(--safe-bottom))
+        calc(10px + var(--safe-bottom))
         calc(22px + var(--safe-left));
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 3px;
       color: var(--hud-white);
       font-family: 'JetBrains Mono', ui-monospace, monospace;
       font-feature-settings: 'tnum' 1, 'zero' 1;
@@ -1269,12 +1269,14 @@
        sin desbordarse, manteniendo presencia en viewport portrait. */
     .p2-word {
       font-family: 'Archivo Black', 'Space Grotesk', sans-serif;
-      font-size: clamp(40px, min(10vw, 15vh), 68px);
+      font-size: clamp(52px, min(13vw, 22vh), 96px);
       line-height: 1;
-      letter-spacing: -0.03em;
+      letter-spacing: 0.15em;
       color: var(--hud-white);
-      margin-top: 4px;
+      margin-top: 0;
       white-space: nowrap;
+      overflow: hidden;
+      text-overflow: clip;
       flex-shrink: 0;
     }
     .p2-word span {
@@ -1301,7 +1303,7 @@
        Escala con min(vw, vh) para landscape 640×360 sin cortes. */
     .p2-temp {
       font-family: 'JetBrains Mono', monospace;
-      font-size: clamp(44px, min(11vw, 17vh), 72px);
+      font-size: clamp(36px, min(9vw, 14vh), 56px);
       font-weight: 200;
       line-height: 1;
       letter-spacing: -0.04em;
@@ -1376,7 +1378,8 @@
       grid-template-columns: 32px 48px 1fr 32px;
       align-items: center;
       gap: 10px;
-      font-size: 11px;
+      font-size: 10px;
+      line-height: 1.2;
       transition: font-weight 0.6s ease;
     }
     .p2-hr-hour { font-weight: 400; opacity: 0.55; }
@@ -1967,21 +1970,26 @@
       </div>
     </div>
     <!-- Contenido HUD expresivo (IU-20). Va por encima de las animaciones
-         de fondo vía z-index. Palabra gigante + temp grande + story derivada
-         + timeline vertical reactiva a la intensidad de lluvia. -->
+         de fondo vía z-index. Orden: palabra + temp arriba con todo el
+         espacio posible, después ubicación, métricas, story (SIN LLUVIA
+         PREVISTA / etc.) y timeline. -->
     <div class="p2-inner">
+      <!-- Palabra gigante arriba del todo, sin caption intermedio -->
+      <div id="v2MeteoDesc" class="p2-word" aria-live="polite"></div>
+      <div id="v2MeteoTemp" class="p2-temp u-tab">—</div>
+
+      <!-- Ubicación (donde antes iba la story) -->
       <div class="p2-caption u-caps">
         <span id="v2Municipio" class="p2-caption-place"></span>
         <span class="p2-caption-sep">·</span>
         <span id="v2Admin" class="p2-caption-admin u-dim"></span>
       </div>
 
-      <div id="v2MeteoDesc" class="p2-word" aria-live="polite"></div>
-      <div id="v2MeteoTemp" class="p2-temp u-tab">—</div>
-      <div id="v2MeteoStory" class="p2-story u-caps"></div>
-
       <!-- Métricas meteo: viento, humedad, visibilidad -->
       <div id="v2MeteoMetrics" class="p2-metrics"></div>
+
+      <!-- Story (SIN LLUVIA PREVISTA / VA A LLOVER A LAS HH:00) bajo métricas -->
+      <div id="v2MeteoStory" class="p2-story u-caps"></div>
 
       <!-- Timeline 6h -->
       <div class="p2-timeline-head u-caps u-dim">
