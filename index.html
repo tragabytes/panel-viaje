@@ -345,12 +345,29 @@
     /* -------- Strip inferior: POIs + gasolineras -------- */
     .p1-bottom {
       display: grid;
-      grid-template-columns: 1.4fr 1fr;
+      grid-template-columns: minmax(0, 1.9fr) minmax(0, 1fr);
       gap: 14px;
       border-top: 1px solid var(--grid-line-strong);
       padding-top: 6px;
     }
-    .p1-strip-tag { font-size: 10px; margin-bottom: 3px; }
+    .p1-strip-tag {
+      font-size: 10px;
+      margin-bottom: 3px;
+      color: var(--hud-white-dim);
+    }
+    /* Variante "GAS.": icono de bomba + texto, alineados en la misma línea.
+       Color ámbar coherente con el precio de gasolinera y el escudo autonómica. */
+    .p1-strip-tag--gas {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      color: var(--amber);
+    }
+    .p1-strip-icon {
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+    }
 
     .p1-pois-list {
       display: grid;
@@ -360,20 +377,23 @@
     .p1-poi-item {
       display: flex;
       flex-direction: column;
-      gap: 2px;
+      justify-content: center;
       min-width: 0;
+      min-height: 0;
+      padding: 2px 6px 2px 0;
+      border-left: 2px solid var(--grid-line-strong);
+      padding-left: 8px;
     }
-    .p1-poi-thumb {
-      width: 100%;
-      height: 26px;
-      border-radius: 2px;
-    }
+    .p1-poi-item:first-child { border-left: 2px solid var(--phos-400); }
     .p1-poi-name {
-      font-size: 10px;
+      font-size: 11px;
+      line-height: 1.15;
       color: var(--hud-white);
-      white-space: nowrap;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
       overflow: hidden;
-      text-overflow: ellipsis;
+      word-break: break-word;
     }
 
     .p1-fuel-list {
@@ -1509,7 +1529,19 @@
       <div id="poiV1Lista" class="p1-pois-list"></div>
     </div>
     <div id="v1Gasolineras" class="p1-fuel" style="display:none">
-      <div class="p1-strip-tag u-caps u-dim">GAS.</div>
+      <div class="p1-strip-tag p1-strip-tag--gas u-caps">
+        <svg class="p1-strip-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <!-- Cuerpo del surtidor -->
+          <path d="M5 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16"/>
+          <!-- Base -->
+          <line x1="3" y1="21" x2="17" y2="21"/>
+          <!-- Pantalla -->
+          <rect x="7" y="6" width="6" height="3.5" rx="0.4"/>
+          <!-- Pistola -->
+          <path d="M15 11h2.5v6a1.5 1.5 0 0 0 3 0V9l-2.5-2.5"/>
+        </svg>
+        <span>GAS.</span>
+      </div>
       <div class="p1-fuel-list"></div>
     </div>
   </div>
@@ -1637,7 +1669,7 @@
   <script src="js/v2_lightningfx.js"></script>
   <script src="js/v2_snowfx.js"></script>
   <script src="js/v2_fogfx.js"></script>
-  <script src="js/main.js?v=iu19"></script>
+  <script src="js/main.js?v=iu19b"></script>
 
 </body>
 </html>

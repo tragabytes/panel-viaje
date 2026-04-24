@@ -533,12 +533,10 @@
         }
         const top3 = todosPois.slice(0, 3);
         if (top3.length) {
+          // IU-19 (ajuste): sin miniatura — el ancho del strip se usa para
+          // mostrar el nombre completo del POI con hasta 2 líneas.
           $poiV1Lista.innerHTML = top3.map(poi => {
-            const thumb = poi.foto
-              ? `<img class="p1-poi-thumb" src="${escapar(poi.foto)}" alt="" loading="lazy">`
-              : `<div class="p1-poi-thumb poi-ph" data-label="PHOTO"></div>`;
             return `<div class="p1-poi-item">
-              ${thumb}
               <div class="p1-poi-name">${escapar(poi.nombre)}</div>
             </div>`;
           }).join('');
