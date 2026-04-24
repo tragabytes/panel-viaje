@@ -7,9 +7,9 @@
     "nota_pie": "Actualizar al final de cada sesión de trabajo"
   },
   "estado_actual": {
-    "fase_actual": "Deuda técnica (sesión 33): ultrareview del proyecto y 10 tarjetas DT-01 a DT-10 ejecutadas. PWA instalable con service worker (DT-01), helper geodésico centralizado (DT-02), rate-limiter global Overpass (DT-03), sanitizer de gasolineras unificado (DT-04), TTLs en caches (DT-05), bug enVuelo (DT-06), reintento destinos motorway (DT-07), extracción de 1000 líneas inline a js/main.js (DT-08), textContent en debug.js (DT-09), pois.js dividido en 4 submódulos (DT-10).",
-    "ultima_actualizacion": "23 de abril de 2026",
-    "siguiente_hito": "Verificación humana de las tarjetas DT-03, DT-08 y DT-10 en preview (actualmente en cian). Tras aprobación, prueba en carretera PEC-06 validando SW offline, rate-limiter en condiciones reales y estabilidad general tras el refactor grande.",
+    "fase_actual": "UI/Experiencia (sesión 34): feedback de diseño de Laureano desde el uso real. Dos tarjetas ejecutadas y en cian: BPC-15 (velocidad V2 arriba-derecha para no solapar previsión meteo) e IU-16 (densidad de V1: subir tamaños, reactivar descripción+foto Wikipedia en V1, centrar meteo vertical, fijar ancho del grid). Correcciones colaterales al sistema de grid de .vista (min-width→width 100vw, minmax(0,...) en grid-template-columns, min-width:0 en v1-izq/v1-der) para evitar que el contenido empuje el viewport.",
+    "ultima_actualizacion": "24 de abril de 2026",
+    "siguiente_hito": "Verificación humana de BPC-15 e IU-16 en preview (actualmente en cian) y, tras aprobación, prueba en carretera PEC-06 validando densidad nueva de V1 en el móvil del coche, velocidad en top-right de V2, y (pendiente desde sesión 33) SW offline, rate-limiter Overpass y estabilidad tras el refactor grande.",
     "bloqueos": "Ninguno."
   },
   "fases": [
@@ -1307,6 +1307,66 @@
         [
           "Consecuencias",
           "(1) index.html queda limpio: 1352 líneas, CSS y HTML. (2) main.js puede refactorarse/testear sin tocar HTML. (3) El service worker cachea main.js como cualquier otro asset. (4) La diferencia de comportamiento respecto al panelBlock inline es cero (refactor mecánico confirmado en preview)."
+        ]
+      ]
+    },
+    {
+      "id": 33,
+      "titulo": "V1 minimalista: no rellenar el hueco central con datos nuevos",
+      "campos": [
+        [
+          "Fecha",
+          "24 de abril de 2026, sesión 34"
+        ],
+        [
+          "Decisión",
+          "Al resolver IU-16 (densidad de V1), el hueco central resultante no se rellena con métricas extra (amanecer/ocaso, UV, racha de viento, siguiente hora precipitable). Se neutraliza centrando el bloque meteo verticalmente en su columna con justify-content:center y dejando que la descripción + foto del municipio (reactivada en la columna izquierda) aporte densidad natural."
+        ],
+        [
+          "Contexto",
+          "Durante IU-16 se propuso mostrar una línea con sunrise/sunset bajo la previsión meteo, aprovechando que weather.js ya los expone desde IU-12 sin coste adicional. Se hizo un mockup inyectado en el preview y Laureano lo descartó. Su argumento: la V1 es un complemento informativo glanceable, la V2 es la vista dedicada de meteo, y no hay que forzar densidad artificial cuando el dato no es accionable al conducir."
+        ],
+        [
+          "Alternativas consideradas",
+          "(A) Amanecer/ocaso bajo la previsión — dato disponible gratis, útil al atardecer para prever encendido de luces. (B) UV + precipitación acumulada 6h — útil en verano y días de chubascos. (C) Racha de viento (wind_gusts_10m) junto al viento medio — útil en autovía con viento lateral. (D) Siguiente hora con cambio de tiempo (\"Lluvia a partir de 17:00\") — útil como alerta. (E) Nada, centrar vertical (elegida)."
+        ],
+        [
+          "Parámetros operativos",
+          "Cualquier tarjeta UI futura que proponga añadir datos a V1 debe justificar un caso de uso accionable durante la conducción, no rellenar hueco. Si el hueco se reabre al cambiar contenido adyacente, se prefiere tocar layout (padding, justify-content, reordenar bloques existentes) antes que meter contenido nuevo."
+        ],
+        [
+          "Consecuencias",
+          "(1) IU-16 no añade dato nuevo, solo sube tamaños, reactiva municipio-info y centra meteo. (2) weather.js sigue exponiendo sunrise/sunset para IU-12 (luminaria celeste), sin consumir tampoco en V1. (3) Decisión reversible si en una futura prueba en carretera Laureano identifica un dato cuyo valor al volante sea alto."
+        ]
+      ]
+    },
+    {
+      "id": 34,
+      "titulo": "Ancho fijo de las vistas (.vista { width: 100vw }) y minmax(0,...) en los grids",
+      "campos": [
+        [
+          "Fecha",
+          "24 de abril de 2026, sesión 34"
+        ],
+        [
+          "Decisión",
+          "`.vista` pasa de `min-width: 100vw` a `width: 100vw`. `#vista1 { grid-template-columns: minmax(0, 58%) minmax(0, 42%) }` (antes `58% 42%`). Añadido `min-width: 0` a `.v1-izq`, `.v1-der` y `.municipio-info .municipio-desc`. Estos tres cambios juntos garantizan que el contenido interno no pueda inflar el ancho del grid más allá del viewport."
+        ],
+        [
+          "Contexto",
+          "Al reactivar `#municipioInfo` en V1 dentro de IU-16, la descripción larga de Wikipedia empujaba el grid de V1 hasta 1322 px (más del doble del viewport 640). Causa técnica: min-width:100vw permitía crecer, el grid auto-size usa min-content por defecto, y los flex items sin min-width:0 no dejan encoger por debajo del contenido intrínseco. Consecuencia visual: la columna derecha (meteo) salía de pantalla por la derecha."
+        ],
+        [
+          "Alternativas consideradas",
+          "(A) max-width: 100vw complementario al min-width — funciona pero redundante. (B) overflow: hidden más estricto — corta el dibujo pero no el tamaño del contenedor. (C) width: 100vw + idioms de grid/flex (elegida) — es el patrón CSS canónico para este problema."
+        ],
+        [
+          "Parámetros operativos",
+          "Cualquier nuevo bloque de V1 con contenido potencialmente largo (flex-wrap:nowrap, texto sin romper, imágenes grandes) debe llevar explícitamente overflow:hidden o min-width:0 para no reabrir el bug. La regla `.vista { width: 100vw }` es el tope máximo del scroll-snap: si una vista quiere dimensión distinta tendría que sobrescribirla."
+        ],
+        [
+          "Consecuencias",
+          "(1) V1 a 640×360 queda con grid-template-columns resueltas a 347+258 px (suma correcta dentro del padding). (2) Idiom minmax(0, ...) hay que propagarlo si en el futuro se introducen más columnas o subgrids. (3) El cambio width ↔ min-width no afecta al altura variable por BPC-12 (var --app-height), son ejes independientes."
         ]
       ]
     }
@@ -2669,6 +2729,40 @@
           "Aprobación humana de DT-03, DT-08 y DT-10 (actualmente en cian).\n\nNueva prueba en carretera (PEC-06) que valide en condiciones reales: (a) instalación como PWA desde Chrome Android, (b) funcionamiento offline al perder cobertura, (c) estabilidad tras el refactor de js/main.js y POIModule, (d) rate-limiter Overpass en el primer tick real, (e) mirror-penalty cuando algún mirror esté caído de verdad.\n\nDocumentar en el tablero que pois.js ya no existe como archivo (es ahora pois/ directorio). Tarjetas antiguas del grupo POIModule que referenciaban líneas concretas de pois.js están desfasadas (inocuo: solo trazabilidad histórica)."
         ]
       ]
+    },
+    {
+      "n": 34,
+      "titulo": "Feedback de diseño desde uso real: densidad de V1 y velocidad V2 sin solape",
+      "campos": [
+        [
+          "Fecha",
+          "24 de abril de 2026"
+        ],
+        [
+          "Fase trabajada",
+          "UI/Experiencia. Pulido visual tras feedback de Laureano desde uso real del panel en el coche."
+        ],
+        [
+          "Contexto de arranque",
+          "Laureano probó la PWA en el móvil del salpicadero y reportó dos problemas: (1) en V2 (meteo) la velocidad se solapaba con otros textos; (2) en V1 (vista general) la letra era pequeña y había un hueco central vacío. Pidió diagnóstico y plan antes de tocar código. Se abrió el preview a 640×360, se confirmó con capturas el solape V2 (100 km/h cruza 'Próx. 6h: 15°C → 21°C · lluvia máx 5%') y el hueco central de V1 (fila del grid 1fr que estira 294 px mientras el contenido ocupa ~150 px por columna). Se propusieron dos tarjetas (BPC-15, IU-16). Se valoró rellenar el hueco central con una línea de amanecer/ocaso (datos disponibles en weather.js vía IU-12), Laureano la descartó: V1 es complemento informativo, V2 es la vista dedicada de meteo."
+        ],
+        [
+          "Lo que se ha hecho",
+          "BPC-15 (velocidad V2 solapa previsión meteo): `.v2-velocidad` movida de `bottom:12px; right:16px` a `top: calc(6px + safe-top); right: calc(44px + safe-right + safe-extra); z-index: 2`. Ahora queda arriba a la izquierda del botón fullscreen (44 px = 26 ancho + 6 right + 6 huelgo + margen). En el proceso, la regla `#vista2 > *:not(...) { position: relative; z-index: 1 }` (especificidad 1,6,0) anulaba el `position: absolute` de `.v2-velocidad` (0,1,0); se añadió `:not(.v2-velocidad)` a la cadena para preservar el absoluto.\n\nIU-16 (densidad V1). (a) Tamaños: municipio 20→26, admin 12→14, datos-municipio 11→13, meteo.temp 20→24 (no 30 como proponía la tarjeta original: \"16°C · sensación X°C\" no cabe en los ~259 px de la columna derecha a font-size >24), meteo.descripcion 13→16 con icono 16→20, meteo.sub 11→13, meteo.prevision 11→13. (b) Retirada la regla `#vista1 .municipio-info { display: none }` para reactivar la descripción + foto de Wikipedia del municipio bajo la línea admin; los datos ya se poblaban por main.js (IU-04/PO-06) pero estaban ocultos en V1 por IU-03. (c) `.v1-der` recibe `justify-content: center` para centrar el bloque meteo verticalmente en su columna y que el hueco se reparta arriba+abajo en lugar de quedar todo en la parte inferior. (d) `#vista1 .meteo .temp` recibe `white-space:nowrap; overflow:hidden; text-overflow:ellipsis` como blindaje de cadena larga.\n\nCorrecciones colaterales al grid de V1 descubiertas durante la verificación (ver decisión 34 y problema P36): `.vista` de `min-width: 100vw` a `width: 100vw`; `#vista1 { grid-template-columns: minmax(0, 58%) minmax(0, 42%) }`; `min-width: 0` en `.v1-izq`, `.v1-der` y `.municipio-info .municipio-desc`. Sin estas tres, la descripción larga de Wikipedia empujaba el grid de V1 a 1322 px y la columna derecha salía de pantalla.\n\nVerificado en el preview (Python http.server 8766) con las 3 rutas del simulador: a6 (autovía, pastilla azul A-6, maxspeed 120), m505 (autonómica, pastilla granate M-505, maxspeed 80), cruce-a6-m505 (transición). Con y sin foto Wikipedia cargada, con y sin maxspeed, con y sin barra de gasolineras en dos líneas. V2 confirmada con velocidad arriba sin solape. V3 sin regresiones. Capturas guardadas en la conversación de la sesión.\n\nIncidente colateral: el service worker instalado en DT-01 servía `index.html` cacheado durante el desarrollo y los cambios CSS no aparecían tras recarga. Hubo que desregistrar el SW manualmente (`navigator.serviceWorker.getRegistrations().then(r => r.forEach(x => x.unregister()))`) y purgar `caches.keys()` para ver el CSS nuevo. En el móvil del coche Laureano tendrá que cerrar la PWA y abrirla de nuevo (o forzar update) cuando despliegue; evaluable si DT-01 necesita un update proactivo (ver pendientes)."
+        ],
+        [
+          "Decisiones tomadas",
+          "D-33: V1 minimalista sobre densidad informativa. Laureano descartó rellenar el hueco con amanecer/ocaso u otras métricas; la V2 es la vista dedicada de meteo. Cualquier dato nuevo en V1 requiere caso de uso accionable al conducir.\n\nD-34: `.vista { width: 100vw }` + `minmax(0, ...)` en grid-template-columns + `min-width: 0` en flex/grid items. Idioms CSS canónicos para que el contenido interno no pueda inflar el grid más allá del viewport. Bug de fondo: IU-03 debería haberlos incluido de origen."
+        ],
+        [
+          "Problemas encontrados",
+          "P34: velocidad V2 solapaba la previsión meteo por position:absolute bottom-right mientras el bloque .v2-meteo centrado verticalmente llevaba una .v2-prevision larga. Cubierto por BPC-15.\n\nP35: `position: absolute` de `.v2-velocidad` anulado por la regla de alta especificidad `#vista2 > *:not(...) { position: relative }` (1,6,0 vs 0,1,0). Cubierto por BPC-15 añadiendo `:not(.v2-velocidad)` a la cadena.\n\nP36: grid de V1 crecía a 1322 px al reactivar #municipioInfo por min-content intrínseco del flex item + min-width: 100vw de .vista. Cubierto por IU-16 con width: 100vw + minmax(0,...) + min-width: 0.\n\nOperacional (no tarjeta): el SW de DT-01 ocultó durante desarrollo los cambios CSS hasta desregistrarlo. En el coche Laureano puede necesitar desinstalar-reinstalar la PWA para ver el deploy de esta sesión."
+        ],
+        [
+          "Pendientes",
+          "Verificación humana de BPC-15 e IU-16 (cian).\n\nPEC-06 (pendiente desde sesión 33) ampliada con los criterios de la sesión 34: (a) densidad nueva de V1 legible a un vistazo en el salpicadero del Yaris, (b) velocidad V2 arriba-derecha no tapa el botón fullscreen ni es tapada por el indicador del simulador, (c) descripción + foto del municipio visible y útil durante la conducción.\n\nTarjeta futura posible: update proactivo del service worker (registration.update() al volver a visibilitychange=visible, por ejemplo) para que los despliegues se propaguen sin desinstalar la PWA. No bloqueante ahora; relevante si tras esta sesión Laureano tiene que borrar datos de Chrome en el coche."
+        ]
+      ]
     }
   ],
   "problemas_abiertos": [],
@@ -3536,6 +3630,60 @@
         [
           "Resolución",
           "DT-07: nuevo flag completa:true/false en el cache de destinosPorJunction. Si completa=true (la consulta terminó sin error, aunque OSM no tuviera destinos), no se reintenta. Si completa=false con tsError, se permite reintentar tras REINTENTO_DESTINOS_MS=2 min. Así no se martillea a la red en error pero tampoco se deja mudo lo que podría resolverse en el siguiente paso."
+        ]
+      ]
+    },
+    {
+      "id": "P34",
+      "titulo": "Velocidad V2 se solapaba con la previsión meteo",
+      "campos": [
+        [
+          "Sesión",
+          "34"
+        ],
+        [
+          "Descripción",
+          "En V2 (vista meteo), #v2Velocidad estaba con position:absolute bottom:12px right:16px font-size:18px. El bloque .v2-meteo centrado verticalmente incluye una línea .v2-prevision que con cadena larga ('Próx. 6h: 15°C → 21°C · lluvia máx 5%') se extiende casi al borde inferior del centrado, cruzándose visualmente con el '100 km/h' de la velocidad. Verificado con el simulador ?sim=a6 a 640×360."
+        ],
+        [
+          "Resolución",
+          "BPC-15: .v2-velocidad movida a top-right con top: calc(6px + safe-top) y right: calc(44px + safe-right + safe-extra); z-index:2. Queda a la izquierda del botón fullscreen (26 px + 6 right + 6 huelgo). La velocidad es dato periférico en V2 (vista glanceable) y arriba no molesta. Centro del meteo queda limpio con la previsión completa."
+        ]
+      ]
+    },
+    {
+      "id": "P35",
+      "titulo": "position:absolute de .v2-velocidad anulado por especificidad del selector :not() del padre",
+      "campos": [
+        [
+          "Sesión",
+          "34"
+        ],
+        [
+          "Descripción",
+          "Al mover .v2-velocidad a top-right en BPC-15, el inspector reportaba position:relative en lugar de absolute. Causa: la regla `#vista2 > *:not(.v2-animacion):not(.v2-luminaria):not(.v2-ambient):not(.v2-rays):not(.v2-rain-canvas):not(.v2-snow-canvas):not(.v2-fog):not(.v2-lightning):not(.v2-lightning-eco) { position: relative; z-index: 1 }` tiene especificidad 1,6,0 (1 ID + 6 :not) y pisaba el `position: absolute` de `.v2-velocidad` (0,1,0)."
+        ],
+        [
+          "Resolución",
+          "BPC-15: añadir `:not(.v2-velocidad)` a la cadena de :not() del padre. El selector preserva su función (excluir las capas de fondo/efecto del z-index:1 relative) pero deja fuera también la velocidad, que así conserva su position:absolute propio."
+        ]
+      ]
+    },
+    {
+      "id": "P36",
+      "titulo": "Grid de V1 crecía a 1322 px por min-content de ítems internos",
+      "campos": [
+        [
+          "Sesión",
+          "34"
+        ],
+        [
+          "Descripción",
+          "Al reactivar #municipioInfo en V1 dentro de IU-16, la descripción larga de Wikipedia empujaba el flex item .v1-izq y por cascada inflaba el grid de #vista1 hasta 1322 px (más del doble del viewport 640). Causa: `.vista` tenía `min-width: 100vw` sin tope superior; los flex items no tenían `min-width: 0`; y el grid-template-columns `58% 42%` se calcula sobre el ancho resuelto del contenedor, que crecía con min-content. Resultado visual: la columna derecha (meteo) salía de pantalla por la derecha. La fila de gasolineras con flex-wrap:nowrap también podía detonar el mismo bug independientemente."
+        ],
+        [
+          "Resolución",
+          "IU-16, tres fixes en conjunto (decisión 34): (1) `.vista { width: 100vw }` en lugar de `min-width: 100vw` para fijar ancho exacto. (2) `#vista1 { grid-template-columns: minmax(0, 58%) minmax(0, 42%) }` para que las columnas respeten el ancho aunque el min-content interno sea mayor. (3) `min-width: 0` en `.v1-izq`, `.v1-der` y `.municipio-info .municipio-desc` para permitir que los flex items encojan por debajo de su min-content intrínseco. Verificado: v1Width = 640 (exacto al viewport) con descripción Wikipedia activa."
         ]
       ]
     }
