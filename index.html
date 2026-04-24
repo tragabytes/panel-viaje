@@ -1218,52 +1218,64 @@
        ========================================================= */
     .p2-off { display: none !important; }
 
+    /* Garantiza que el inset:0 de .p2-inner se ancle a la sección de V2
+       y no suba hasta el body cuando busca ancestor positioned.
+       #vista2 es flex container preexistente con align-items:center que
+       encogía el ancho del hijo absolute — se fuerza width/height 100%. */
+    #vista2 { position: relative; }
+
     .p2-inner {
       position: absolute;
-      inset: 0;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
       z-index: 2;
       padding:
-        calc(16px + var(--safe-top))
+        calc(12px + var(--safe-top))
         calc(22px + var(--safe-right) + var(--safe-extra))
-        calc(16px + var(--safe-bottom))
+        calc(12px + var(--safe-bottom))
         calc(22px + var(--safe-left));
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 4px;
       color: var(--hud-white);
       font-family: 'JetBrains Mono', ui-monospace, monospace;
       font-feature-settings: 'tnum' 1, 'zero' 1;
       overflow: hidden;
     }
 
-    /* Caption: municipio + admin en lo alto, discreto */
+    /* Caption: municipio + admin en lo alto, discreto. Se usa block con
+       spans inline en lugar de flex para que la línea respete line-height
+       y no colapse su altura en el flex column del .p2-inner. */
     .p2-caption {
       font-size: 10px;
-      display: flex;
-      gap: 7px;
-      align-items: baseline;
+      line-height: 1.2;
       color: var(--hud-white);
       letter-spacing: 0.12em;
-      min-width: 0;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      flex-shrink: 0;
     }
+    .p2-caption > span { white-space: nowrap; }
+    .p2-caption .p2-caption-sep { margin: 0 6px; }
     .p2-caption-sep { color: var(--hud-white-mute); }
     .p2-caption-admin { font-size: 10px; }
 
     /* Palabra gigante: una letra por span, wobble suave. Archivo Black con
-       tracking negativo (-0.03em) para empaquetarla fuerte. */
+       tracking negativo (-0.03em) para empaquetarla fuerte.
+       Tamaño: escala con min(vw, vh) para que quepa en landscape (alto = 360)
+       sin desbordarse, manteniendo presencia en viewport portrait. */
     .p2-word {
       font-family: 'Archivo Black', 'Space Grotesk', sans-serif;
-      font-size: clamp(52px, 11.5vw, 78px);
-      line-height: 0.9;
+      font-size: clamp(40px, min(10vw, 15vh), 68px);
+      line-height: 1;
       letter-spacing: -0.03em;
       color: var(--hud-white);
-      margin-top: 10px;
+      margin-top: 4px;
       white-space: nowrap;
-      overflow: hidden;
-      text-overflow: clip;
+      flex-shrink: 0;
     }
     .p2-word span {
       display: inline-block;
@@ -1285,15 +1297,17 @@
     }
 
     /* Temperatura: número grande, peso ligero para que la "palabra" mande.
-       JetBrains Mono para mantener tabular-nums y garantizar legibilidad. */
+       JetBrains Mono para mantener tabular-nums y garantizar legibilidad.
+       Escala con min(vw, vh) para landscape 640×360 sin cortes. */
     .p2-temp {
       font-family: 'JetBrains Mono', monospace;
-      font-size: clamp(56px, 12vw, 82px);
+      font-size: clamp(44px, min(11vw, 17vh), 72px);
       font-weight: 200;
-      line-height: 0.9;
+      line-height: 1;
       letter-spacing: -0.04em;
       color: var(--phos-300);
       margin-top: 2px;
+      flex-shrink: 0;
     }
 
     /* Story line: frase derivada del forecast. Hora en fósforo, número en tab. */
