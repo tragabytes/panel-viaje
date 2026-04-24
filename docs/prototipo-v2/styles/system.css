@@ -1,0 +1,109 @@
+/* ============================================
+   PANEL DE VIAJE — Sistema de diseño compartido
+   Estética: HUD aeronáutico, monospace
+   ============================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700;800&family=Space+Grotesk:wght@300;400;500;700&family=Archivo+Black&display=swap');
+
+/* Tokens globales */
+:root {
+  /* Paleta base HUD */
+  --ink-0: #000000;
+  --ink-1: #050708;
+  --ink-2: #0b0f11;
+  --ink-3: #141a1d;
+  --ink-4: #1f282c;
+
+  /* Fósforo (verde HUD aeronáutico) */
+  --phos-100: #c8ffd6;
+  --phos-200: #7dffa0;
+  --phos-300: #3dff6e;
+  --phos-400: #00e04b;
+  --phos-500: #00a838;
+  --phos-dim: #0b2a17;
+
+  /* Blancos HUD */
+  --hud-white: #e8f3ef;
+  --hud-white-dim: #8a9a95;
+  --hud-white-mute: #4a5955;
+
+  /* Acentos funcionales */
+  --amber: #ffb547;
+  --amber-dim: #4a3418;
+  --danger: #ff3b3b;
+  --danger-halo: rgba(255, 59, 59, 0.35);
+
+  /* Grid HUD */
+  --grid-line: rgba(125, 255, 160, 0.06);
+  --grid-line-strong: rgba(125, 255, 160, 0.12);
+}
+
+/* Mockup container — 640×360 fijo */
+.dash {
+  width: 640px;
+  height: 360px;
+  background: var(--ink-0);
+  color: var(--hud-white);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 13px;
+  line-height: 1.25;
+  position: relative;
+  overflow: hidden;
+  letter-spacing: 0;
+  font-feature-settings: 'tnum' 1, 'zero' 1;
+}
+
+.dash * { box-sizing: border-box; }
+
+/* --- Ruido y scanlines muy sutiles (sensación de pantalla) --- */
+.dash::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(255,255,255,0) 0px,
+    rgba(255,255,255,0) 2px,
+    rgba(0,0,0,0.08) 2px,
+    rgba(0,0,0,0.08) 3px
+  );
+  pointer-events: none;
+  mix-blend-mode: overlay;
+  opacity: 0.5;
+}
+
+/* Etiquetas utilitarias */
+.u-mono { font-family: 'JetBrains Mono', monospace; }
+.u-caps { text-transform: uppercase; letter-spacing: 0.1em; }
+.u-tab  { font-variant-numeric: tabular-nums; }
+.u-dim  { color: var(--hud-white-dim); }
+.u-mute { color: var(--hud-white-mute); }
+.u-phos { color: var(--phos-300); }
+.u-amber{ color: var(--amber); }
+.u-danger{ color: var(--danger); }
+
+/* Reset text */
+.dash h1, .dash h2, .dash h3, .dash h4, .dash p { margin: 0; font-weight: inherit; }
+
+/* Imagen placeholder (rayas) */
+.poi-ph {
+  background:
+    repeating-linear-gradient(
+      135deg,
+      rgba(125,255,160,0.12) 0 4px,
+      rgba(125,255,160,0.02) 4px 8px
+    ),
+    var(--ink-3);
+  position: relative;
+}
+.poi-ph::after {
+  content: attr(data-label);
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: var(--hud-white-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}

@@ -1,0 +1,237 @@
+/* ========================================================
+   PROPUESTA 1 — CONSERVADORA
+   Estilos dedicados
+   ======================================================== */
+
+.p1-dash {
+  background: radial-gradient(ellipse at 50% 120%, #0a1a12 0%, #000 60%);
+}
+
+.p1-frame {
+  position: relative;
+  width: 100%; height: 100%;
+  padding: 10px 12px 14px;
+  display: flex; flex-direction: column;
+  gap: 8px;
+}
+
+/* Top bar */
+.p1-topbar {
+  display: flex; justify-content: space-between; align-items: baseline;
+  border-bottom: 1px solid var(--grid-line-strong);
+  padding-bottom: 6px;
+}
+.p1-crumbs {
+  font-size: 10px;
+  display: flex; gap: 6px; align-items: baseline;
+}
+.p1-sep { color: var(--hud-white-mute); }
+.p1-speed {
+  display: flex; align-items: baseline; gap: 4px;
+}
+.p1-speed-num {
+  font-size: 26px; font-weight: 700;
+  color: var(--phos-200);
+  line-height: 1;
+}
+.p1-speed-unit { font-size: 9px; color: var(--hud-white-dim); }
+.p1-speed-lim  { font-size: 11px; }
+
+.p1-dash[data-speeding="1"] {
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 59, 59, 0.6),
+    inset 0 0 30px 4px rgba(255, 59, 59, 0.18);
+}
+.p1-dash[data-speeding="1"] .p1-speed-num { color: var(--danger); }
+
+/* Grid */
+.p1-grid {
+  display: grid;
+  grid-template-columns: 1fr 140px;
+  gap: 12px;
+  flex: 1;
+  min-height: 0;
+}
+
+.p1-col-main { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.p1-col-wx   { display: flex; flex-direction: column; gap: 4px; }
+
+/* Road */
+.p1-road-tag { font-size: 9px; margin-bottom: 2px; }
+.p1-road-name { display: flex; align-items: baseline; gap: 8px; }
+.p1-road-shield {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  background: var(--phos-300); color: #001d0a;
+  padding: 2px 7px;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  border-radius: 2px;
+}
+.p1-road-label { font-size: 14px; font-weight: 500; color: var(--hud-white); }
+.p1-road-dir { font-size: 10px; margin-top: 2px; }
+
+/* Exit */
+.p1-exit {
+  border-left: 2px solid var(--phos-400);
+  padding: 2px 0 2px 8px;
+}
+.p1-exit-tag { font-size: 9px; margin-bottom: 2px; }
+.p1-exit-num { font-size: 16px; font-weight: 700; color: var(--phos-200); }
+.p1-exit-to  { font-size: 11px; margin-top: 1px; }
+
+/* Pueblos cercanos */
+.p1-near-tag { font-size: 9px; margin-bottom: 3px; }
+.p1-near-list { list-style: none; padding: 0; margin: 0; }
+.p1-near-list li {
+  display: flex; gap: 10px; align-items: baseline;
+  font-size: 12px;
+  padding: 1px 0;
+}
+.p1-near-dist {
+  width: 32px; text-align: right;
+  font-size: 11px;
+}
+
+/* WX compacto */
+.p1-wx-now {
+  display: flex; align-items: center; gap: 8px;
+  color: var(--phos-200);
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--grid-line-strong);
+  margin-bottom: 2px;
+}
+.p1-wx-temp { font-size: 22px; font-weight: 700; color: var(--hud-white); }
+.p1-wx-row {
+  display: flex; justify-content: space-between;
+  font-size: 9px;
+  padding: 1px 0;
+}
+.p1-wx-forecast { margin-top: auto; }
+
+.p1-mini {
+  display: grid; grid-template-columns: repeat(4,1fr);
+  gap: 3px;
+  align-items: end;
+  height: 42px;
+  padding-top: 4px;
+  border-top: 1px solid var(--grid-line);
+}
+.p1-mini-col { display: flex; flex-direction: column; align-items: center; gap: 1px; height: 100%; justify-content: flex-end; }
+.p1-mini-temp { font-size: 9px; color: var(--hud-white-dim); }
+.p1-mini-bar { width: 3px; background: var(--phos-400); opacity: 0.55; }
+.p1-mini-rain { position: absolute; }
+.p1-mini-h { font-size: 8px; }
+
+/* Bottom strip */
+.p1-bottom {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 12px;
+  border-top: 1px solid var(--grid-line-strong);
+  padding-top: 6px;
+}
+.p1-strip-tag { font-size: 9px; margin-bottom: 3px; }
+
+.p1-pois-list {
+  display: grid; grid-template-columns: repeat(3,1fr);
+  gap: 6px;
+}
+.p1-poi-item { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.p1-poi-name {
+  font-size: 9px;
+  color: var(--hud-white);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.p1-fuel-list { display: flex; flex-direction: column; gap: 2px; }
+.p1-fuel-item {
+  display: flex; gap: 6px; align-items: baseline;
+  font-size: 11px;
+}
+.p1-fuel-price { margin-left: auto; color: var(--amber); }
+
+/* Dots */
+.p1-dots {
+  position: absolute; bottom: 4px; left: 50%;
+  transform: translateX(-50%);
+  display: flex; gap: 4px;
+}
+.p1-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--hud-white-mute); }
+.p1-dot-on { background: var(--phos-300); }
+
+/* V2 */
+.p1-wxcanvas {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+}
+.p1-wx2 {
+  position: relative;
+  z-index: 1;
+  padding: 12px 16px;
+  display: flex; flex-direction: column;
+  gap: 10px; height: 100%;
+}
+.p1-wx2-top {
+  display: flex; justify-content: space-between; align-items: flex-start;
+}
+.p1-wx2-cond { font-size: 18px; font-weight: 500; color: var(--hud-white); }
+.p1-wx2-bigtemp {
+  font-size: 60px; font-weight: 300;
+  line-height: 0.9;
+  color: var(--hud-white);
+  font-family: 'Space Grotesk', sans-serif;
+}
+.p1-wx2-grid {
+  display: grid; grid-template-columns: repeat(4,1fr);
+  gap: 12px;
+  font-size: 11px;
+}
+.p1-wx2-grid > div { display: flex; flex-direction: column; gap: 2px; }
+.p1-wx2-grid .u-caps { font-size: 9px; }
+
+.p1-wx2-hours {
+  display: grid; grid-template-columns: repeat(8,1fr);
+  gap: 2px;
+  border-top: 1px solid var(--grid-line-strong);
+  padding-top: 8px;
+  margin-top: auto;
+}
+.p1-wx2-hr {
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  font-size: 10px;
+  color: var(--phos-200);
+}
+
+/* V3 POIs */
+.p1-v3 {
+  padding: 10px 12px 16px;
+  display: flex; flex-direction: column;
+  gap: 8px; height: 100%;
+}
+.p1-v3-head {
+  display: flex; justify-content: space-between;
+  font-size: 10px;
+  border-bottom: 1px solid var(--grid-line-strong);
+  padding-bottom: 6px;
+}
+.p1-v3-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(2, 1fr);
+  gap: 8px;
+  flex: 1; min-height: 0;
+}
+.p1-v3-card {
+  display: flex; flex-direction: column; gap: 3px;
+  min-height: 0;
+}
+.p1-v3-name {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--hud-white);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.p1-v3-meta {
+  display: flex; justify-content: space-between;
+  font-size: 9px;
+}

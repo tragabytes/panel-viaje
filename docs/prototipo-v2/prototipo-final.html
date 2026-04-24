@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=900"/>
+<title>Panel de viaje · Prototipo final</title>
+
+<link rel="stylesheet" href="styles/system.css"/>
+<link rel="stylesheet" href="styles/p1.css"/>
+<link rel="stylesheet" href="styles/p3.css"/>
+
+<style>
+  html, body {
+    margin: 0;
+    background: #1a1818;
+    color: #e8f3ef;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    padding: 40px 20px;
+  }
+  .stage { display: flex; flex-direction: column; align-items: center; gap: 20px; }
+
+  .bezel {
+    padding: 14px;
+    background: linear-gradient(145deg, #2a2826 0%, #1a1818 100%);
+    border-radius: 22px;
+    box-shadow: inset 0 1px 2px rgba(255,255,255,0.05), 0 20px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04);
+    position: relative;
+  }
+  .bezel::before {
+    content: 'ANDROID · 5.5" · 640×360';
+    position: absolute; top: -20px; left: 14px;
+    font-size: 9px; color: #5a5a55;
+    letter-spacing: 0.1em; text-transform: uppercase;
+  }
+  .viewport {
+    width: 640px; height: 360px;
+    overflow: hidden; position: relative;
+    border-radius: 4px; background: #000;
+  }
+  .swiper {
+    display: flex; width: 2560px; height: 100%;
+    transition: transform 0.4s cubic-bezier(0.22, 0.61, 0.36, 1);
+  }
+  .slide { width: 640px; height: 360px; flex-shrink: 0; position: relative; }
+
+  .controls {
+    display: flex; gap: 10px;
+    padding: 10px 14px;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid rgba(125,255,160,0.15);
+    border-radius: 8px;
+    align-items: center;
+  }
+  .controls button {
+    background: transparent;
+    border: 1px solid rgba(125,255,160,0.2);
+    color: #e8f3ef;
+    font-family: inherit; font-size: 10px;
+    padding: 6px 10px; cursor: pointer;
+    letter-spacing: 0.08em; text-transform: uppercase;
+    border-radius: 2px; transition: all 0.12s;
+  }
+  .controls button:hover { border-color: #3dff6e; color: #3dff6e; }
+  .controls button.on { background: #3dff6e; color: #001d0a; border-color: #3dff6e; }
+  .controls .group { display: flex; gap: 4px; align-items: center; }
+  .controls .group-label { font-size: 8px; color: #5a5a55; padding-right: 4px; letter-spacing: 0.08em; text-transform: uppercase; }
+
+  .info {
+    max-width: 640px;
+    padding: 16px 20px;
+    background: rgba(255,255,255,0.03);
+    border-left: 2px solid #3dff6e;
+    font-size: 11px; color: #b0b0a8;
+    line-height: 1.6; border-radius: 0 4px 4px 0;
+  }
+  .info strong { color: #3dff6e; font-weight: 500; }
+  .info h3 { font-family: 'Archivo Black', sans-serif; font-size: 14px; color: #e8f3ef; margin: 0 0 8px 0; letter-spacing: -0.01em; }
+  .info .kbd { display: inline-block; font-size: 9px; padding: 1px 5px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 2px; color: #e8f3ef; margin: 0 2px; }
+
+  .page-dots {
+    position: absolute; bottom: 8px; left: 50%;
+    transform: translateX(-50%);
+    display: flex; gap: 6px; z-index: 10;
+  }
+  .page-dot { width: 18px; height: 2px; background: rgba(232,243,239,0.15); transition: background 0.3s, width 0.3s; }
+  .page-dot.on { background: #3dff6e; width: 24px; }
+
+  /* El punto 4 (nueva feature) se distingue */
+  .page-dot.new { background: rgba(255, 181, 71, 0.25); }
+  .page-dot.new.on { background: #ffb547; }
+</style>
+</head>
+<body>
+
+<div id="root"></div>
+
+<template id="__bundler_thumbnail">
+  <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <rect width="100" height="100" fill="#050708"/>
+    <text x="50" y="60" text-anchor="middle" font-family="monospace" font-size="22" font-weight="800" fill="#7dffa0">118</text>
+  </svg>
+</template>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="proposals/p1-conservative.jsx"></script>
+<script type="text/babel" src="proposals/p3-risky.jsx"></script>
+
+<script type="text/babel">
+  const { useState, useEffect, useRef } = React;
+
+  function useSimulatedSpeed(base) {
+    const [v, setV] = useState(base);
+    useEffect(() => {
+      let raf, t = 0;
+      const loop = () => {
+        t += 0.02;
+        setV(base + Math.round(Math.sin(t) * 4 + Math.sin(t * 0.7) * 2));
+        raf = requestAnimationFrame(loop);
+      };
+      raf = requestAnimationFrame(loop);
+      return () => cancelAnimationFrame(raf);
+    }, [base]);
+    return v;
+  }
+
+  // V1 de P1 con velocidad dinámica
+  function LiveV1({ speeding }) {
+    const v = useSimulatedSpeed(speeding ? 132 : 118);
+    return (
+      <div className="dash p1-dash" data-speeding={speeding ? '1' : '0'}>
+        <div className="p1-frame">
+          <div className="p1-topbar">
+            <div className="p1-crumbs">
+              <span className="u-phos u-caps">ES</span>
+              <span className="p1-sep">·</span>
+              <span className="u-caps">CASTILLA-LA MANCHA</span>
+              <span className="p1-sep">·</span>
+              <span className="u-caps">TOLEDO</span>
+            </div>
+            <div className="p1-speed">
+              <span className="p1-speed-num u-tab">{v}</span>
+              <span className="p1-speed-unit u-caps">km/h</span>
+              <span className="p1-speed-lim u-tab u-dim">/ 120</span>
+            </div>
+          </div>
+
+          <div className="p1-grid">
+            <div className="p1-col-main">
+              <div className="p1-road">
+                <div className="p1-road-tag u-caps u-dim">VÍA</div>
+                <div className="p1-road-name">
+                  <span className="p1-road-shield">A-4</span>
+                  <span className="p1-road-label">Autovía del Sur</span>
+                </div>
+                <div className="p1-road-dir u-dim u-caps">→ Madrid · pk 87</div>
+              </div>
+              <div className="p1-exit">
+                <div className="p1-exit-tag u-caps u-dim">PRÓXIMA SALIDA · 2.4 KM</div>
+                <div className="p1-exit-num u-tab">SALIDA 82</div>
+                <div className="p1-exit-to u-dim">Madridejos · Consuegra</div>
+              </div>
+              <div className="p1-near">
+                <div className="p1-near-tag u-caps u-dim">PUEBLOS CERCANOS</div>
+                <ul className="p1-near-list">
+                  <li><span className="p1-near-dist u-tab u-phos">3.1</span><span>Madridejos</span></li>
+                  <li><span className="p1-near-dist u-tab u-phos">7.8</span><span>Consuegra</span></li>
+                  <li><span className="p1-near-dist u-tab u-phos">12.4</span><span>Tembleque</span></li>
+                </ul>
+              </div>
+            </div>
+            <div className="p1-col-wx">
+              <div className="p1-wx-now">
+                <WxIcon kind="cloudy" />
+                <div className="p1-wx-temp u-tab">14°</div>
+              </div>
+              <div className="p1-wx-row"><span className="u-caps u-dim">LLUVIA</span><span className="u-tab u-phos">0.2 mm</span></div>
+              <div className="p1-wx-row"><span className="u-caps u-dim">VIENTO</span><span className="u-tab">24 <span className="u-dim">km/h NO</span></span></div>
+              <div className="p1-wx-row"><span className="u-caps u-dim">VISIB.</span><span className="u-tab">9 km</span></div>
+              <div className="p1-wx-forecast">
+                <MiniBar hours={['14h','15h','16h','17h']} temps={[14,15,14,12]} rain={[0,0.2,0.6,0.3]} />
+              </div>
+            </div>
+          </div>
+
+          <div className="p1-bottom">
+            <div className="p1-pois">
+              <div className="p1-strip-tag u-caps u-dim">POI</div>
+              <div className="p1-pois-list">
+                <div className="p1-poi-item">
+                  <div className="poi-ph" data-label="PHOTO" style={{width:36,height:28,borderRadius:2}}></div>
+                  <div className="p1-poi-name">Castillo Consuegra</div>
+                </div>
+                <div className="p1-poi-item">
+                  <div className="poi-ph" data-label="PHOTO" style={{width:36,height:28,borderRadius:2}}></div>
+                  <div className="p1-poi-name">Molinos La Mancha</div>
+                </div>
+                <div className="p1-poi-item">
+                  <div className="poi-ph" data-label="PHOTO" style={{width:36,height:28,borderRadius:2}}></div>
+                  <div className="p1-poi-name">Ermita del Cristo</div>
+                </div>
+              </div>
+            </div>
+            <div className="p1-fuel">
+              <div className="p1-strip-tag u-caps u-dim">⛽</div>
+              <div className="p1-fuel-list">
+                <div className="p1-fuel-item"><span className="u-phos u-tab">1.4</span><span className="u-dim"> km</span><span className="p1-fuel-price u-tab">1.489</span></div>
+                <div className="p1-fuel-item"><span className="u-phos u-tab">4.7</span><span className="u-dim"> km</span><span className="p1-fuel-price u-tab">1.512</span></div>
+                <div className="p1-fuel-item"><span className="u-phos u-tab">8.2</span><span className="u-dim"> km</span><span className="p1-fuel-price u-tab">1.478</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  function App() {
+    const [page, setPage] = useState(0); // 0 V1 principal, 1 V2 meteo (P3), 2 V3 POIs (P1), 3 V4 mapa (P3)
+    const [speeding, setSpeeding] = useState(false);
+    const viewportRef = useRef(null);
+
+    useEffect(() => {
+      const el = viewportRef.current; if (!el) return;
+      let sx = 0, dx = 0, dragging = false;
+      const onStart = (e) => {
+        sx = (e.touches?.[0]?.clientX ?? e.clientX);
+        dx = 0; dragging = true;
+      };
+      const onMove  = (e) => {
+        if (!dragging) return;
+        dx = (e.touches?.[0]?.clientX ?? e.clientX) - sx;
+      };
+      const onEnd = () => {
+        if (!dragging) return;
+        if (Math.abs(dx) > 60) {
+          setPage(p => Math.max(0, Math.min(3, p + (dx < 0 ? 1 : -1))));
+        }
+        dragging = false; sx = 0; dx = 0;
+      };
+      el.addEventListener('touchstart', onStart);
+      el.addEventListener('touchmove', onMove);
+      el.addEventListener('touchend', onEnd);
+      el.addEventListener('mousedown', onStart);
+      window.addEventListener('mouseup', onEnd);
+      window.addEventListener('mousemove', onMove);
+
+      const kb = (e) => {
+        if (e.key === 'ArrowRight') setPage(p => Math.min(3, p+1));
+        if (e.key === 'ArrowLeft')  setPage(p => Math.max(0, p-1));
+      };
+      window.addEventListener('keydown', kb);
+      return () => {
+        el.removeEventListener('touchstart', onStart);
+        el.removeEventListener('touchmove', onMove);
+        el.removeEventListener('touchend', onEnd);
+        el.removeEventListener('mousedown', onStart);
+        window.removeEventListener('mouseup', onEnd);
+        window.removeEventListener('mousemove', onMove);
+        window.removeEventListener('keydown', kb);
+      };
+    }, []);
+
+    const labels = ['V1 Principal', 'V2 Meteo', 'V3 POIs', 'V4 Entorno'];
+
+    return (
+      <div className="stage">
+        <div className="info">
+          <h3>Panel de viaje · Prototipo combinado</h3>
+          Composición elegida: <strong>V1</strong> y <strong>V3</strong> de la propuesta <em>conservadora</em> (grid, jerarquía clara) +
+          <strong> V2</strong> de la <em>arriesgada</em> (tipografía expresiva, Canvas lluvia) +
+          una <strong style={{color:'#ffb547'}}>V4 nueva</strong> — cartografía del entorno con chinchetas.
+          <br/><br/>
+          Swipe o <span className="kbd">←</span> <span className="kbd">→</span> para navegar. La velocidad oscila sola.
+        </div>
+
+        <div className="bezel">
+          <div className="viewport" ref={viewportRef}>
+            <div className="swiper" style={{ transform: `translateX(${-page * 640}px)` }}>
+              <div className="slide"><LiveV1 speeding={speeding}/></div>
+              <div className="slide"><P3.V2 /></div>
+              <div className="slide"><P1.V3 /></div>
+              <div className="slide"><P3.V3 /></div>
+            </div>
+
+            <div className="page-dots">
+              <div className={`page-dot ${page===0?'on':''}`}></div>
+              <div className={`page-dot ${page===1?'on':''}`}></div>
+              <div className={`page-dot ${page===2?'on':''}`}></div>
+              <div className={`page-dot new ${page===3?'on':''}`}></div>
+            </div>
+          </div>
+        </div>
+
+        <div className="controls">
+          <div className="group">
+            <span className="group-label">Vista</span>
+            {labels.map((l, i) => (
+              <button key={i} className={page===i?'on':''} onClick={() => setPage(i)}>
+                {i===3 ? <span style={{color: page===3 ? '#001d0a' : '#ffb547'}}>✦ {l}</span> : l}
+              </button>
+            ))}
+          </div>
+          <div style={{width:1, height:20, background:'rgba(255,255,255,0.1)'}}></div>
+          <div className="group">
+            <span className="group-label">Velocidad</span>
+            <button className={speeding?'on':''} onClick={() => setSpeeding(s => !s)}>
+              {speeding ? 'Exceso ON' : 'Normal'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
