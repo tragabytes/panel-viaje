@@ -7,9 +7,9 @@
     "nota_pie": "Actualizar al final de cada sesión de trabajo"
   },
   "estado_actual": {
-    "fase_actual": "UI/Experiencia V2 (sesion 38 cerrada): IU-20 V2 Meteo aprobada en verde tras aniadir metricas complementarias (viento/humedad/visibilidad) y cabecera explicativa del timeline con % numerico de lluvia por hora. V1 e IU-20 operativas. Pendiente: IU-21 V3 POIs, IU-22 V4 Entorno (nueva), IU-23 Exceso velocidad HUD, IU-24 Pulido.",
+    "fase_actual": "UI/Experiencia V2 (sesion 39): IU-21 V3 POIs aprobada en verde. V3 con header \"PUNTOS DE INTERES\" + ubicacion actual + contador N / RADIO 25 KM, grid 3x2 de 6 tarjetas POI individuales (flat, no agrupadas por pueblo), foto real cuando hay o placeholder rayas diagonales, meta con pueblo en gris uppercase + distancia en fosforo tabular; strip inferior de gasolineras con icono bomba ambar. 3 de las 4 vistas del grupo UI/Experiencia V2 ya en verde (IU-18, IU-19, IU-20, IU-21). Pendiente: IU-22 V4 Entorno cartografia (NUEVA FEATURE), IU-23 Exceso velocidad HUD, IU-24 Pulido.",
     "ultima_actualizacion": "24 de abril de 2026",
-    "siguiente_hito": "Arranque de IU-21 V3 POIs grid HUD: grid 3x2 de tarjetas con foto + nombre + tipo + distancia del POI, reutilizando POIModule existente.",
+    "siguiente_hito": "Arranque de IU-22 V4 Entorno cartografia: vista nueva con retícula topografica de fondo, coordenadas, nombre del entorno gigante y POIs posicionados como chinchetas en mapa. Es la unica tarjeta que introduce una cuarta vista al visor — implica ampliar el scroll-snap, el indicador de paginas y la logica de deteccion de vista activa.",
     "bloqueos": "Ninguno."
   },
   "fases": [
@@ -2965,6 +2965,40 @@
         [
           "Ajustes tras primera revision (aprobada en verde)",
           "Laureano pidio dos correcciones puntuales: (1) el viento/humedad/visibilidad no se veia en V2 — solo salian en la story si la velocidad del viento pasaba de 15 km/h; (2) la barra verde horizontal al lado de la temperatura en cada fila del timeline no era clara. Aplicado: (a) aniadido bloque .p2-metrics debajo de la story, con 3 metricas fijas cuando los datos existen (VIENTO valor + cardinal en N/NE/E/SE/S/SO/O/NO, HUMEDAD con unidad, VISIB en km). Helper renderMetricsV2(meteo) con early-return por campo. (b) Aniadida cabecera .p2-timeline-head encima del timeline con el texto \"PROX. 6H\" a la izquierda y leyenda \"[barra] LLUVIA %\" a la derecha — separada con borde inferior grid-line. (c) Aniadida una cuarta columna al grid de cada fila (.p2-hr 32px/48px/1fr/32px) con el porcentaje numerico de lluvia; cuando pct=0 el span queda vacio y se atenua a opacidad 0 para no ensuciar. Cache-buster main.js -> ?v=iu20c. IU-20 aprobada por Laureano (cian -> verde)."
+        ]
+      ]
+    },
+    {
+      "n": 39,
+      "titulo": "IU-21 V3 POIs: grid HUD 3x2 flat con pueblo y distancia fosforo",
+      "campos": [
+        [
+          "Fecha",
+          "24 de abril de 2026"
+        ],
+        [
+          "Fase trabajada",
+          "UI/Experiencia V2. Cuarta tarjeta del redisenio — V3 POIs reorganizada de cards-por-pueblo a cards-por-POI individuales."
+        ],
+        [
+          "Contexto de arranque",
+          "Con IU-18, IU-19 e IU-20 en verde y las reglas Laureano ya integradas (diseno primero, unidades, 6 POIs max, meta con info util al conducir), IU-21 arranco con 4 decisiones claras: grid 3x2 (6 POIs max), head con ubicacion + contador, meta con pueblo al que pertenece el POI (coherente con V1 strip POI), gasolineras como strip discreto abajo. Se decidio ocultar la pastilla de carretera en V3 porque el foco aqui son los POIs y la carretera ya se muestra en V1."
+        ],
+        [
+          "Lo que se ha hecho",
+          "(1) Arrancada IU-21 rojo -> naranja. (2) index.html #vista3 reescrito con estructura HUD: p3-v3-head con titulo + p3-v3-place (municipio + admin) a la izquierda y p3-v3-counter a la derecha; p3-v3-road para carretera (oculto por CSS en V3); p3-v3-grid 3x2 con p3-v3-card (p3-v3-thumb, p3-v3-name, p3-v3-meta con p3-v3-meta-pueblo + p3-v3-meta-dist); p3-v3-fuel strip abajo con icono SVG bomba inline (copia del de V1) + p3-v3-fuel-list. (3) CSS añadido: fondo radial ink coherente con V1, grid 3x2 flex-1 minmax 0 para que cards respiren, placeholder .poi-ph rayas diagonales heredado del sistema, thumb con img object-fit cover, meta ajustado con ellipsis, strip gasolineras con flex-wrap nowrap + overflow hidden. Head con padding-right 34px para dejar hueco al boton fullscreen; se resetea cuando body.fullscreen-activo. (4) main.js: añadida referencia a #v3PoiCounter; rama V3 de pintarPOIs reescrita completa — se aplanan todos los POIs de todos los pueblos (for p of pueblos: for poi of p.pois) con context {nombre, foto, pueblo, distKm}, slice(0, 6), se pintan como cards .p3-v3-card con thumb img o placeholder, nombre, pueblo en u-caps y distancia en fosforo u-tab; contador actualizado con \"<span u-phos>N</span> · RADIO 25 KM\". Manejo de caso pueblos vacios: #v3Grid con mensaje \"Sin puntos de interes cerca\" + contador a 0. (5) pintarGasolineras V3: emite ahora .p3-v3-fuel-item en vez de las antiguas .v3-gasolinera. (6) Cache-buster main.js -> ?v=iu21. (7) Verificacion en preview con simulador ruta a6 (Torrelodones): header \"PUNTOS DE INTERES / TORRELODONES · COMUNIDAD...\" + contador \"6 · RADIO 25 KM\"; 6 cards con placeholders \"PHOTO\" rayas fosforo salvo Palacio del Canto que trae foto real desde Wikipedia; meta pueblo en gris + distancia en fosforo (249 m, 1.2 km, etc.); strip gasolineras con icono ambar + lista tabular \"270 m Repsol · 1.3 km Repsol · 3.7 km ...\". (8) IU-21 movida a cian y aprobada por Laureano a verde."
+        ],
+        [
+          "Decisiones tomadas",
+          "Sin nuevas decisiones formales. Tacticas: (a) grid POIs flat en lugar de agrupado por pueblo (el usuario quiere ver \"que ver cerca\" sin jerarquia extra); (b) meta del POI con nombre del pueblo en lugar de era/tipo porque ubicar geograficamente el POI es mas util al conducir que saber si es S.XIV vs S.XVII; (c) pastilla de carretera oculta en V3 (en V1 ya se ve); (d) icono de gasolinera reutilizado del de V1 por coherencia visual; (e) head con padding-right que respeta el boton fullscreen excepto cuando fullscreen-activo."
+        ],
+        [
+          "Problemas encontrados",
+          "Uno: la pastilla de carretera (A-6 con chip 120 km/h) aparecia en la esquina superior derecha de V3 y solapaba el contador \"6 · RADIO 25 KM\". Resuelto ocultando .p3-v3-road globalmente en V3 (display:none !important). El elemento sigue en el DOM para no romper el contrato de pintarCarretera que escribe tanto a #carreteraBloque como a #v3Carretera."
+        ],
+        [
+          "Pendientes",
+          "IU-21 aprobada. Siguiente: IU-22 V4 Entorno cartografia (nueva vista)."
         ]
       ]
     }
