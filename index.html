@@ -398,7 +398,7 @@
     .p1-poi-pueblo {
       font-size: 8.5px;
       line-height: 1.1;
-      color: var(--hud-white-mute);
+      color: var(--hud-white-dim);
       margin-top: 3px;
       white-space: nowrap;
       overflow: hidden;
@@ -1376,9 +1376,9 @@
   <symbol id="meteo-luna" viewBox="0 0 24 24">
     <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="#94a3b8"/>
   </symbol>
-  <!-- Nube -->
+  <!-- Nube: outline HUD (IU-19) — hereda color del contenedor via currentColor -->
   <symbol id="meteo-nube" viewBox="0 0 24 24">
-    <path d="M6.5 19a4.5 4.5 0 0 1-.42-8.98A7 7 0 0 1 19 10.5 3.5 3.5 0 0 1 18.5 17H6.5z" fill="#94a3b8" opacity="0.85"/>
+    <path d="M6.5 19a4.5 4.5 0 0 1-.42-8.98A7 7 0 0 1 19 10.5 3.5 3.5 0 0 1 18.5 17H6.5z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
   </symbol>
   <!-- Sol+nube (parcialmente nublado día) -->
   <symbol id="meteo-sol-nube" viewBox="0 0 24 24">
