@@ -462,20 +462,8 @@
     /* -------- Elementos ocultos en V1 -------- */
     .p1-off { display: none !important; }
 
-    .estado {
-      font-size: 14px;
-      opacity: 0.7;
-      margin-bottom: 16px;
-    }
-
-    .estado.error  { color: #ff5555; opacity: 1; }
-    .estado.ok     { color: #66ff99; opacity: 1; }
-    .estado.aviso  { color: #ffaa44; opacity: 1; }
-
-    .carretera {
-      margin-bottom: 16px;
-      min-height: 28px;
-    }
+    /* IU-24: bloques antiguos .estado / .carretera (class) eliminados.
+       Main.js ahora escribe class="p1-estado" y estructura .p1-road-*. */
 
     .carretera .pastilla {
       display: inline-block;
@@ -541,10 +529,8 @@
       border-width: 2px;
       margin-left: 6px;
     }
-    /* Velocidad GPS coloreada según relación con maxspeedActual.
-       Aplicada a #v1Velocidad y #v2Velocidad. */
-    .v1-velocidad.exceso, .v2-velocidad.exceso { color: #ffaa44; }
-    .v1-velocidad.exceso-grave, .v2-velocidad.exceso-grave { color: #ff5555; }
+    /* IU-24: reglas .v1-velocidad / .v2-velocidad eliminadas. El color de
+       exceso vive ahora en .p1-speed-num.exceso[-grave] (IU-19). */
 
     /* FN-08: cuando se supera el límite, el chip de velocidad se invierte
        (fondo rojo sólido, texto blanco) para alertar sin distraer. Sin barra
@@ -555,107 +541,8 @@
       border-color: #fff;
     }
 
-    .carretera .calle {
-      font-size: 15px;
-      opacity: 0.7;
-    }
-
-    .carretera .sin-carretera {
-      font-size: 13px;
-      opacity: 0.4;
-      font-style: italic;
-    }
-
-    .ubicacion {
-      margin-bottom: 20px;
-      padding: 12px 0;
-      border-top: 1px solid rgba(255,255,255,0.1);
-      border-bottom: 1px solid rgba(255,255,255,0.1);
-    }
-
-    .ubicacion .label {
-      font-size: 11px;
-      opacity: 0.5;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 4px;
-    }
-
-    .ubicacion .municipio {
-      font-size: 26px;
-      font-weight: 400;
-      margin-bottom: 2px;
-    }
-
-    .ubicacion .admin {
-      font-size: 14px;
-      opacity: 0.6;
-    }
-
-    /* ---- Bloque meteo ---- */
-    .meteo {
-      margin-bottom: 20px;
-      padding: 12px 0;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
-    }
-
-    .meteo .label {
-      font-size: 11px;
-      opacity: 0.5;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 6px;
-    }
-
-    .meteo .temp {
-      font-size: 26px;
-      font-weight: 400;
-      margin-bottom: 4px;
-    }
-
-    .meteo .descripcion {
-      font-size: 16px;
-      margin-bottom: 4px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .meteo .descripcion .icono {
-      width: 22px;
-      height: 22px;
-      flex-shrink: 0;
-    }
-
-    .meteo .descripcion .texto {
-      opacity: 0.85;
-    }
-
-    .meteo .sub {
-      font-size: 13px;
-      opacity: 0.6;
-      line-height: 1.6;
-    }
-
-    .meteo .sub.error { color: #ff5555; opacity: 1; }
-
-    .meteo .prevision {
-      margin-top: 6px;
-      padding-top: 6px;
-      border-top: 1px dashed rgba(255,255,255,0.08);
-      font-size: 13px;
-      opacity: 0.75;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .meteo .prevision svg,
-    .meteo .descripcion svg {
-      width: 1em;
-      height: 1em;
-      vertical-align: -0.1em;
-    }
-    /* ---- Fin bloque meteo ---- */
+    /* IU-24: bloques .carretera .calle/.sin-carretera, .ubicacion* y .meteo*
+       eliminados. Reemplazados por .p1-road-*, .p1-place-* y .p1-wx-*. */
 
     .coordenadas {
       font-size: 16px;
@@ -674,69 +561,7 @@
 
     .detalles span { opacity: 0.6; }
 
-    /* ---- Bloque próxima salida ---- */
-    .salida {
-      margin-bottom: 16px;
-      display: none;        /* oculto por defecto; JS lo muestra */
-      align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-
-    .salida.visible { display: flex; }
-
-    .salida-pastilla {
-      display: inline-flex;
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 2px;
-      background: #1a7a35;
-      color: #fff;
-      padding: 6px 14px;
-      border-radius: 6px;
-    }
-
-    .salida-fila {
-      display: flex;
-      align-items: baseline;
-      gap: 10px;
-    }
-
-    .salida-label {
-      font-size: 11px;
-      font-weight: 700;
-      letter-spacing: 1px;
-      opacity: 0.8;
-      text-transform: uppercase;
-    }
-
-    .salida-num {
-      font-size: 22px;
-      font-weight: 700;
-      letter-spacing: 0.5px;
-    }
-
-    .salida-dist {
-      font-size: 15px;
-      opacity: 0.85;
-    }
-
-    .salida-sig {
-      font-size: 13px;
-      opacity: 0.45;
-    }
-
-    .salida-destinos {
-      font-size: 12px;
-      opacity: 0.9;
-      letter-spacing: 0.3px;
-      display: none;
-    }
-
-    .salida-destinos.visible {
-      display: block;
-    }
-    /* ---- Fin bloque próxima salida ---- */
+    /* IU-24: bloque .salida* eliminado. Reemplazado por .p1-exit-*. */
 
     /* ---- Bloque POI: Qué ver por la zona ---- */
     .poi-seccion {
@@ -762,110 +587,12 @@
       font-style: italic;
     }
 
-    .poi-pueblo {
-      min-width: 175px;
-      background: rgba(255,255,255,0.06);
-      border-radius: 8px;
-      padding: 10px;
-      flex-shrink: 0;
-    }
-
-    .poi-pueblo-cab {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      gap: 6px;
-      margin-bottom: 8px;
-    }
-
-    .poi-pueblo-nombre {
-      font-size: 13px;
-      font-weight: 600;
-      opacity: 0.9;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      min-width: 0;
-      flex: 1;
-    }
-
-    .poi-pueblo-dist {
-      font-size: 11px;
-      opacity: 0.45;
-      flex-shrink: 0;
-    }
-
-    .poi-item {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 5px;
-    }
-
-    .poi-foto {
-      width: 52px;
-      height: 52px;
-      object-fit: cover;
-      border-radius: 6px;
-      flex-shrink: 0;
-    }
-
-    .poi-icono-box {
-      width: 52px;
-      height: 52px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 26px;
-      background: rgba(255,255,255,0.08);
-      border-radius: 6px;
-      flex-shrink: 0;
-    }
-
-    .poi-nombre {
-      font-size: 12px;
-      opacity: 0.85;
-      line-height: 1.35;
-    }
-
-    .poi-nombre-sec {
-      font-size: 11px;
-      opacity: 0.5;
-    }
-    /* ---- Fin bloque POI ---- */
-
-    /* Datos del municipio (población, altitud) bajo la línea admin */
-    .datos-municipio {
-      font-size: 12px;
-      opacity: 0.4;
-      margin-top: 2px;
-      line-height: 1.5;
-    }
-
-    /* Descripción + foto del municipio */
-    .municipio-info {
-      display: flex;
-      align-items: flex-start;
-      gap: 8px;
-      margin-top: 6px;
-    }
-    .municipio-info img {
-      width: 52px;
-      height: 52px;
-      object-fit: cover;
-      border-radius: 4px;
-      flex-shrink: 0;
-    }
-    .municipio-info .municipio-desc {
-      font-size: 12px;
-      opacity: 0.55;
-      line-height: 1.4;
-      overflow: hidden;
-      display: -webkit-box;
-      -webkit-line-clamp: 3;
-      -webkit-box-orient: vertical;
-      min-width: 0;
-    }
+    /* IU-24: bloques antiguos .poi-pueblo/-cab/-nombre/-dist, .poi-item,
+       .poi-foto, .poi-icono-box, .poi-nombre/-sec, .datos-municipio y
+       .municipio-info eliminados. Sus funciones viven ahora en .p1-near-*,
+       .p1-poi-item, .p3-v3-card y .p1-place-*. .poi-cargando y .poi-ph
+       sí se mantienen: la primera la usa pintarPlaceholderPOI(), la segunda
+       es placeholder compartido del sistema (css/style.css). */
 
     /* ---- Vista 2: Ubicación + Meteo glanceable ---- */
     #vista2 {
@@ -1193,56 +920,10 @@
       .v2-lightning, .v2-lightning-eco { animation: none !important; display: none !important; }
     }
 
-    .v2-ubicacion { text-align: center; margin-bottom: 16px; }
-    .v2-municipio { font-size: 28px; font-weight: 400; }
-    .v2-admin     { font-size: 14px; opacity: 0.55; margin-top: 2px; }
-
-    .v2-meteo { text-align: center; }
-    .v2-temp-fila {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      margin-bottom: 4px;
-    }
-    .v2-icono { width: 40px; height: 40px; flex-shrink: 0; }
-    .v2-icono svg { width: 100%; height: 100%; }
-    .v2-temp  { font-size: 36px; font-weight: 300; }
-    .v2-desc  { font-size: 16px; opacity: 0.85; margin-bottom: 8px; }
-    .v2-sub-fila {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-      font-size: 13px;
-      opacity: 0.6;
-      margin-bottom: 4px;
-    }
-    .v2-sub-sep { opacity: 0.4; }
-    .v2-prevision {
-      font-size: 13px;
-      opacity: 0.6;
-      margin-top: 6px;
-    }
-    .v2-prevision svg {
-      width: 1em;
-      height: 1em;
-      vertical-align: -0.1em;
-    }
-
-    /* BPC-15: movida a esquina superior derecha para no solapar la
-       previsión meteo, que ocupa el borde inferior del bloque centrado.
-       Se sitúa a la izquierda del botón fullscreen (26px ancho + 6px
-       right + 6px hueco ≈ 38px → usamos 44px para respirar). */
-    .v2-velocidad {
-      position: absolute;
-      top: calc(6px + var(--safe-top));
-      right: calc(44px + var(--safe-right) + var(--safe-extra));
-      font-size: 18px;
-      opacity: 0.7;
-      line-height: 26px;
-      z-index: 2;
-    }
+    /* IU-24: bloques .v2-ubicacion/-municipio/-admin, .v2-meteo*, .v2-temp*,
+       .v2-icono, .v2-desc, .v2-sub*, .v2-prevision* y .v2-velocidad
+       eliminados. Reemplazados por .p2-caption, .p2-word, .p2-temp,
+       .p2-story, .p2-metrics y .p2-timeline (IU-20). */
     /* =========================================================
        V2 HUD expresivo (IU-20): tipografía dominante + timeline
        reactiva. El contenedor p2-inner se posiciona encima de las
@@ -1616,6 +1297,67 @@
     .p3-v3-fuel-marca { color: var(--hud-white-dim); }
 
     /* =========================================================
+       Scanlines sutiles (IU-24): textura de pantalla CRT tenue
+       aplicada sobre cada vista. mix-blend-mode: overlay para que
+       respete los colores base sin oscurecer demasiado. Con
+       opacity 0.35 apenas se percibe pero da la sensación HUD.
+       Si el móvil viejo sufre, bajar opacity a 0.2 o desactivar.
+       ========================================================= */
+    .vista::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(
+        to bottom,
+        rgba(255, 255, 255, 0) 0px,
+        rgba(255, 255, 255, 0) 2px,
+        rgba(0, 0, 0, 0.10) 2px,
+        rgba(0, 0, 0, 0.10) 3px
+      );
+      pointer-events: none;
+      mix-blend-mode: overlay;
+      opacity: 0.35;
+      z-index: 20;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .vista::after { opacity: 0.18; }
+    }
+
+    /* =========================================================
+       Page dots (IU-24): indicador de vista activa abajo-centro.
+       Los 3 primeros fósforo; el 4º ámbar para marcar V4 como nueva.
+       main.js observa el scroll del visor y actualiza la clase .on.
+       ========================================================= */
+    .page-dots {
+      position: fixed;
+      left: 50%;
+      bottom: calc(4px + var(--safe-bottom));
+      transform: translateX(-50%);
+      display: flex;
+      gap: 6px;
+      z-index: 30;
+      pointer-events: none;
+    }
+    .page-dot {
+      width: 14px;
+      height: 2px;
+      background: rgba(232, 243, 239, 0.18);
+      border-radius: 1px;
+      transition: background 0.3s ease, width 0.3s ease;
+    }
+    .page-dot.on {
+      background: var(--phos-300);
+      width: 22px;
+    }
+    .page-dot--new {
+      background: rgba(255, 181, 71, 0.28);
+    }
+    .page-dot--new.on {
+      background: var(--amber);
+    }
+    body.fullscreen-activo .page-dots { bottom: 4px; }
+
+    /* =========================================================
        V4 HUD (IU-22): cartografía abstracta con chinchetas.
        Topografía decorativa de fondo + usuario pulsante al centro
        + POIs posicionados según proyección cartesiana simple.
@@ -1776,17 +1518,9 @@
     .p4-pin-far .p4-pin-dist { color: var(--hud-white-dim); }
 
     /* ======================= */
-    /* Vista 3 clásica (muerta tras IU-21; se preserva por inercia) */
-    .v3-cabecera {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      height: 30px;
-      flex-shrink: 0;
-      margin-bottom: 8px;
-    }
-
-    .v3-carretera { font-size: 13px; font-weight: 700; }
+    /* IU-24: V3 clásica eliminada. Reemplazada por .p3-v3-* (IU-21).
+       Se conserva .v3-carretera .pastilla porque main.js todavía inyecta
+       la pastilla en #v3Carretera (aunque V3 la oculta con display:none). */
     .v3-carretera .pastilla {
       display: inline-block;
       font-size: 12px;
@@ -1797,99 +1531,6 @@
       font-weight: 700;
     }
     .v3-carretera .pastilla.autonomica { background: #7a1f2b; }
-    .v3-ubicacion {
-      font-size: 13px;
-      opacity: 0.6;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .v3-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-      gap: 8px;
-      overflow-y: auto;
-      flex: 1;
-      min-height: 0;
-    }
-    .v3-grid::-webkit-scrollbar { display: none; }
-    .v3-grid { scrollbar-width: none; }
-
-    /* FN-01: bloque de gasolineras cercanas en V3, debajo del grid de POIs */
-    .v3-gasolineras {
-      flex-shrink: 0;
-      margin-top: 8px;
-      padding-top: 8px;
-      border-top: 1px solid rgba(255,255,255,0.1);
-      font-size: 12px;
-    }
-    .v3-gasolineras-titulo {
-      font-size: 11px;
-      opacity: 0.5;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 4px;
-    }
-    .v3-gasolineras-lista {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 4px 12px;
-    }
-    .v3-gasolinera {
-      display: flex;
-      gap: 4px;
-      align-items: baseline;
-    }
-    .v3-gasolinera-marca { font-weight: 600; }
-    .v3-gasolinera-dist { opacity: 0.55; font-size: 11px; }
-
-    .v3-pueblo {
-      background: rgba(255,255,255,0.06);
-      border-radius: 8px;
-      padding: 8px 10px;
-    }
-
-    .v3-pueblo-cab {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      gap: 4px;
-      margin-bottom: 6px;
-    }
-
-    .v3-pueblo-nombre {
-      font-size: 13px;
-      font-weight: 600;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      min-width: 0;
-      flex: 1;
-    }
-
-    .v3-pueblo-dist {
-      font-size: 11px;
-      opacity: 0.45;
-      flex-shrink: 0;
-    }
-
-    .v3-poi {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      margin-bottom: 3px;
-    }
-
-    .v3-poi-icono { font-size: 14px; flex-shrink: 0; }
-    .v3-poi-nombre {
-      font-size: 11px;
-      opacity: 0.75;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    /* ---- Fin Vista 3 ---- */
 
     /* Datos GPS: ocultos por defecto, overlay fijo con ?debug=1 */
     #v1-gps { display: none; }
@@ -2282,6 +1923,15 @@
   </section>
 </div><!-- /visor -->
 
+<!-- Page dots (IU-24): indicador de vista activa. 4 puntos, el 4º en ámbar
+     para destacar V4 Entorno como feature nueva. -->
+<div id="pageDots" class="page-dots" aria-hidden="true">
+  <span class="page-dot on"></span>
+  <span class="page-dot"></span>
+  <span class="page-dot"></span>
+  <span class="page-dot page-dot--new"></span>
+</div>
+
   <script src="js/geo.js"></script>
   <script src="js/trayectos.js"></script>
   <script src="js/debug.js"></script>
@@ -2307,7 +1957,7 @@
   <script src="js/v2_lightningfx.js"></script>
   <script src="js/v2_snowfx.js"></script>
   <script src="js/v2_fogfx.js"></script>
-  <script src="js/main.js?v=iu22b"></script>
+  <script src="js/main.js?v=iu24"></script>
 
 </body>
 </html>

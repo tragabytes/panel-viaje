@@ -1252,9 +1252,25 @@
     // --- Viewport (BPC-12) ---
 
     const $visor = document.getElementById('visor');
+    const $pageDots = document.querySelectorAll('#pageDots .page-dot');
 
     function actualizarAppHeight() {
       document.documentElement.style.setProperty('--app-height', window.innerHeight + 'px');
+    }
+
+    // IU-24: sincroniza el indicador de vistas con el scroll del visor.
+    // rAF throttle para que no corra más de una vez por frame.
+    let pageDotsRAF = null;
+    function actualizarPageDots() {
+      if (!$visor || $pageDots.length === 0) return;
+      if (pageDotsRAF) return;
+      pageDotsRAF = requestAnimationFrame(() => {
+        pageDotsRAF = null;
+        const w = $visor.clientWidth;
+        if (w <= 0) return;
+        const idx = Math.round($visor.scrollLeft / w);
+        $pageDots.forEach((d, i) => d.classList.toggle('on', i === idx));
+      });
     }
 
     function realinearScrollVisor() {
@@ -1269,9 +1285,12 @@
     }
 
     actualizarAppHeight();
+    actualizarPageDots();
+    if ($visor) $visor.addEventListener('scroll', actualizarPageDots, { passive: true });
     window.addEventListener('resize', () => {
       actualizarAppHeight();
       realinearScrollVisor();
+      actualizarPageDots();
     });
     window.addEventListener('orientationchange', () => {
       actualizarAppHeight();
