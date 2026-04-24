@@ -7,9 +7,9 @@
     "nota_pie": "Actualizar al final de cada sesión de trabajo"
   },
   "estado_actual": {
-    "fase_actual": "UI/Experiencia V2 (sesion 38): IU-20 V2 Meteo cerrada en cian. V2 con palabra gigante (Archivo Black <=10 chars por D-36), temperatura monumental fosforo peso 200, story line derivada del forecast y timeline vertical de 6 horas cuyo peso tipografico y alpha fosforo crecen con la probabilidad de lluvia. Los motores de fondo IU-10..15 siguen trabajando debajo sin tocar. Pendiente desde sesion 34: BPC-15 e IU-16 en verde.",
+    "fase_actual": "UI/Experiencia V2 (sesion 38 cerrada): IU-20 V2 Meteo aprobada en verde tras aniadir metricas complementarias (viento/humedad/visibilidad) y cabecera explicativa del timeline con % numerico de lluvia por hora. V1 e IU-20 operativas. Pendiente: IU-21 V3 POIs, IU-22 V4 Entorno (nueva), IU-23 Exceso velocidad HUD, IU-24 Pulido.",
     "ultima_actualizacion": "24 de abril de 2026",
-    "siguiente_hito": "Aprobacion humana de IU-20 (cian -> verde) y arranque de IU-21 V3 POIs grid HUD.",
+    "siguiente_hito": "Arranque de IU-21 V3 POIs grid HUD: grid 3x2 de tarjetas con foto + nombre + tipo + distancia del POI, reutilizando POIModule existente.",
     "bloqueos": "Ninguno."
   },
   "fases": [
@@ -2961,6 +2961,10 @@
         [
           "Pendientes",
           "IU-20 espera verificacion humana (cian -> verde). Siguiente: IU-21 V3 POIs grid HUD."
+        ],
+        [
+          "Ajustes tras primera revision (aprobada en verde)",
+          "Laureano pidio dos correcciones puntuales: (1) el viento/humedad/visibilidad no se veia en V2 — solo salian en la story si la velocidad del viento pasaba de 15 km/h; (2) la barra verde horizontal al lado de la temperatura en cada fila del timeline no era clara. Aplicado: (a) aniadido bloque .p2-metrics debajo de la story, con 3 metricas fijas cuando los datos existen (VIENTO valor + cardinal en N/NE/E/SE/S/SO/O/NO, HUMEDAD con unidad, VISIB en km). Helper renderMetricsV2(meteo) con early-return por campo. (b) Aniadida cabecera .p2-timeline-head encima del timeline con el texto \"PROX. 6H\" a la izquierda y leyenda \"[barra] LLUVIA %\" a la derecha — separada con borde inferior grid-line. (c) Aniadida una cuarta columna al grid de cada fila (.p2-hr 32px/48px/1fr/32px) con el porcentaje numerico de lluvia; cuando pct=0 el span queda vacio y se atenua a opacidad 0 para no ensuciar. Cache-buster main.js -> ?v=iu20c. IU-20 aprobada por Laureano (cian -> verde)."
         ]
       ]
     }
