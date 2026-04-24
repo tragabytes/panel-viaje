@@ -1306,6 +1306,47 @@
     .p2-story:empty { display: none; }
     .p2-story .u-phos { color: var(--phos-300); }
 
+    /* Métricas meteo: viento/humedad/visibilidad en una línea, separadas por
+       puntos. Etiqueta en atenuado, valor con tabular-nums. */
+    .p2-metrics {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      font-size: 10px;
+      margin-top: 4px;
+      color: var(--hud-white-dim);
+    }
+    .p2-metrics:empty { display: none; }
+    .p2-metric { display: inline-flex; align-items: baseline; gap: 5px; }
+    .p2-metric-label { letter-spacing: 0.12em; }
+    .p2-metric-value { color: var(--hud-white); font-variant-numeric: tabular-nums; }
+
+    /* Cabecera del timeline: explica qué significa la barra horizontal. */
+    .p2-timeline-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 9px;
+      margin-top: 8px;
+      margin-bottom: 3px;
+      letter-spacing: 0.14em;
+      border-bottom: 1px solid var(--grid-line);
+      padding-bottom: 3px;
+    }
+    .p2-timeline-legend {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+    .p2-timeline-legend-bar {
+      display: inline-block;
+      width: 18px;
+      height: 2px;
+      background: var(--phos-300);
+      opacity: 0.85;
+      border-radius: 1px;
+    }
+
     /* Timeline vertical: 6 filas hora + temp + barra lluvia. Peso del texto
        crece con la intensidad de lluvia (300 a 800), color fósforo con alpha
        proporcional. La barra de lluvia ocupa hasta el 100% del ancho libre. */
@@ -1318,7 +1359,7 @@
     }
     .p2-hr {
       display: grid;
-      grid-template-columns: 32px 48px 1fr;
+      grid-template-columns: 32px 48px 1fr 32px;
       align-items: center;
       gap: 10px;
       font-size: 11px;
@@ -1332,6 +1373,13 @@
       border-radius: 1px;
       opacity: 0.85;
     }
+    .p2-hr-pct {
+      font-variant-numeric: tabular-nums;
+      font-size: 10px;
+      text-align: right;
+      opacity: 0.7;
+    }
+    .p2-hr-pct:empty { opacity: 0; }
 
     /* ---- Fin Vista 2 ---- */
 
@@ -1755,6 +1803,18 @@
       <div id="v2MeteoDesc" class="p2-word" aria-live="polite"></div>
       <div id="v2MeteoTemp" class="p2-temp u-tab">—</div>
       <div id="v2MeteoStory" class="p2-story u-caps"></div>
+
+      <!-- Métricas meteo: viento, humedad, visibilidad -->
+      <div id="v2MeteoMetrics" class="p2-metrics"></div>
+
+      <!-- Timeline 6h -->
+      <div class="p2-timeline-head u-caps u-dim">
+        <span>PRÓX. 6H</span>
+        <span class="p2-timeline-legend">
+          <span class="p2-timeline-legend-bar"></span>
+          <span>LLUVIA %</span>
+        </span>
+      </div>
       <div id="v2MeteoTimeline" class="p2-timeline"></div>
     </div>
 
@@ -1805,7 +1865,7 @@
   <script src="js/v2_lightningfx.js"></script>
   <script src="js/v2_snowfx.js"></script>
   <script src="js/v2_fogfx.js"></script>
-  <script src="js/main.js?v=iu20b"></script>
+  <script src="js/main.js?v=iu20c"></script>
 
 </body>
 </html>

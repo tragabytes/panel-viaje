@@ -220,6 +220,7 @@
     const $v2MeteoHumedad   = document.getElementById('v2MeteoHumedad');
     const $v2MeteoPrevision = document.getElementById('v2MeteoPrevision');
     const $v2MeteoStory     = document.getElementById('v2MeteoStory');
+    const $v2MeteoMetrics   = document.getElementById('v2MeteoMetrics');
     const $v2MeteoTimeline  = document.getElementById('v2MeteoTimeline');
     const $v2Velocidad      = document.getElementById('v2Velocidad');
 
@@ -333,27 +334,65 @@
       return partes.join('');
     }
 
-    // IU-20 V2: timeline vertical de 6 horas. Cada fila tiene hora, temp y
-    // una barra horizontal cuyo ancho = precipProbabilidad (0-100 → 0-100%).
-    // El peso tipográfico crece con la intensidad (300 en seco → 800 a 100%),
-    // y el color fósforo gana alpha — así la tormenta salta a la vista.
+    // IU-20 V2: timeline vertical de 6 horas. Cada fila tiene hora, temp,
+    // una barra horizontal (ancho = precipProbabilidad 0-100%) y, si hay
+    // lluvia, el valor numérico al final. El peso tipográfico crece con la
+    // intensidad (300 en seco → 800 a 100%) y el fósforo gana alpha — así
+    // la tormenta salta a la vista sin depender de leer el número.
     function renderTimelineV2(horas) {
       if (!horas || horas.length === 0) return '';
       const n = Math.min(6, horas.length);
       return horas.slice(0, n).map(h => {
-        const intensity = Math.min(1, Math.max(0, (h.precipProbabilidad || 0) / 100));
+        const pct = Math.min(100, Math.max(0, h.precipProbabilidad || 0));
+        const intensity = pct / 100;
         const fontWeight = Math.round(300 + intensity * 500);
         const alpha = (0.4 + intensity * 0.6).toFixed(2);
         const hora = h.hora ? h.hora.slice(11, 13) + 'h' : '';
         const temp = h.temperatura != null ? Math.round(h.temperatura) + '°' : '—';
-        const widthPct = Math.round(intensity * 100);
         const color = `rgba(125, 255, 160, ${alpha})`;
+        const pctText = pct > 0 ? Math.round(pct) + '%' : '';
         return `<div class="p2-hr" style="font-weight:${fontWeight}; color:${color}">
           <span class="p2-hr-hour">${escapar(hora)}</span>
           <span class="p2-hr-temp">${escapar(temp)}</span>
-          <div class="p2-hr-bar" style="width:${widthPct}%"></div>
+          <div class="p2-hr-bar" style="width:${Math.round(pct)}%"></div>
+          <span class="p2-hr-pct">${escapar(pctText)}</span>
         </div>`;
       }).join('');
+    }
+
+    // IU-20 V2 (ajuste): fila de métricas meteo complementarias — viento con
+    // punto cardinal, humedad, visibilidad en km. Discretas, en una sola línea.
+    function renderMetricsV2(meteo) {
+      if (!meteo) return '';
+      const partes = [];
+      if (meteo.vientoVelocidad != null) {
+        const cardinal = gradosACardinal(meteo.vientoDireccion);
+        const vel = Math.round(meteo.vientoVelocidad);
+        partes.push(
+          `<span class="p2-metric">
+            <span class="p2-metric-label u-caps">VIENTO</span>
+            <span class="p2-metric-value">${vel} ${escapar(meteo.vientoUnidad || 'km/h')}${cardinal ? ' ' + cardinal : ''}</span>
+          </span>`
+        );
+      }
+      if (meteo.humedad != null) {
+        partes.push(
+          `<span class="p2-metric">
+            <span class="p2-metric-label u-caps">HUMEDAD</span>
+            <span class="p2-metric-value">${meteo.humedad}${escapar(meteo.humedadUnidad || '%')}</span>
+          </span>`
+        );
+      }
+      if (meteo.visibilidad != null) {
+        const km = Math.round(meteo.visibilidad / 1000);
+        partes.push(
+          `<span class="p2-metric">
+            <span class="p2-metric-label u-caps">VISIB.</span>
+            <span class="p2-metric-value">${km} km</span>
+          </span>`
+        );
+      }
+      return partes.join('');
     }
 
     // Mini-forecast 4 horas para V1 (IU-19): columna con hora, barra proporcional
@@ -825,6 +864,7 @@
         $v2MeteoDesc.innerHTML = renderPalabraGigante(meteo.etiqueta || meteo.descripcion);
         $v2MeteoTemp.textContent = `${Math.round(meteo.temperatura)}°`;
         $v2MeteoStory.innerHTML = renderStoryV2(meteo, meteo.previsionHoraria || []);
+        $v2MeteoMetrics.innerHTML = renderMetricsV2(meteo);
         $v2MeteoTimeline.innerHTML = renderTimelineV2(meteo.previsionHoraria || []);
         // Retrocompatibilidad — ocultos por CSS:
         $v2MeteoIcono.innerHTML = MeteoCodigos.iconoSVG(meteo.icono);
