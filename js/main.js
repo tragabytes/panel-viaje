@@ -526,18 +526,24 @@
         }).join('');
 
         // V1 HUD: strip inferior con 3 POIs primeros entre todos los pueblos.
+        // Se guarda el nombre del pueblo junto con el POI para mostrarlo como
+        // pie atenuado (IU-19 ajuste).
         const todosPois = [];
         for (const p of pueblos) {
-          for (const poi of (p.pois || [])) todosPois.push(poi);
+          for (const poi of (p.pois || [])) {
+            todosPois.push({ nombre: poi.nombre, pueblo: p.nombre });
+            if (todosPois.length >= 3) break;
+          }
           if (todosPois.length >= 3) break;
         }
-        const top3 = todosPois.slice(0, 3);
+        const top3 = todosPois;
         if (top3.length) {
           // IU-19 (ajuste): sin miniatura — el ancho del strip se usa para
-          // mostrar el nombre completo del POI con hasta 2 líneas.
+          // mostrar el nombre del POI (2 líneas) + pueblo al que pertenece.
           $poiV1Lista.innerHTML = top3.map(poi => {
             return `<div class="p1-poi-item">
               <div class="p1-poi-name">${escapar(poi.nombre)}</div>
+              <div class="p1-poi-pueblo u-caps">${escapar(poi.pueblo)}</div>
             </div>`;
           }).join('');
           $poiBloque.style.display = '';
