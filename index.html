@@ -1303,7 +1303,7 @@
        Escala con min(vw, vh) para landscape 640×360 sin cortes. */
     .p2-temp {
       font-family: 'JetBrains Mono', monospace;
-      font-size: clamp(36px, min(9vw, 14vh), 56px);
+      font-size: clamp(48px, min(13vw, 22vh), 96px);
       font-weight: 200;
       line-height: 1;
       letter-spacing: -0.04em;
@@ -1314,13 +1314,24 @@
 
     /* Story line: frase derivada del forecast. Hora en fósforo, número en tab. */
     .p2-story {
-      font-size: 11px;
+      font-size: 10px;
       color: var(--hud-white-dim);
-      margin-top: 6px;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.12em;
     }
     .p2-story:empty { display: none; }
     .p2-story .u-phos { color: var(--phos-300); }
+
+    /* Línea con métricas meteo + story juntas: viento · humedad · visib ·
+       SIN LLUVIA PREVISTA. Si no cabe, se envuelve a la siguiente línea. */
+    .p2-weatherline {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+      align-items: baseline;
+      font-size: 10px;
+      margin-top: 2px;
+      color: var(--hud-white-dim);
+    }
 
     /* Métricas meteo: viento/humedad/visibilidad en una línea, separadas por
        puntos. Etiqueta en atenuado, valor con tabular-nums. */
@@ -1329,7 +1340,6 @@
       gap: 14px;
       flex-wrap: wrap;
       font-size: 10px;
-      margin-top: 4px;
       color: var(--hud-white-dim);
     }
     .p2-metrics:empty { display: none; }
@@ -1985,11 +1995,11 @@
         <span id="v2Admin" class="p2-caption-admin u-dim"></span>
       </div>
 
-      <!-- Métricas meteo: viento, humedad, visibilidad -->
-      <div id="v2MeteoMetrics" class="p2-metrics"></div>
-
-      <!-- Story (SIN LLUVIA PREVISTA / VA A LLOVER A LAS HH:00) bajo métricas -->
-      <div id="v2MeteoStory" class="p2-story u-caps"></div>
+      <!-- Métricas + story en la misma línea: viento · humedad · visib · SIN LLUVIA -->
+      <div class="p2-weatherline">
+        <div id="v2MeteoMetrics" class="p2-metrics"></div>
+        <div id="v2MeteoStory" class="p2-story u-caps"></div>
+      </div>
 
       <!-- Timeline 6h -->
       <div class="p2-timeline-head u-caps u-dim">
