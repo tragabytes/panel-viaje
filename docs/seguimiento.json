@@ -7,9 +7,9 @@
     "nota_pie": "Actualizar al final de cada sesión de trabajo"
   },
   "estado_actual": {
-    "fase_actual": "UI/Experiencia V2 (sesion 37): IU-19 V1 Principal cerrada en cian — layout HUD fosforo completo con topbar crumbs territoriales (ES · Comunidad · Provincia), velocidad cruda + limite, escudo fosforo de via (verde para estatal A-X/AP-X/N-X, ambar para autonomicas M-505/CL-XXX/etc), bloque ubicacion municipio, proxima salida (visible solo en autovia), pueblos cercanos (3 max), columna meteo derecha con icono SVG + temp + filas lluvia/viento/visibilidad y mini-forecast 4h con barras verticales, strip inferior POIs (3 miniaturas) + gasolineras (3 cercanas). weather.js ahora pide campo visibility. Pendiente desde sesion 34: BPC-15 e IU-16 ya en verde.",
+    "fase_actual": "UI/Experiencia V2 (sesion 37 cerrada): IU-19 V1 Principal aprobada en verde tras 5 commits de ajustes posteriores (thumbnail POI fuera, icono bomba gasolina ambar, pueblo bajo POI en gris marca, nube meteo a outline). Sistema HUD operativo en V1 con datos reales del simulador. Pendiente desde sesion 34: BPC-15 e IU-16 en verde.",
     "ultima_actualizacion": "24 de abril de 2026",
-    "siguiente_hito": "Aprobacion humana de IU-19 (cian -> verde) y arranque de IU-20 V2 Meteo tipografia expresiva: palabra gigante (DESPEJADO/NUBOSO/LLUVIA/TORMENTA/NIEVE/NIEBLA con Archivo Black) derivada del codigo WMO, temperatura en JetBrains Mono 76px peso 200, timeline horaria 8h con lineas que cambian peso segun intensidad de lluvia, preservando canvas meteo y animaciones IU-10..15.",
+    "siguiente_hito": "Arranque de IU-20 V2 Meteo tipografia expresiva: palabra gigante (DESPEJADO/NUBOSO/LLUVIA/TORMENTA/NIEVE/NIEBLA con Archivo Black <=10 caracteres por D-36) derivada del codigo WMO, temperatura en JetBrains Mono 76px peso 200, timeline horaria 8h con lineas que cambian peso segun intensidad de lluvia, preservando canvas meteo y animaciones IU-10..15 (RainFX, LightningFX, SnowFX, FogFX).",
     "bloqueos": "Ninguno."
   },
   "fases": [
@@ -2923,6 +2923,10 @@
         [
           "Pendientes",
           "IU-19 espera verificacion humana (cian -> verde). Siguiente: IU-20 V2 Meteo tipografia expresiva."
+        ],
+        [
+          "Ajustes tras primera revision (aprobada en verde)",
+          "Laureano pidio 4 retoques iterativos que se aplicaron in situ antes de aprobar IU-19: (1) Strip POI sin miniatura — el ancho del area se usa para mostrar el nombre completo del POI con line-clamp a 2 lineas, separados por borde vertical .p1-poi-item (primero fosforo phos-400, resto grid-line-strong). Grid inferior reajustado a minmax(0, 1.9fr) minmax(0, 1fr) para ensanchar POI. (2) Strip GAS. con icono SVG inline de bomba de gasolina 14x14 (dibujado ad-hoc, no copiado de flaticon para evitar atribucion CC BY), color var(--amber) coherente con precio de gasolinera y escudo autonomica. (3) Primera version del icono con fill transparente + stroke ambar, luego relleno ambar + stroke gris atenuado, finalmente todo ambar (fill y stroke = currentColor) por preferencia de Laureano. (4) Debajo de cada POI se añade el nombre del pueblo al que pertenece (.p1-poi-pueblo uppercase, color var(--hud-white-dim) = #8a9a95, mismo gris que la marca de gasolinera). (5) Simbolo #meteo-nube reescrito como outline (fill=none, stroke=currentColor, stroke-width 1.4) para coherencia con el estilo HUD del prototipo — aplica a V1 y V2. main.js pusheado para incluir el pueblo en los POIs extraidos de los pueblos cercanos. Cache-busters incrementados ?v=iu19 -> ?v=iu19b -> ?v=iu19c en main.js a cada cambio de contrato DOM. IU-19 aprobada por Laureano (cian -> verde) al final."
         ]
       ]
     }
