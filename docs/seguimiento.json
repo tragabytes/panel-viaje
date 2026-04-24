@@ -7,9 +7,9 @@
     "nota_pie": "Actualizar al final de cada sesión de trabajo"
   },
   "estado_actual": {
-    "fase_actual": "UI/Experiencia V2 (sesion 41): IU-22 V4 Entorno cartografia aprobada en verde. Cuarta vista del visor con fondo de reticula topografica SVG, coordenadas GMS, nombre del entorno gigante (comarca/provincia/ccaa) en Archivo Black, AQUI central pulsante con glow fosforo y chinchetas de 6 pueblos cercanos distribuidas como cartografia abstracta en 360° (elipse 270x155). 6 de 7 tarjetas del grupo UI/Experiencia V2 ya en verde — solo queda IU-24 (pulido).",
+    "fase_actual": "UI/Experiencia V2 COMPLETADA (sesion 42): las 7 tarjetas del grupo en verde. Panel redisenado de punta a punta sobre el prototipo Claude Design con estetica HUD fosforo sobre fondo inkBlack. 4 vistas (V1 principal + V2 meteo expresiva + V3 POIs grid + V4 cartografia NUEVA) con scroll-snap, page-dots, scanlines sutiles y halo de exceso de velocidad. Tres fuentes variables self-host (81 KB total). FPS >40 verificado en preview. Pendiente desde sesion 34: BPC-15 e IU-16 ya en verde; ninguna tarjeta abierta en el grupo V2.",
     "ultima_actualizacion": "24 de abril de 2026",
-    "siguiente_hito": "Arranque de IU-24 Pulido visual y prueba en simulador: limpieza de CSS muerto de las V1/V2/V3 antiguas (.v1-*, .v2-*, .v3-* ya sin HTML), revision integral de consistencia visual entre las 4 vistas, ajustes finos que surjan al probar en el movil real o en rutas diversas del simulador.",
+    "siguiente_hito": "Prueba en carretera real del panel redisenado (nueva PEC- que proponer) — validar layouts y rendimiento en el movil viejo del salpicadero, y detectar regresiones o issues de contraste/legibilidad al conducir. Paralelamente, explorar ideas parqueadas si hay hueco: FN-07 comarcas, PO-XX nuevas fuentes de POI.",
     "bloqueos": "Ninguno."
   },
   "fases": [
@@ -34,8 +34,8 @@
     {
       "id": "2",
       "nombre": "Módulos de datos",
-      "estado": "En curso",
-      "notas": "LocationModule (sesión 08), WeatherModule (sesión 09), Wake Lock (sesión 9.6), simulador de GPS (sesión 9.7) y fallback Overpass para ref de carretera (sesión 9.8) completos. Clasificación estatal/autonómica de carreteras por lista blanca implementada en sesión 9.6 y validada en sesión 9.8. Validado por simulador con rutas reales extraídas de OSM: pastilla azul A-6 desde nombre descriptivo de Nominatim, pastilla granate M-505 desde fallback Overpass cuando Nominatim no expone ref, y cambio azul→granate en vivo al saltar entre tramos. Pendiente la prueba en carretera real antes de arrancar MotorwayExitModule y POIModule"
+      "estado": "Completada",
+      "notas": "LocationModule (sesión 08), WeatherModule (sesión 09), Wake Lock (sesión 9.6), simulador de GPS (sesión 9.7) y fallback Overpass para ref de carretera (sesión 9.8) completos. Clasificación estatal/autonómica de carreteras por lista blanca implementada en sesión 9.6 y validada en sesión 9.8. Validado por simulador con rutas reales extraídas de OSM: pastilla azul A-6 desde nombre descriptivo de Nominatim, pastilla granate M-505 desde fallback Overpass cuando Nominatim no expone ref, y cambio azul→granate en vivo al saltar entre tramos. Pendiente la prueba en carretera real antes de arrancar MotorwayExitModule y POIModule Cerrada al completar el grupo UI/Experiencia V2 (IU-18..IU-24) en la sesion 42."
     },
     {
       "id": "3",
@@ -3071,6 +3071,40 @@
         [
           "Pendientes",
           "IU-22 aprobada. Siguiente y ultima del grupo V2: IU-24 Pulido visual y prueba en simulador."
+        ]
+      ]
+    },
+    {
+      "n": 42,
+      "titulo": "IU-24 Pulido final aprobada — cierre del grupo UI/Experiencia V2",
+      "campos": [
+        [
+          "Fecha",
+          "24 de abril de 2026"
+        ],
+        [
+          "Fase trabajada",
+          "UI/Experiencia V2. Septima y ultima tarjeta del grupo (IU-24). Al cerrarla, el grupo completo queda en verde."
+        ],
+        [
+          "Contexto de arranque",
+          "Con IU-18 a IU-23 en verde, IU-24 es el pulido final segun la tarjeta: scanlines overlay, page-dots (4 puntos el 4o en ambar), medir FPS con motores activos, y limpieza de CSS muerto que haya quedado tras los rediseños por partes."
+        ],
+        [
+          "Lo que se ha hecho",
+          "(1) Arrancada IU-24 (morada -> roja -> naranja). (2) Page-dots abajo-centro via position fixed: 4 .page-dot (14x2) que crecen a 22x2 y cambian a fosforo cuando estan on; el 4o lleva .page-dot--new con color de reposo y active en ambar para destacar V4 como feature nueva. main.js sincroniza con el scroll del visor (rAF throttle): cada evento scroll lanza un actualizarPageDots() que calcula idx = Math.round(scrollLeft / clientWidth) y alterna la clase on. Tambien se llama al resize/orientationchange. (3) Scanlines sutiles: .vista::after con content vacio, position absolute inset 0, repeating-linear-gradient 2px de rgba(0,0,0,0.10) sobre transparente, mix-blend-mode overlay, opacity 0.35 y z-index 20. @media (prefers-reduced-motion: reduce) baja a 0.18 para usuarios sensibles. Casi imperceptible pero da matiz HUD. (4) Limpieza masiva de CSS muerto, cerca de 300 lineas eliminadas del <style> inline: .estado.*, .carretera (como clase), .carretera .calle/.sin-carretera, .ubicacion/.ubicacion .label/.municipio/.admin, bloque .meteo* completo (label/temp/descripcion/sub/prevision), bloque .salida* completo, .poi-pueblo/-cab/-nombre/-dist, .poi-item, .poi-foto, .poi-icono-box, .poi-nombre/-sec, .datos-municipio, .municipio-info, .v1-velocidad/.exceso*, .v2-velocidad/.exceso*, .v2-ubicacion/-municipio/-admin, .v2-meteo/-temp-fila/-icono/-temp/-desc, .v2-sub-fila/-sep, .v2-prevision y .v2-prevision svg, .v3-cabecera, .v3-ubicacion, .v3-grid (grid viejo con auto-fill), .v3-gasolineras/-titulo/-lista/.v3-gasolinera/-marca/-dist, .v3-pueblo/-cab/-nombre/-dist, .v3-poi/-icono/-nombre. Preservados con justificacion en comentarios: .v3-carretera .pastilla (main.js todavia inyecta HTML ahi aunque V3 lo oculta con display:none), .poi-ph (placeholder compartido por V1 strip y V3 cards), .poi-cargando (pintarPlaceholderPOI), .maxspeed-chip (FN-06/FN-08) y todas las capas de animacion v2-ambient/rays/luminaria/animacion/nubes/niebla/rays/lightning/fog/snow (motores IU-10..15 siguen activos). index.html bajo de 2200+ a 1963 lineas. (5) Medicion FPS: rAF loop de 3s medido en preview con #vista1 y #vista2 activos (canvas meteo funcionando): 60 FPS sostenidos en ambas vistas (180 frames en 3001 ms). Muy por encima del >40 FPS exigido como criterio de exito. (6) Cache-buster main.js -> ?v=iu24. (7) IU-24 movida a cian y aprobada en verde."
+        ],
+        [
+          "Decisiones tomadas",
+          "Sin decisiones nuevas. Tacticas: scanlines a opacity 0.35 (en lugar de 0.5 del prototipo) porque sobre el movil viejo Chrome 146 el mix-blend-mode:overlay con reticula pesaria mas; si se detecta en prueba en carretera que carga, bajar a 0.2 o quitar. Page-dots via position fixed para que flote sobre todas las vistas sin tener que duplicar el elemento."
+        ],
+        [
+          "Problemas encontrados",
+          "Ninguno durante la limpieza de CSS — todas las reglas eliminadas se verificaron previamente con grep contra el HTML y main.js para asegurar que ningun selector en uso cayera."
+        ],
+        [
+          "Pendientes",
+          "IU-24 aprobada. Grupo UI/Experiencia V2 COMPLETADO: las 7 tarjetas IU-18..IU-24 en verde. El redisenio completo del panel esta en produccion (via GitHub Pages tras el push). Siguiente hito natural: proponer una prueba en carretera (PEC-) del panel redisenado para validar en el movil real."
         ]
       ]
     }
