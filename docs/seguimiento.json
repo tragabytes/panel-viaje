@@ -7,9 +7,9 @@
     "nota_pie": "Actualizar al final de cada sesión de trabajo"
   },
   "estado_actual": {
-    "fase_actual": "UI/Experiencia (sesión 34): feedback de diseño de Laureano desde el uso real. Dos tarjetas ejecutadas y en cian: BPC-15 (velocidad V2 arriba-derecha para no solapar previsión meteo) e IU-16 (densidad de V1: subir tamaños, reactivar descripción+foto Wikipedia en V1, centrar meteo vertical, fijar ancho del grid). Correcciones colaterales al sistema de grid de .vista (min-width→width 100vw, minmax(0,...) en grid-template-columns, min-width:0 en v1-izq/v1-der) para evitar que el contenido empuje el viewport.",
+    "fase_actual": "UI/Experiencia V2 (sesión 35): rediseño completo del front basado en el prototipo de Claude Design. IU-17 completada (entregable: prototipo combinado con tokens HUD fósforo, 3 tipografías y 4 vistas incluyendo V4 NUEVA de cartografía). Creado el grupo Kanvas 'UI / Experiencia V2' con 7 tarjetas IU-18..IU-24 moradas encadenadas por dependencias (IU-18 base bloquea a IU-19/20/21/22; IU-19 bloquea a IU-23; IU-24 depende de todas). Fijadas D-35 (self-host fuentes) y D-36 (etiquetas meteo cortas). Añadido docs/prototipo-v2/ como referencia canónica del rediseño. Pendiente desde sesión 34: BPC-15 e IU-16 en cian esperando verificación humana.",
     "ultima_actualizacion": "24 de abril de 2026",
-    "siguiente_hito": "Verificación humana de BPC-15 e IU-16 en preview (actualmente en cian) y, tras aprobación, prueba en carretera PEC-06 validando densidad nueva de V1 en el móvil del coche, velocidad en top-right de V2, y (pendiente desde sesión 33) SW offline, rate-limiter Overpass y estabilidad tras el refactor grande.",
+    "siguiente_hito": "Aprobación humana de IU-18..IU-24 (morada -> roja) y arranque de IU-18 en la próxima sesión: crear css/style.css con todos los tokens del prototipo, descargar las 3 fuentes en woff2 a /fonts/, extraer del CSS inline de index.html lo que sea reutilizable entre vistas. En paralelo sigue pendiente PEC-06 (densidad V1, velocidad V2 top-right, SW offline, rate-limiter Overpass, estabilidad tras refactor grande) desde sesiones 33-34, a ejecutar cuando haya hueco en carretera.",
     "bloqueos": "Ninguno."
   },
   "fases": [
@@ -1367,6 +1367,66 @@
         [
           "Consecuencias",
           "(1) V1 a 640×360 queda con grid-template-columns resueltas a 347+258 px (suma correcta dentro del padding). (2) Idiom minmax(0, ...) hay que propagarlo si en el futuro se introducen más columnas o subgrids. (3) El cambio width ↔ min-width no afecta al altura variable por BPC-12 (var --app-height), son ejes independientes."
+        ]
+      ]
+    },
+    {
+      "id": 35,
+      "titulo": "Self-host de fuentes para el rediseño V2 (no Google Fonts)",
+      "campos": [
+        [
+          "Fecha",
+          "24 de abril de 2026, sesión 35"
+        ],
+        [
+          "Decisión",
+          "Las tres familias tipográficas del prototipo de Claude Design (JetBrains Mono, Space Grotesk, Archivo Black) se sirven desde /fonts/ en el repo en formato woff2 con subset latino. Pesos incluidos: JetBrains Mono 300/400/500/700/800, Space Grotesk 300/400/500/700, Archivo Black 400. Se declaran con @font-face en css/style.css (IU-18)."
+        ],
+        [
+          "Contexto",
+          "El prototipo original importa las fuentes desde fonts.googleapis.com. El proyecto prioriza (a) mínima dependencia de red por datos móviles compartidos, (b) funcionamiento offline con el service worker de DT-01, (c) arranque predecible sin latencia de CDN externo en el primer tick."
+        ],
+        [
+          "Alternativas consideradas",
+          "(A) Google Fonts CDN directo — más sencillo pero dependiente de red y con latencia en el primer arranque. (B) Self-host con todos los pesos de las 3 familias — +peso en disco innecesario. (C) Self-host solo con los pesos efectivamente usados por el diseño — equilibrio, es la elegida. (D) Sustituir por system fonts — pierde la estética HUD diseñada y los números tabulares de JetBrains Mono."
+        ],
+        [
+          "Parámetros operativos",
+          "Los .woff2 van a /fonts/. El service worker de DT-01 cachea /fonts/ igual que el resto de assets. Cualquier familia nueva que se introduzca en el futuro debe self-hostearse también. El CSS @font-face se escribe en css/style.css (tarjeta IU-18)."
+        ],
+        [
+          "Consecuencias",
+          "(1) +40-80 KB estimados en /fonts/ subset latino. (2) Una única descarga en el primer arranque, offline garantizado después. (3) Sin dependencia de fonts.googleapis.com."
+        ]
+      ]
+    },
+    {
+      "id": 36,
+      "titulo": "Etiquetas meteo cortas (<=10 caracteres) para la V2 con tipografía gigante",
+      "campos": [
+        [
+          "Fecha",
+          "24 de abril de 2026, sesión 35"
+        ],
+        [
+          "Decisión",
+          "En la nueva V2 (IU-20) la palabra gigante (68px Archivo Black) se deriva del código WMO actual mapeada a una etiqueta corta de <=10 caracteres. Se añade el campo etiqueta_corta a cada entrada de js/meteo_codigos.js. Set inicial (es-ES): DESPEJADO, POCO NUBE, NUBOSO, NIEBLA, LLOVIZNA, LLUVIA, TORMENTA, NIEVE, GRANIZO. La palabra es hook visual; el resto de la V2 (timeline, story, valores numéricos) aporta el detalle."
+        ],
+        [
+          "Contexto",
+          "El prototipo hardcodea 'NUBOSO' a 68px Archivo Black. Palabras del WMO como 'TORMENTA ELÉCTRICA' o 'CUBIERTO CON LLUVIA DÉBIL' no caben en 640px de ancho a ese tamaño y romperían el layout. Hace falta un set acotado que mantenga el impacto visual sin distorsionar tamaños."
+        ],
+        [
+          "Alternativas consideradas",
+          "(A) Escalar dinámicamente font-size según longitud — funcional pero distorsiona la jerarquía (las palabras más importantes se leerían más pequeñas). (B) Permitir 2-3 líneas — rompe el diseño minimalista del prototipo. (C) Etiquetas cortas fijas (la elegida) — sacrifica detalle en la palabra grande en favor del impacto visual y mantiene la información completa en el resto de la V2."
+        ],
+        [
+          "Parámetros operativos",
+          "Campo etiqueta_corta en cada entrada de js/meteo_codigos.js. Idioma: es-ES (coherente con el resto del panel). Límite: 10 caracteres. Cualquier código WMO nuevo que se incorpore al mapeo debe llevar su etiqueta_corta definida."
+        ],
+        [
+          "Consecuencias",
+          "(1) La V2 asume rol de vista dedicada de meteo donde la palabra es protagonismo visual y los datos viven debajo. (2) Cualquier extensión futura del mapeo WMO requiere decidir la etiqueta corta a la vez. (3) El cálculo de tamaño tipográfico en la V2 es estable y no necesita JS adicional."
         ]
       ]
     }
@@ -2761,6 +2821,40 @@
         [
           "Pendientes",
           "Verificación humana de BPC-15 e IU-16 (cian).\n\nPEC-06 (pendiente desde sesión 33) ampliada con los criterios de la sesión 34: (a) densidad nueva de V1 legible a un vistazo en el salpicadero del Yaris, (b) velocidad V2 arriba-derecha no tapa el botón fullscreen ni es tapada por el indicador del simulador, (c) descripción + foto del municipio visible y útil durante la conducción.\n\nTarjeta futura posible: update proactivo del service worker (registration.update() al volver a visibilitychange=visible, por ejemplo) para que los despliegues se propaguen sin desinstalar la PWA. No bloqueante ahora; relevante si tras esta sesión Laureano tiene que borrar datos de Chrome en el coche."
+        ]
+      ]
+    },
+    {
+      "n": 35,
+      "titulo": "Rediseño V2 con Claude Design: prototipo, grupo nuevo y 7 tarjetas encadenadas",
+      "campos": [
+        [
+          "Fecha",
+          "24 de abril de 2026"
+        ],
+        [
+          "Fase trabajada",
+          "UI/Experiencia. Evaluación e incorporación de Claude Design (Anthropic Labs, 17-abr-2026) como herramienta de diseño; rediseño completo del front planificado bajo un grupo Kanvas nuevo llamado 'UI / Experiencia V2'."
+        ],
+        [
+          "Contexto de arranque",
+          "Laureano preguntó si Claude Design aplicaba al proyecto. Tras confirmar que sí, como generador de mockups de referencia (no código de producción por regla vanilla JS de CLAUDE.md §10), se propuso y aprobó la tarjeta IU-17 para usarla. Se entregó a Laureano un briefing completo con restricciones duras del proyecto (5.5\" apaisada, conducción, datos móviles, vanilla JS) y la descripción de las tres vistas V1/V2/V3 actuales. Se pidieron 3 propuestas: conservadora, moderna-minimalista y arriesgada."
+        ],
+        [
+          "Lo que se ha hecho",
+          "(1) IU-17 propuesta, aprobada y completada con entregable: prototipo combinado `prototipo-final.html` que fusiona V1+V3 de la propuesta conservadora (grid HUD, jerarquía clara), V2 de la arriesgada (tipografía expresiva con palabra gigante animada y timeline reactiva por peso tipográfico) y una V4 NUEVA de cartografía del entorno con chinchetas. (2) Análisis técnico completo del prototipo: sistema de tokens HUD fósforo (phos-100..500, ink-0..4, hud-white, ámbar, peligro), tres familias tipográficas (JetBrains Mono 300-800, Space Grotesk 300-700, Archivo Black), scanlines sutiles via ::after + mix-blend-mode, placeholders a rayas diagonales, retícula topográfica SVG decorativa. (3) Creadas 7 tarjetas moradas en un grupo nuevo 'UI / Experiencia V2': IU-18 Sistema de diseño base (tokens + self-host fuentes), IU-19 V1 Principal layout HUD, IU-20 V2 Meteo tipografía expresiva, IU-21 V3 POIs grid HUD, IU-22 V4 Entorno cartografía (NUEVA FEATURE), IU-23 Exceso de velocidad efecto HUD, IU-24 Pulido visual + simulador. Cadena de dependencias: IU-18 bloquea a IU-19/20/21/22; IU-19 bloquea a IU-23; IU-24 depende de IU-19/20/21/22/23. (4) Movidos los 7 nodos de 'UI / Experiencia' a 'UI / Experiencia V2' editando tablero.canvas vía skill json-canvas, preservando IDs (IU-XX) y aristas de dependencia. (5) Añadido `docs/prototipo-v2/` al repo con prototipo-final.html, styles/{system,p1,p3}.css, proposals/{p1-conservative,p3-risky}.jsx y un README que mapea cada archivo a las tarjetas que lo consumen."
+        ],
+        [
+          "Decisiones tomadas",
+          "D-35 (self-host de fuentes): las 3 familias tipográficas del prototipo se sirven desde /fonts/ en el repo, no desde Google Fonts CDN. Razones: datos móviles y offline con el service worker de DT-01. D-36 (etiquetas meteo cortas): en la nueva V2 la palabra gigante se deriva del código WMO mapeada a etiquetas <=10 caracteres (DESPEJADO, NUBOSO, LLUVIA, TORMENTA, NIEVE, NIEBLA, etc). Se añadirá campo etiqueta_corta a cada entrada de js/meteo_codigos.js como parte de IU-20."
+        ],
+        [
+          "Problemas encontrados",
+          "Observación no bloqueante sobre canvas-tool.py: (a) --depends-on IU-19 --depends-on IU-20 ... solo registra el último; el formato correcto es --depends-on IU-19 IU-20 IU-21 (una sola flag, IDs separados por espacios) — se ha parcheado con add-dep en cascada para IU-24. (b) no existe comando para mover tareas entre grupos; resuelto con el skill json-canvas editando las coordenadas x/y de los 7 nodos dentro del bounding box del nuevo grupo. Ambos son límites de la CLI, no bugs del proyecto."
+        ],
+        [
+          "Pendientes",
+          "Aprobación humana de IU-18..IU-24 (morada -> roja) antes de empezar a tocar código. Arrancar IU-18 en la próxima sesión (crear css/style.css con tokens del prototipo y descargar las 3 fuentes en woff2 a /fonts/). Sigue abierto desde sesiones 33-34: verificar BPC-15 e IU-16 en preview, ejecutar PEC-06 con los criterios acumulados (densidad V1, velocidad V2 top-right, SW offline, rate-limiter Overpass, estabilidad tras refactor grande)."
         ]
       ]
     }
