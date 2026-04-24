@@ -7,9 +7,9 @@
     "nota_pie": "Actualizar al final de cada sesión de trabajo"
   },
   "estado_actual": {
-    "fase_actual": "UI/Experiencia V2 (sesion 36): IU-18 cerrada en cian. Sistema de diseño base completado: 3 fuentes variables WOFF2 self-host en /fonts/ (JetBrains Mono, Space Grotesk, Archivo Black — total 81 KB subset latin), css/style.css con tokens (--phos-*, --ink-*, --hud-*, --amber*, --danger*, --grid-line*) y utilidades (.u-caps .u-tab .u-dim .u-phos .u-sans .u-black, placeholder poi-ph), linkado desde index.html antes del <style> inline. Service worker v4-2026-04-24 con PRECACHE ampliado (css + 3 WOFF2). Verificado en preview: 0 peticiones a fonts.googleapis.com/gstatic, tokens accesibles desde consola, V1 visualmente intacta. Pendiente desde sesion 34: BPC-15 e IU-16 en cian.",
+    "fase_actual": "UI/Experiencia V2 (sesion 37): IU-19 V1 Principal cerrada en cian — layout HUD fosforo completo con topbar crumbs territoriales (ES · Comunidad · Provincia), velocidad cruda + limite, escudo fosforo de via (verde para estatal A-X/AP-X/N-X, ambar para autonomicas M-505/CL-XXX/etc), bloque ubicacion municipio, proxima salida (visible solo en autovia), pueblos cercanos (3 max), columna meteo derecha con icono SVG + temp + filas lluvia/viento/visibilidad y mini-forecast 4h con barras verticales, strip inferior POIs (3 miniaturas) + gasolineras (3 cercanas). weather.js ahora pide campo visibility. Pendiente desde sesion 34: BPC-15 e IU-16 ya en verde.",
     "ultima_actualizacion": "24 de abril de 2026",
-    "siguiente_hito": "Aprobacion humana de IU-18 (cian -> verde) y arranque de IU-19 V1 Principal layout HUD: reemplazar el CSS y HTML de #vista1 por la maqueta HUD del prototipo (topbar crumbs ES·CASTILLA-LA MANCHA·TOLEDO + velocidad fosforo, shield A-4, proxima salida con borde fosforo, 3 pueblos cercanos, bloque wx lateral con mini-timeline 4 horas, strip inferior POI + gasolineras).",
+    "siguiente_hito": "Aprobacion humana de IU-19 (cian -> verde) y arranque de IU-20 V2 Meteo tipografia expresiva: palabra gigante (DESPEJADO/NUBOSO/LLUVIA/TORMENTA/NIEVE/NIEBLA con Archivo Black) derivada del codigo WMO, temperatura en JetBrains Mono 76px peso 200, timeline horaria 8h con lineas que cambian peso segun intensidad de lluvia, preservando canvas meteo y animaciones IU-10..15.",
     "bloqueos": "Ninguno."
   },
   "fases": [
@@ -2889,6 +2889,40 @@
         [
           "Pendientes",
           "IU-18 espera verificación humana (cian -> verde). Siguiente: IU-19 V1 Principal layout HUD."
+        ]
+      ]
+    },
+    {
+      "n": 37,
+      "titulo": "IU-19 V1 Principal: layout HUD fosforo en produccion",
+      "campos": [
+        [
+          "Fecha",
+          "24 de abril de 2026"
+        ],
+        [
+          "Fase trabajada",
+          "UI/Experiencia V2. Segunda tarjeta del rediseño (IU-19) — la primera que cambia contenido visible del panel."
+        ],
+        [
+          "Contexto de arranque",
+          "Con IU-18 cerrada en verde (tokens y fuentes self-host disponibles globalmente) Laureano aprobo las 7 reglas de alcance antes de escribir codigo: (1) 3 pueblos cercanos max, 3 gasolineras, 3 POIs (aunque haya mas datos disponibles); (2) cada numero con su unidad visible; (3) topbar territorial ES · Comunidad · Provincia; (4) municipio actual bajo la via; (5) municipioInfo (foto + descripcion larga Wikipedia) desaparece de V1, se reserva para V2; (6) columna meteo cambia humedad por visibilidad (solicitada al API); (7) mini-forecast 4h con barras, hora y marca de lluvia."
+        ],
+        [
+          "Lo que se ha hecho",
+          "(1) Arrancada IU-19 (rojo -> naranja). (2) Mapeados los 23 IDs que los modulos JS tocan en V1 para preservarlos al reescribir el HTML (#estado #v1Velocidad #carreteraBloque #salidaBloque #salidaNum #salidaDist #salidaDestinos #salidaSig #municipio #admin #datosMunicipio #municipioInfo #municipioFoto #municipioDesc #poiBloque #poiScroll #v1Gasolineras #meteoTemp #meteoDescripcion #meteoViento #meteoHumedad #meteoPrevision y debug v1-gps). (3) Añadido el campo visibility a weather.js (CAMPOS_CURRENT y objeto normalizado: meteo.visibilidad en metros). (4) Reescrito <section id=vista1> en index.html con estructura HUD: topbar (crumbs ES · admin + velocidad + limite), grid 2 columnas (izq: via shield+label, place municipio+meta, exit visible-only, near-list 3 items; der: wx-now icono+temp, rows lluvia/viento/visib, forecast 4h), bottom strip (pois 3 miniaturas + fuel 3 gasolineras). Humedad y municipioInfo oculto con .p1-off {display:none!important}. (5) Reemplazado todo el CSS inline de V1 (lineas 78-190) por bloque HUD coherente con tokens de IU-18: fondo radial ink, fuentes JetBrains Mono base + Space Grotesk para shield y place-name + Archivo Black disponible, escudo fosforo (verde phos-300 estatal, ambar autonomica, empty para sin-via), borde fosforo izquierdo en exit-block, mini-forecast con barras 5px width 75% opacidad redondeadas. (6) Adaptado main.js en 7 funciones: pintarCarretera (V1 estructura p1-road-*, V3 sigue pastilla clasica); pintarPOIs (V1 #poiScroll = 3 <li> planos con p1-near-dist/p1-near-name, V1 #poiV1Lista = 3 primeros POIs entre pueblos con p1-poi-thumb, V3 intacto); pintarGasolineras (V1 usa .p1-fuel-list interior con slice(0,3), V3 intacto); actualizarMeteo (V1 temp compacta sin sensacion, solo icono, filas nuevas lluvia/viento+cardinal/visib, mini-forecast 4h via renderMiniForecast4h, humedad sigue escribiendose al  oculto); velocidad ( solo numero,  solo numero, unidad en HTML, className p1-speed-num u-tab con banderas exceso); mostrarEstado (className p1-estado para CSS .ok display:none); formatearAdminV1Html (separador p1-sep intermedio); helper gradosACardinal (N/NE/E/SE/S/SO/O/NO). (7) Reposicionado #sim-banner del simulador a bottom:4px left:4px con opacidad 0.65 para no tapar el topbar HUD. (8) Bumped service worker a v5-2026-04-24-iu19. (9) Añadido cache-buster ?v=iu19 a main.js, weather.js y simulator.js (practica vanilla JS sin bundler para invalidar HTTP cache del browser entre cambios incompatibles). (10) Verificacion en preview con simulador rutas a6 y cruce-a6-m505: topbar ES · COMUNIDAD DE MADRID + 100 KM/H / 120, escudo A-6 fosforo + Autovia del Noroeste, Torrelodones + 99.037 HAB · 718 M, LLUVIA 0.0 mm, VIENTO 6 km/h SE, VISIB. 40 km, 3 pueblos (2.0/2.6/3.0 km), forecast 4h con 18°/20°/21°/21° + barras verdes + horas, 3 POIs placeholder + 3 gasolineras (con distancias en fosforo). Chip simulador discreto abajo-izquierda. Sin errores de consola. (11) IU-19 movida a cian."
+        ],
+        [
+          "Decisiones tomadas",
+          "Sin decisiones formales nuevas (se aplican decisiones previas sobre paleta y tipografias). Una decision tactica: el campo visibility del API Open-Meteo no estaba pedido y se añadio sin inventar dependencias. Otra: cache-buster ?v=iu19 como patron en proyecto sin bundler (alternativa limpia a refactor de build)."
+        ],
+        [
+          "Problemas encontrados",
+          "Dos: (a) Chrome Devtools cachea agresivamente archivos JS y CSS aunque se desregistre el SW y se vacien los caches API, porque el HTTP cache del browser es independiente; la solucion clasica es cache-buster en el src. (b) El escudo autonomica inicialmente se veia rojo/granate en el screenshot JPEG — era un artefacto de compresion, getComputedStyle confirmo rgb(255,181,71) = ambar correcto. (c) Menor: weather.js devolvia visibilidad en metros (u.visibility = \"m\") y se convertia a km a la hora de pintar (visibilidad/1000 redondeado). Anotado."
+        ],
+        [
+          "Pendientes",
+          "IU-19 espera verificacion humana (cian -> verde). Siguiente: IU-20 V2 Meteo tipografia expresiva."
         ]
       ]
     }
