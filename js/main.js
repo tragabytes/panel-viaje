@@ -54,6 +54,30 @@
     }
   }
 
+  // SVGs temáticos para POIs sin foto (V3 grid). Sustituyen al placeholder
+  // de rayas cuando ni Wikipedia ni Wikidata identifican el POI. Heredan
+  // currentColor del CSS (fósforo dim). viewBox 24x24 para todos.
+  const SVG_CASTLE   = '<svg viewBox="0 0 24 24"><path d="M3 22V8l3 1V5l3 1V3l3-1 3 1v3l3-1v4l3-1v14z"/><path d="M9 22v-6h6v6"/></svg>';
+  const SVG_CHURCH   = '<svg viewBox="0 0 24 24"><path d="M12 2v5"/><path d="M10 4h4"/><path d="M12 7l-7 5v10h14V12z"/><path d="M10 22v-5a2 2 0 0 1 4 0v5"/></svg>';
+  const SVG_MONUMENT = '<svg viewBox="0 0 24 24"><path d="M9 22V8l3-6 3 6v14z"/><path d="M6 22h12"/></svg>';
+  const SVG_RUINS    = '<svg viewBox="0 0 24 24"><path d="M3 22h18"/><path d="M5 22V9M10 22v-7M14 22v-9M19 22V11"/><path d="M3 6h18l-2 3H5z"/></svg>';
+  const SVG_VIEW     = '<svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+  const SVG_STAR     = '<svg viewBox="0 0 24 24"><path d="M12 2l3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z"/></svg>';
+  const SVG_PEAK     = '<svg viewBox="0 0 24 24"><path d="M2 22l7-12 4 6 3-4 6 10z"/></svg>';
+  const SVG_PIN      = '<svg viewBox="0 0 24 24"><path d="M12 22s8-7 8-13a8 8 0 0 0-16 0c0 6 8 13 8 13z"/><circle cx="12" cy="9" r="3"/></svg>';
+  const ICONOS_SVG_POI = {
+    castle: SVG_CASTLE, fort: SVG_CASTLE, city_gate: SVG_CASTLE,
+    cathedral: SVG_CHURCH, monastery: SVG_CHURCH, church: SVG_CHURCH, chapel: SVG_CHURCH,
+    monument: SVG_MONUMENT, memorial: SVG_MONUMENT,
+    ruins: SVG_RUINS, archaeological_site: SVG_RUINS,
+    viewpoint: SVG_VIEW,
+    attraction: SVG_STAR,
+    peak: SVG_PEAK,
+  };
+  function iconoSvgPoi(tipo) {
+    return ICONOS_SVG_POI[tipo] || SVG_PIN;
+  }
+
   // ===== Vista logs (?logs=1): administración de trayectos persistidos =====
 
   function arrancarVistaLogs() {
@@ -686,7 +710,7 @@
         $datosMunicipio.textContent = partes.join(' · ');
         if (dm.descripcion || dm.foto) {
           if (dm.foto) {
-            $municipioFoto.src = dm.foto;
+            $municipioFoto.src = POIFuentes.normalizarFotoCommons(dm.foto, 400);
             $municipioFoto.style.display = '';
           } else {
             $municipioFoto.style.display = 'none';
@@ -756,6 +780,7 @@
           poisV3.push({
             nombre: poi.nombre,
             foto: poi.foto,
+            tipo: poi.tipo,
             pueblo: p.nombre,
             distKm: p.distKm,
           });
@@ -769,9 +794,16 @@
           const dist = poi.distKm < 1
             ? Math.round(poi.distKm * 1000) + ' m'
             : poi.distKm.toFixed(1) + ' km';
-          const thumb = poi.foto
-            ? `<div class="p3-v3-thumb"><img src="${escapar(poi.foto)}" alt="" loading="lazy"></div>`
-            : `<div class="p3-v3-thumb poi-ph" data-label="PHOTO"></div>`;
+          // Wikidata P18 devuelve URLs gigantes en HTTP; normalizamos a HTTPS+thumbnail.
+          // También cubrimos POIs cacheados en IDB antes del fix.
+          const fotoSrc = POIFuentes.normalizarFotoCommons(poi.foto, 400);
+          // Sin loading="lazy": son 6 thumbs y queremos que estén listos cuando
+          // el usuario deslice a V3, no que empiecen a bajar en ese momento.
+          // El data-tipo permite al onerror swap a icono temático si la foto falla.
+          const tipoAttr = `data-tipo="${escapar(poi.tipo || '')}"`;
+          const thumb = fotoSrc
+            ? `<div class="p3-v3-thumb" ${tipoAttr}><img src="${escapar(fotoSrc)}" alt=""></div>`
+            : `<div class="p3-v3-thumb p3-v3-icon" ${tipoAttr}>${iconoSvgPoi(poi.tipo)}</div>`;
           return `<div class="p3-v3-card">
             ${thumb}
             <div class="p3-v3-name">${escapar(poi.nombre)}</div>
@@ -781,6 +813,17 @@
             </div>
           </div>`;
         }).join('');
+        // Si una foto falla (404, mixed content, archivo borrado), hacemos swap
+        // al icono SVG temático del tipo de POI en vez de dejar hueco vacío.
+        $v3Grid.querySelectorAll('.p3-v3-thumb img').forEach(img => {
+          img.addEventListener('error', () => {
+            const div = img.parentElement;
+            if (div) {
+              div.classList.add('p3-v3-icon');
+              div.innerHTML = iconoSvgPoi(div.dataset.tipo || '');
+            }
+          }, { once: true });
+        });
       }
       // Contador del head: "6 · RADIO 25 KM"
       if ($v3PoiCounter) {

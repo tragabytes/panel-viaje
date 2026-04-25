@@ -1177,7 +1177,7 @@
     .p3-v3-place {
       font-size: 13px;
       font-weight: 500;
-      color: var(--hud-white);
+      color: var(--phos-300);
       letter-spacing: 0.1em;
       white-space: nowrap;
       overflow: hidden;
@@ -1219,12 +1219,29 @@
       overflow: hidden;
       background: var(--ink-3);
     }
-    .p3-v3-thumb.poi-ph { /* hereda rayas diagonales del sistema */ }
     .p3-v3-thumb img {
       width: 100%;
       height: 100%;
       object-fit: cover;
       display: block;
+    }
+    /* Card sin foto: icono SVG temático grande sobre fondo ink. Sustituye al
+       placeholder de rayas para POIs que ni Wikipedia ni Wikidata identifican. */
+    .p3-v3-thumb.p3-v3-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--phos-dim, var(--phos));
+      opacity: 0.7;
+    }
+    .p3-v3-thumb.p3-v3-icon svg {
+      width: 50%;
+      height: 50%;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 1.5;
+      stroke-linejoin: round;
+      stroke-linecap: round;
     }
     .p3-v3-name {
       font-size: 11px;
@@ -1754,7 +1771,7 @@
 
   <!-- Descripción del municipio: oculta en V1, visible en V2. Misma razón. -->
   <span id="municipioInfo" class="p1-off">
-    <img id="municipioFoto" src="" alt="">
+    <img id="municipioFoto" src="" alt="" onerror="this.style.display='none'">
     <span id="municipioDesc"></span>
   </span>
 

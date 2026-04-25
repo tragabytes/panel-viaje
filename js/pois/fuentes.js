@@ -38,6 +38,20 @@
 
   // --- Helpers ---
 
+  // Wikidata P18 devuelve URLs tipo http://commons.wikimedia.org/wiki/Special:FilePath/<archivo>.
+  // Apuntan al archivo ORIGINAL (a veces 5-15 MB) y vienen en HTTP, lo que añade
+  // una redirección HTTP→HTTPS antes de servir. En 4G compartido del coche, esa
+  // combinación deja la <img> sin cargar mientras el usuario conduce. Forzamos
+  // HTTPS y añadimos ?width= para que Commons sirva un thumbnail directo.
+  function normalizarFotoCommons(url, ancho) {
+    if (!url) return null;
+    let u = url.replace(/^http:\/\//i, 'https://');
+    if (/\/wiki\/Special:FilePath\//i.test(u) && !/[?&]width=/i.test(u)) {
+      u += (u.includes('?') ? '&' : '?') + 'width=' + ancho;
+    }
+    return u;
+  }
+
   async function fetchConTimeout(url, opciones, timeoutMs) {
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), timeoutMs);
@@ -215,7 +229,7 @@
     }
     if (!mejorB || mejorSim < POIMatch.JACCARD_MIN_POI) return null;
     return {
-      foto: mejorB.image ? mejorB.image.value : null,
+      foto: normalizarFotoCommons(mejorB.image ? mejorB.image.value : null, 400),
       texto: null,  // Wikidata no da resumen; solo foto
       sim: mejorSim,
     };
@@ -290,6 +304,8 @@
     consultarWikidataProximidad,
     // municipio
     buscarMunicipioEnWikidata,
+    // utilidades de URL
+    normalizarFotoCommons,
     // constantes útiles para el core
     RADIO_PUEBLOS_M,
     RADIO_POIS_M,
