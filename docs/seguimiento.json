@@ -7,9 +7,9 @@
     "nota_pie": "Actualizar al final de cada sesión de trabajo"
   },
   "estado_actual": {
-    "fase_actual": "UI/Experiencia V2 COMPLETADA (sesion 42): las 7 tarjetas del grupo en verde. Panel redisenado de punta a punta sobre el prototipo Claude Design con estetica HUD fosforo sobre fondo inkBlack. 4 vistas (V1 principal + V2 meteo expresiva + V3 POIs grid + V4 cartografia NUEVA) con scroll-snap, page-dots, scanlines sutiles y halo de exceso de velocidad. Tres fuentes variables self-host (81 KB total). FPS >40 verificado en preview. Pendiente desde sesion 34: BPC-15 e IU-16 ya en verde; ninguna tarjeta abierta en el grupo V2.",
-    "ultima_actualizacion": "24 de abril de 2026",
-    "siguiente_hito": "Prueba en carretera real del panel redisenado (nueva PEC- que proponer) — validar layouts y rendimiento en el movil viejo del salpicadero, y detectar regresiones o issues de contraste/legibilidad al conducir. Paralelamente, explorar ideas parqueadas si hay hueco: FN-07 comarcas, PO-XX nuevas fuentes de POI.",
+    "fase_actual": "Mejora de fotos POI en V3 (sesion 43, sin tarjeta Kanvas a peticion explicita). Tres patas: (a) URLs Wikidata Special:FilePath normalizadas a HTTPS con ?width=400 para que sirvan thumbnail de Commons en vez del archivo original (a veces 5-15 MB); (b) eliminado loading=lazy en V3 grid y onerror que hace swap a icono SVG si la foto falla; (c) sustituido el placeholder de rayas con texto PHOTO por iconos SVG tematicos de 8 tipos OSM (castle/church/monument/ruins/viewpoint/star/peak/pin) en color fosforo dim, coherentes con la estetica HUD y los iconos meteo. Ajuste cromatico: cabecera V3 (municipio + comunidad) pasa de blanco a verde fosforo --phos-300; nombres de POI se mantienen en --hud-white para preservar jerarquia visual.",
+    "ultima_actualizacion": "25 de abril de 2026",
+    "siguiente_hito": "Prueba en carretera real del panel redisenado (nueva PEC- que proponer): validar layouts, rendimiento y la mejora visual de POIs sin foto en el movil viejo del salpicadero. Si tras la prueba se confirma que el ratio de POIs sin foto es alto (sesion 43 midio 6/9 = 67% en ruta a6 con cache fresca), evaluar si merece la pena anadir una capa de fallback Wikimedia Commons geosearch en enriquecerPOI. Paralelamente, ideas parqueadas: FN-07 comarcas, PO-XX nuevas fuentes de POI.",
     "bloqueos": "Ninguno."
   },
   "fases": [
@@ -3105,6 +3105,40 @@
         [
           "Pendientes",
           "IU-24 aprobada. Grupo UI/Experiencia V2 COMPLETADO: las 7 tarjetas IU-18..IU-24 en verde. El redisenio completo del panel esta en produccion (via GitHub Pages tras el push). Siguiente hito natural: proponer una prueba en carretera (PEC-) del panel redisenado para validar en el movil real."
+        ]
+      ]
+    },
+    {
+      "n": 43,
+      "titulo": "Fix de fotos POI en V3: normalizacion Wikidata + iconos SVG tematicos",
+      "campos": [
+        [
+          "Fecha",
+          "25 de abril de 2026"
+        ],
+        [
+          "Fase trabajada",
+          "UI/Experiencia V2 - V3 POIs (post-cierre del grupo). Sesion sin tarjeta Kanvas: Laureano pidio ir directo al fix porque el problema (fotos de POIs que casi nunca se cargan al conducir) era observable y la propuesta tecnica concreta. Queda constancia aqui segun la regla 6.3 de CLAUDE.md."
+        ],
+        [
+          "Contexto de arranque",
+          "Laureano reporto que en V3 la mayoria de las cards muestran el placeholder de rayas con texto PHOTO en lugar de la foto. Hipotesis inicial: las URLs Wikidata P18 vienen como http://commons.wikimedia.org/wiki/Special:FilePath/<archivo> apuntando al archivo ORIGINAL (a veces 5-15 MB) y en HTTP, lo que en datos compartidos del Toyota deja la <img> sin terminar de cargar. Al medir, la hipotesis resulto solo parcial: el problema mayor es que muchos POIs no se enriquecen con foto (Wikipedia 404 + Wikidata sin match suficiente)."
+        ],
+        [
+          "Lo que se ha hecho",
+          "(1) En js/pois/fuentes.js, helper normalizarFotoCommons(url, ancho) que fuerza HTTPS y anade ?width=400 si la URL apunta a Special:FilePath sin parametro de anchura previo. Aplicado en consultarWikidataProximidad y expuesto en el namespace POIFuentes. (2) En js/main.js, normalizacion defensiva al renderizar V3 y al setear el municipioFoto.src, para cubrir POIs cacheados en IDB antes del fix sin necesidad de invalidar la cache. (3) Quitado loading=lazy del img de V3: solo son 6 thumbs, queremos que esten listos cuando el usuario deslice a la vista, no que empiecen a bajar en ese momento. (4) addEventListener error que hace swap del thumb a icono SVG tematico si la foto falla por 404, mixed content o archivo borrado. (5) onerror inline en municipioFoto para que se oculte si falla la carga. (6) Nuevo helper iconoSvgPoi(tipo) en main.js con 8 SVGs inline (viewBox 24x24, stroke=currentColor) que cubren todos los tipos OSM mapeados en core.js: castle/fort/city_gate comparten torre+almena, cathedral/church/monastery/chapel comparten cruz+spire, monument/memorial comparten obelisco, ruins/archaeological_site comparten columnas, viewpoint=ojo, attraction=estrella, peak=montana, default=pin de localizacion. (7) Sustituido el placeholder de rayas data-label PHOTO por div p3-v3-thumb p3-v3-icon con data-tipo y el SVG dentro. data-tipo permite al onerror saber que icono usar al fallar. (8) Regla CSS p3-v3-thumb.p3-v3-icon en index.html que centra el SVG a 50% del thumb, color var(--phos-dim, var(--phos)) con opacity 0.7. Eliminada la regla huerfana p3-v3-thumb.poi-ph que quedo sin uso. (9) Ajuste cromatico tras feedback de Laureano: p3-v3-place (cabecera Municipio . Comunidad) de var(--hud-white) a var(--phos-300); p3-v3-name (nombre de cada POI) se mantiene en var(--hud-white) para preservar jerarquia (cabecera contextual = verde, nombre primario = blanco)."
+        ],
+        [
+          "Decisiones tomadas",
+          "Cuando en preview se descubrio que el problema real era el bajo ratio de POIs enriquecidos (3 de 9 con foto en ruta a6 con cache limpia, no las URLs Wikidata grandes), se opto por NO anadir una capa de fallback Wikimedia Commons geosearch en esta sesion: cada peticion mas significa coste de datos moviles, y el fix de iconos SVG ya elimina el problema visual percibido por el usuario (huecos o placeholder de rayas con texto PHOTO). Si tras prueba en carretera se confirma que los iconos no son suficientes, se evalua entonces Commons como capa extra. SVGs inline en main.js en lugar de modulo nuevo o set externo (Material Symbols) por la regla Karpathy 11.2: solo se usan en V3 y son pocas lineas. data-tipo en el thumb (no en la card) porque el handler del img sube al parentElement directo. Color del icono a --phos-dim con opacity 0.7 en lugar de --phos directo: las cards sin foto compiten visualmente con las que si tienen, y un icono demasiado fuerte llamaria mas atencion que las fotos reales."
+        ],
+        [
+          "Problemas encontrados",
+          "(1) Service Worker DT-01 cacheaba el JS y HTML antiguo y la primera verificacion en preview daba el render sin cambios. Resuelto desregistrando SW y vaciando caches() ademas de borrar IDB de panel-viaje-cache. (2) preview_screenshot intermitentemente daba timeout durante recargas; las verificaciones se hicieron por preview_eval con getComputedStyle e inspeccion DOM, complementadas con screenshot cuando se podia. (3) Los tests del helper normalizarFotoCommons confirmaron 5 casos: null devuelve null; URL Wikidata HTTP se convierte a HTTPS mas ?width=400; URL Wikidata ya HTTPS se queda en HTTPS pero gana ?width=400; URL que ya lleva ?width=200 no se modifica; URL upload.wikimedia.org thumb tampoco (no es Special:FilePath). (4) Se detecto duplicacion de POIs en V3 (Busto de Manuel Lopez Villasenor aparece 3 veces): es problema separado de deduplicacion en obtenerPOIsPueblo, no parte de este fix. Queda pendiente."
+        ],
+        [
+          "Pendientes",
+          "(a) Prueba en carretera real con el movil viejo del salpicadero para validar el cambio en condiciones reales (datos compartidos, sol directo, conduccion). (b) Decidir si se anade fallback Wikimedia Commons geosearch tras esa prueba. (c) Bug separado: deduplicar POIs en V3 cuando aparecen mas veces de lo esperado (caso Busto de Manuel Lopez Villasenor x3). Proponer tarjeta cuando se aborde."
         ]
       ]
     }
