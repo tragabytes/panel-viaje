@@ -56,6 +56,18 @@
     'i'
   );
 
+  // BPC-18: filtro adicional para los resultados Overpass de pueblos.
+  // Confirmado en sesión 44 (preview con ?sim=a6) que entradas como
+  // "Urbanización Montealegría", "Finca Nueva El Enebrillo" o "Canto del Pico"
+  // están en OSM como place=hamlet y se cuelan en V1/V3. Solo el nombre las
+  // delata; no son lugares poblacionales en el sentido tradicional.
+  const EXCLUIR_PUEBLOS_OSM = new RegExp(
+    '^(Urbanizaci[oó]n|Finca|Pol[ií]gono|Cementerio|Pantano|Embalse|Presa|Aeropuerto)\\b' +
+    // Geográficos que OSM a veces marca hamlet por ser microparajes
+    '|^(Canto|Cerro|Mirador|Loma|Pe[ñn]a)\\b',
+    'i'
+  );
+
   const JACCARD_MIN_POI = 0.5;
   const JACCARD_MIN_MUNICIPIO = 0.3;
   const JACCARD_MIN_PEDANIA = 0.5;
@@ -102,6 +114,7 @@
     STOPWORDS,
     EXCLUIR_GEOSEARCH,
     EXCLUIR_PUEBLOS_GEOSEARCH,
+    EXCLUIR_PUEBLOS_OSM,
     JACCARD_MIN_POI,
     JACCARD_MIN_MUNICIPIO,
     JACCARD_MIN_PEDANIA,

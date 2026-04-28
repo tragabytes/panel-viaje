@@ -90,8 +90,24 @@
     let pueblos;
     try {
       const { datos, dt } = await Overpass.query(POIFuentes.construirQueryPueblos(lat, lon), 'POI-pueblos');
-      pueblos = (datos.elements || [])
-        .filter(el => el.tags && el.tags.name && typeof el.lat === 'number')
+      const crudo = (datos.elements || [])
+        .filter(el => el.tags && el.tags.name && typeof el.lat === 'number');
+      // BPC-18: descartar fakes que OSM etiqueta como hamlet (urbanizaciones,
+      // fincas, microparajes...). Tres pasadas en orden de confianza:
+      //  1) place=village/town/city → pueblo real por definición OSM. Pasa.
+      //  2) hamlet con población/wikidata/wikipedia → señal extra de núcleo.
+      //     Pasa. Esto rescata pueblos como "Cerro Muriano" cuando OSM los
+      //     marca village con tags ricos pero también si están como hamlet
+      //     bien documentado.
+      //  3) hamlet sin señal: última red por regex EXCLUIR_PUEBLOS_OSM.
+      //     Si el nombre arranca con Urbanización/Finca/Canto/etc. fuera.
+      const filtrados = crudo.filter(el => {
+        const place = el.tags.place;
+        if (place && place !== 'hamlet') return true;
+        if (el.tags.population || el.tags.wikidata || el.tags.wikipedia) return true;
+        return !POIMatch.EXCLUIR_PUEBLOS_OSM.test(el.tags.name);
+      });
+      pueblos = filtrados
         .map(el => ({
           nombre: el.tags.name,
           lat: el.lat,
@@ -101,7 +117,16 @@
         .sort((a, b) => a.distKm - b.distKm)
         .slice(0, POIFuentes.MAX_PUEBLOS);
       if (typeof debug !== 'undefined') {
-        debug.log(`POI pueblos: ${pueblos.length} en ${dt}ms · más cercano: ${pueblos[0] ? pueblos[0].nombre + ' (' + pueblos[0].distKm.toFixed(1) + 'km)' : 'ninguno'}`);
+        const descartados = crudo.length - filtrados.length;
+        debug.log(`POI pueblos: ${pueblos.length} en ${dt}ms (${descartados} descartados por BPC-18) · más cercano: ${pueblos[0] ? pueblos[0].nombre + ' (' + pueblos[0].distKm.toFixed(1) + 'km)' : 'ninguno'}`);
+      }
+      // BPC-18: si el filtro dejó la lista vacía, caer al fallback Wikipedia
+      // (con su propia regex BPC-16) en lugar de quedarnos sin pueblos.
+      if (pueblos.length === 0) {
+        if (typeof debug !== 'undefined') {
+          debug.warn('POI pueblos: 0 tras filtros BPC-18, probando Wikipedia geosearch');
+        }
+        pueblos = await POIFuentes.obtenerPueblosWikipedia(lat, lon);
       }
     } catch (e) {
       if (typeof debug !== 'undefined') {

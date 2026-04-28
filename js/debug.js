@@ -311,5 +311,9 @@ const debug = (() => {
     warn:  (texto) => escribir(texto, '#ffcc00'),
     error: (texto) => escribir(texto, '#ff5555'),
     activo: () => activo,
+    // BPC-18: snapshot del historial (hasta 500 mensajes) accesible desde
+    // la consola para instrumentación. Devuelve copia para no exponer el
+    // array interno a mutaciones externas.
+    mensajes: () => mensajes.slice(),
   };
 })();
