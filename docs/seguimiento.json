@@ -1429,6 +1429,36 @@
           "(1) La V2 asume rol de vista dedicada de meteo donde la palabra es protagonismo visual y los datos viven debajo. (2) Cualquier extensión futura del mapeo WMO requiere decidir la etiqueta corta a la vez. (3) El cálculo de tamaño tipográfico en la V2 es estable y no necesita JS adicional."
         ]
       ]
+    },
+    {
+      "id": 37,
+      "titulo": "Cierre del grupo Kanvas \"UI / Experiencia\": en adelante todo IU-XX nuevo va a \"UI / Experiencia V2\"",
+      "campos": [
+        [
+          "Fecha",
+          "28 de abril de 2026"
+        ],
+        [
+          "Decisión",
+          "El grupo Kanvas \"UI / Experiencia\" queda cerrado y deprecado. Su label en tablero.canvas se renombra a \"UI / Experiencia [CERRADO — usar V2]\" para que sea visualmente evidente. Cualquier propuesta IU-XX nueva va al grupo \"UI / Experiencia V2\". Las 4 tarjetas IU-25..28 que se acaban de proponer (V1 meteo y vía/salida) se han movido al grupo V2. El grupo V1 conserva en su sitio las 17 tarjetas históricas (IU-01..IU-17) — son su archivo de trabajo, no se tocan."
+        ],
+        [
+          "Contexto",
+          "El grupo \"UI / Experiencia\" recogió todo el ciclo IU-01..IU-17 hasta sesión 22 aprox. Después se abrió \"UI / Experiencia V2\" para el rediseño HUD (IU-18..IU-24, sesiones 28-35). Tras varias sesiones de pulido y la prueba en carretera del 27/04, el feedback identifica nuevos retoques sobre la V2 (no sobre la V1). Mantener la V1 como destino de tarjetas nuevas mezclaría dos eras de diseño en un mismo grupo y haría difícil leer el tablero."
+        ],
+        [
+          "Alternativas consideradas",
+          "(A) Seguir usando \"UI / Experiencia\" para todas las tarjetas IU-XX — descartado: hace ilegible el grupo y borra la separación entre el rediseño HUD y la fase anterior. (B) Borrar el grupo V1 — descartado: las tarjetas verdes IU-01..IU-17 son historial vivo del proyecto. (C) Renombrar V1 como [CERRADO] y usar V2 (la elegida) — preserva historia, hace evidente la frontera y no obliga a mover las antiguas."
+        ],
+        [
+          "Parámetros operativos",
+          "Tablero: grupo group-uiexpe label=\"UI / Experiencia [CERRADO — usar V2]\". Grupo group-uiexpeaa9 label=\"UI / Experiencia V2\" expandido a height=2080 para acomodar las 4 nuevas. Tarjetas IU-25..28 reposicionadas a x=2220 y=1300/1480/1660/1840. Regla operativa: en `python canvas-tool.py tablero.canvas propose` para una IU-XX nueva, usar siempre el grupo \"UI / Experiencia V2\" (el script no impide proponer en V1, es disciplina del agente)."
+        ],
+        [
+          "Consecuencias",
+          "Las propuestas IU-XX futuras viven todas en V2 mientras esa siga siendo la era vigente del diseño. Si en el futuro arranca una V3 de diseño (rediseño completo), se cerrará V2 igual y se abrirá V3. CLAUDE.md sección 6 no necesita cambios — la regla del agente queda anotada aquí. Si por error se propusiera una IU en el grupo cerrado, basta con moverla manualmente al V2 reeditando tablero.canvas (la CLI no soporta mover entre grupos, requiere edición JSON con el skill json-canvas)."
+        ]
+      ]
     }
   ],
   "sesiones": [
