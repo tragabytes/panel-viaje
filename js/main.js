@@ -746,9 +746,18 @@
         // V1 HUD: strip inferior con 3 POIs primeros entre todos los pueblos.
         // Se guarda el nombre del pueblo junto con el POI para mostrarlo como
         // pie atenuado (IU-19 ajuste).
+        // BPC-17: dedupe por nombre + coords. Cuando dos pueblos cercanos
+        // comparten un POI cuya geometría cae cerca de ambos, solo quiero
+        // verlo una vez en el strip.
         const todosPois = [];
+        const vistosV1 = new Set();
         for (const p of pueblos) {
           for (const poi of (p.pois || [])) {
+            const key = (poi.nombre || '').toLowerCase() + '|' +
+                        (poi.lat != null ? poi.lat.toFixed(4) : '') + ',' +
+                        (poi.lon != null ? poi.lon.toFixed(4) : '');
+            if (vistosV1.has(key)) continue;
+            vistosV1.add(key);
             todosPois.push({ nombre: poi.nombre, pueblo: p.nombre });
             if (todosPois.length >= 3) break;
           }
@@ -774,9 +783,18 @@
       // V3 HUD (IU-21): grid 3x2 flat de POIs individuales. Se aplana la
       // jerarquía pueblo → pois, se toma foto del POI si existe y se usa el
       // nombre del pueblo como meta para dar contexto geográfico.
+      // BPC-17: dedupe por nombre + coords (igual que V1 strip). El primer
+      // pueblo gana — por convención el más cercano, dado que `pueblos` viene
+      // ordenado por distancia.
       const poisV3 = [];
+      const vistosV3 = new Set();
       for (const p of pueblos) {
         for (const poi of (p.pois || [])) {
+          const key = (poi.nombre || '').toLowerCase() + '|' +
+                      (poi.lat != null ? poi.lat.toFixed(4) : '') + ',' +
+                      (poi.lon != null ? poi.lon.toFixed(4) : '');
+          if (vistosV3.has(key)) continue;
+          vistosV3.add(key);
           poisV3.push({
             nombre: poi.nombre,
             foto: poi.foto,
