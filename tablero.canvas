@@ -34,7 +34,7 @@
 			"x": 2200,
 			"y": 0,
 			"width": 380,
-			"height": 2080,
+			"height": 2740,
 			"label": "UI / Experiencia V2"
 		},
 		{
@@ -1030,7 +1030,47 @@
 			"y": 3100,
 			"width": 280,
 			"height": 160,
-			"color": "5"
+			"color": "4"
+		},
+		{
+			"id": "a95723f2",
+			"type": "text",
+			"text": "## IU-29 IU-29 V1 meteo: migrar a set de iconos profesional (Flaticon/Phosphor/Weather Icons)\nCONTEXTO: feedback Laureano sesión 45 — los iconos del sprite #meteo-* (creados a mano en IU-06/IU-26) se ven descuidados al lado del resto del HUD. Quiere subir nivel visual con un set profesional. CANDIDATOS A EVALUAR: (1) Flaticon — librería enorme, gratis con atribución obligatoria visible (rompe el HUD limpio), Pro 10€/mes sin atribución. Descarga manual SVG por SVG. (2) Phosphor Icons — MIT, sin atribución, set weather específico (sun, cloud, cloud-sun, cloud-rain, cloud-snow, cloud-fog, cloud-lightning, moon, question), integrable como sprite SVG mantenido. (3) Weather Icons (Erik Flowers) — licencia SIL OFL, set 100% meteorológico (~200 iconos), muy estilizado pero pesa más. PROPUESTA: empezar con Phosphor (cero fricción legal y técnica) y comparar con muestras de Flaticon de las que Laureano elija; decidir según gusto visual. PASOS: (a) descargar los 9 SVGs equivalentes a meteo-sol/luna/nube/sol-nube/niebla/lluvia/nieve/tormenta/desconocido. (b) reescribir el bloque <svg sprite> en index.html con los nuevos paths, manteniendo viewBox 0 0 24 24 e ids meteo-* exactos para no romper meteo_codigos.js. (c) ajustar stroke-width si los nuevos no quedan en línea con el contorno HUD (1.4-1.8). (d) probar los 9 estados en V1 con simulador y verificar herencia de currentColor (verde fósforo). MANTENER: convención fill=none stroke=currentColor (IU-26). El set elegido debe respetarlo o adaptarlo. ARCHIVOS: index.html (sprite SVG, líneas 1572-1639). DEPENDENCIAS: ninguna; IU-32 se beneficiará de los nuevos iconos cuando llegue.",
+			"x": 2220,
+			"y": 2020,
+			"width": 280,
+			"height": 160,
+			"color": "6"
+		},
+		{
+			"id": "925a6abe",
+			"type": "text",
+			"text": "## IU-30 IU-30 Simulador: ruta dedicada para previsualizar próxima salida en V1\nCONTEXTO: feedback Laureano sesión 45 — quiere ver en su móvil cómo queda el cartel de \"PRÓXIMA SALIDA\" con la tipografía nueva de IU-28 (.p1-exit-num 26px). La ruta actual ?sim=a6 pasa por salidas pero el cartel solo está visible unos pocos segundos a x10. PROPUESTA: añadir nueva ruta \"salida-a6\" en js/rutas.js que: (1) arranca ~1.5 km antes de la salida 12 (Las Rozas Centro, lat 40.4929 lon -3.8745 aprox.), (2) avanza despacio (60-80 km/h en lugar de 100) o con multiplicador x3 en lugar de x10 para que el cartel sea estable 10-15 segundos en pantalla, (3) cubre 1-2 salidas más para iterar visualmente. ALTERNATIVA: parámetro ?sim=a6&speedmult=3 si ya existe esa palanca; comprobar simulator.js. CRITERIO DE ÉXITO: con ?sim=salida-a6 abierto en el móvil, Laureano puede valorar tamaños/legibilidad del cartel salida sin tener que esperar a una sesión real. ARCHIVOS: js/rutas.js (definición de la nueva ruta), js/simulator.js (no debería tocarse si hay palanca de speed; revisar). USO PARA QA POSTERIOR: esta ruta queda en el simulador como herramienta de regresión visual para futuros cambios al bloque exit.",
+			"x": 2220,
+			"y": 2200,
+			"width": 280,
+			"height": 160,
+			"color": "6"
+		},
+		{
+			"id": "46f94e27",
+			"type": "text",
+			"text": "## IU-31 IU-31 Cabecera persistente sobre las 4 vistas (crumbs + velocidad) y reorganización de heads\nCONTEXTO: feedback Laureano sesión 45 — quiere que la cabecera \"ES · COMUNIDAD DE MADRID\" + velocidad de V1 se mantenga visible en las 4 vistas. Hoy solo está en V1 y cada vista tiene su propio head. CAMBIOS: (1) HEADER GLOBAL: extraer el topbar de V1 (#topbarCrumbs + #v1Velocidad) a un elemento .app-header con position: fixed; top: 0; left: 0; right: 0; z-index alto, respetando safe-area-top. main.js mantiene un único path de actualización para crumbs y velocidad (los selectores actuales pueden conservar id si reusamos los nodos, evitando refactor en pintarUbicacion/pintarVelocidad). Cada vista añade padding-top para no quedar tapada. (2) V2: subir el nombre del pueblo (info que ahora está bajo la temperatura) al header como tercer crumb tras la comunidad. Eliminar el bloque .p2-caption de dentro de #vista2. Liberar ese espacio para hacer .p2-temp más grande (probar 100→140px font-size, valorar contraste con .p2-word arriba). (3) V3: el head actual (.p3-v3-head) pierde el lugar (ya está en el header global). En su lugar, segunda línea con \"PUNTOS DE INTERÉS · <N> · RADIO 25 KM\". El número N es top6.length (POIs en pantalla, sirve para distinguir 6/6 vs 2/6); ver con Laureano si mantenemos formato actual o lo cambiamos a \"6/6 POIs\". (4) V4: misma jugada — la info actual del head de V4 baja a segunda línea bajo el header global. CUIDADOS: (a) la cabecera global pisa el botón fullscreen — recolocar a esquina superior dentro del header o esquina derecha de cada vista. (b) en exceso de velocidad (IU-23) el halo aplica a V1; ahora afecta también al header global (visual coherente). (c) safe-area: el header debe respetar safe-top y cada vista safe-bottom. ARCHIVOS: index.html (HTML del header + estructura de vistas), js/main.js (un único path de actualización), css inline. RIESGOS: refactor con efecto cascada — recomendable hacerlo con simulador delante y validar V1, V2, V3, V4 paso a paso. DECISIÓN PENDIENTE: formato del contador V3 — preguntar a Laureano antes de codificar.",
+			"x": 2220,
+			"y": 2380,
+			"width": 280,
+			"height": 160,
+			"color": "6"
+		},
+		{
+			"id": "b7d4b8da",
+			"type": "text",
+			"text": "## IU-32 IU-32 V2 timeline: icono meteo por hora junto a la temperatura\nCONTEXTO: feedback Laureano sesión 45 — la timeline 6h de V2 muestra hora + temperatura + barra de lluvia. Falta indicador visual del estado meteo de cada hora (la categoría más severa). CAMBIO: en main.js función que pinta #v2MeteoTimeline (buscar por id), por cada fila añadir un <svg width=16 height=16><use href=\"#meteo-X\"/></svg> donde X es el icono de la categoría más severa de la hora, calculado con MeteoCodigos.iconoDeCategoria(MeteoCodigos.categoriaMasSevera(horasFila)) — la lógica ya existe para la story line de V2 (resumenMeteoNh). CSS: añadir .p2-hr-icon { width:16px; height:16px; color: var(--phos-300); } y ajustar grid-template-columns de .p2-timeline-row para incluir la columna del icono. POSICIÓN: antes o después de la temperatura — probar ambos y elegir el que respete jerarquía visual. CRITERIO DE ÉXITO: en simulador con ruta a6, la timeline 6h muestra un icono pequeño verde fósforo por hora coherente con el código WMO de esa hora. ARCHIVOS: index.html (CSS .p2-timeline-row), js/main.js (renderizado de timeline). MEJORA SI YA HAY IU-29 EN VERDE: los iconos del sprite serán el set profesional, la timeline luce mejor. NO bloquea: con los iconos actuales (IU-26) también funciona.",
+			"x": 2220,
+			"y": 2560,
+			"width": 280,
+			"height": 160,
+			"color": "6"
 		}
 	],
 	"edges": [
