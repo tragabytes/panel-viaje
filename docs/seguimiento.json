@@ -3239,6 +3239,40 @@
           "(1) Verificar BPC-18 en una prueba en carretera real (PEC nueva) en Madrid + sierra: que los pueblos cercanos sean siempre poblaciones reales y el log debug muestre 'descartados por BPC-18: N' con números >0 cuando el área tenga muchas urbanizaciones. (2) Tarjetas BPC-17 y BPC-18 quedan en cian — Laureano debe aprobarlas a verde tras esa prueba. (3) Si tras BPC-18 siguen apareciendo fakes con patrones nuevos, abrir BPC-19 con los casos concretos."
         ]
       ]
+    },
+    {
+      "n": 46,
+      "titulo": "Sprint feedback prueba real: IU-29..32 (iconos meteo, ruta sim salida, cabecera global, icono timeline)",
+      "campos": [
+        [
+          "Fecha",
+          "28 de abril de 2026"
+        ],
+        [
+          "Fase trabajada",
+          "UI/Experiencia V2. Continuación de las sesiones 44-45: tras desplegar BPC-16/17/18 + IU-25..28, Laureano abrió un bloque de mejoras visuales sobre las 4 vistas: iconos meteo más estilizados, simulación de cartel de salida, cabecera persistente y miniaturas en la timeline V2."
+        ],
+        [
+          "Contexto de arranque",
+          "4 propuestas en morado (IU-29..32) discutidas y aprobadas como rojas tras explicar al usuario el contador del head V3 (top6.length, número de POIs visibles) y las opciones para iconos (Flaticon con atribución, Phosphor MIT, Weather Icons). Laureano optó por pasar SVGs descargados de Flaticon. Primera tanda recibida estaba mezclada estilísticamente (3 outline + 5 a color); descartada. Segunda tanda coherente."
+        ],
+        [
+          "Lo que se ha hecho",
+          "(1) IU-30 cerrada SIN código nuevo: descubierto durante implementación que la ruta js/rutas.js 'a6-salidas' (sesión 12) ya cumple el caso (pre-roll de 9 puntos para histéresis MotorwayExit + 4 salidas numeradas) y que el simulador acepta ?speed=N. URL para previsualizar el cartel de salida en el móvil: /?sim=a6-salidas&speed=2 (cada punto ~17s). (2) IU-32 implementada: cada fila de la timeline 6h en V2 muestra ahora un icono pequeño verde fósforo a la izquierda de la temperatura, alimentado por h.icono que weather.js ya rellenaba. CSS .p2-hr pasa de 4 a 5 columnas. (3) IU-31 implementada: cabecera global persistente extraída del topbar de V1 a un .app-header position:fixed top:0 con backdrop-filter blur, visible sobre las 4 vistas. Crumbs ES · Comunidad · Pueblo y velocidad alineada a la derecha; main.js escribe los crumbs en un único sitio. Variable CSS --app-header-h: 43px sumada al padding-top de cada vista. V2: eliminado el bloque .p2-caption, temperatura .p2-temp ampliada a clamp(72px..140px). V3: head simplificado a una línea (PUNTOS DE INTERÉS · counter), v3Ubicacion oculto. V4: .p4-coords y .p4-title bajados con top + app-header-h. Botón Fullscreen position absolute → fixed (z-index 50). (4) IU-29 implementada con la segunda tanda de 8 SVGs Flaticon coherentes (sol, luna+estrellas, nubes, sol+nube, niebla, lluvia, nieve, tormenta). Paths sólidos integrados en el sprite con fill=currentColor para heredar verde fósforo. meteo-desconocido simplificado a '?' grande según preferencia del usuario."
+        ],
+        [
+          "Decisiones tomadas",
+          "(a) Ante set Flaticon mezclado (outline + color) en primera tanda: rechazar y pedir set coherente. Justificación: la coherencia visual del HUD prevalece sobre la urgencia. (b) IU-30 sin código nuevo: la regla Karpathy 11.2 (simplicidad primero) — la herramienta ya existía, basta documentar la URL. (c) Para la cabecera global IU-31: variable CSS --app-header-h fija en 43px en lugar de medirla con JS — mantener simple, ajustable manualmente si el header crece. (d) IU-29 con paths sólidos en lugar de outline: sacrifica la convención IU-26 (contorno con stroke-width 1.4) en favor del estilo profesional Flaticon que el usuario eligió."
+        ],
+        [
+          "Problemas encontrados",
+          "(a) El service worker y el caché HTTP del navegador ralentizan iteración en preview: cada cambio en JS necesita cache-buster en el src del script (?v=...) además del bump de SW_VERSION. Resuelto añadiendo busters explícitos a main.js, debug.js y js/pois/*.js cuando se tocan. (b) Preview MCP a veces da timeout en screenshots tras varias navegaciones largas; resuelto con stop+start del server. (c) Set Flaticon de primera tanda mezclaba outline negro con ilustraciones a color (luna amarilla, sol amarillo, lluvia y nieve azules) → conflicto visual con HUD verde monocromo. Comunicado al usuario, segunda tanda coherente. (d) meteo-nube del set elegido tiene viewBox 0 0 512 512 mientras los demás 0 0 24 24 — funciona (los <symbol> escalan con <use>) pero el icono queda visualmente algo más pequeño que el resto. Asumido."
+        ],
+        [
+          "Pendientes",
+          "(1) Verificar el bloque IU-29..32 en una prueba en carretera real: header persistente cuando se desliza entre vistas, iconos meteo nuevos a tamaño real, cartel de salida con la nueva tipografía. (2) Si algún icono Flaticon chirría al ver el panel en marcha (meteo-nube pequeño, meteo-tormenta con rayo desplazado, meteo-luna muy detallada), abrir tarjeta para sustituir solo ese. (3) BPC-17, BPC-18 e IU-29..32 quedan en cian — Laureano debe aprobarlas a verde tras la prueba real. (4) Considerar si la cabecera global debe ocultar el municipio cuando se va a alta velocidad o cuando hay error de Nominatim, para evitar 'Comunidad de Madrid · ·' con crumb vacío (el CSS .app-header-place:empty + .app-header-sep ya oculta el separador; verificar en producción)."
+        ]
+      ]
     }
   ],
   "problemas_abiertos": [],
