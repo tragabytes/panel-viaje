@@ -79,13 +79,18 @@
   }
 
   // RA-01: Wikipedia geosearch para pueblos como fallback de Overpass.
+  // BPC-16: filtrar también con EXCLUIR_PUEBLOS_GEOSEARCH (estricta) para
+  // descartar palacios, conventos, ayuntamientos, etc. que Wikipedia devuelve
+  // mezclados con los pueblos reales y se persistían en IDB contaminando la
+  // lista en V1/V3 entre sesiones.
   async function obtenerPueblosWikipedia(lat, lon) {
     const url = `https://es.wikipedia.org/w/api.php?action=query&list=geosearch` +
       `&gscoord=${lat}|${lon}&gsradius=10000&gslimit=50&format=json&origin=*`;
     const datos = await fetchConTimeout(url, {}, TIMEOUT_WIKIPEDIA_MS);
     const resultados = (datos.query && datos.query.geosearch) || [];
     const pueblos = resultados
-      .filter(r => !POIMatch.EXCLUIR_GEOSEARCH.test(r.title))
+      .filter(r => !POIMatch.EXCLUIR_GEOSEARCH.test(r.title) &&
+                   !POIMatch.EXCLUIR_PUEBLOS_GEOSEARCH.test(r.title))
       .map(r => ({
         nombre: r.title,
         lat: r.lat,

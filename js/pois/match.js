@@ -30,8 +30,31 @@
     'puerta','arco','puente','fuente','plaza',
   ]);
 
-  // Filtro para Wikipedia geosearch: títulos que no son pueblos.
+  // Filtro general para Wikipedia geosearch: infraestructura que no debe
+  // considerarse ni pueblo ni POI patrimonial. Lo usan tanto el fallback de
+  // pueblos como el de POIs por pueblo. NO incluye palacios/iglesias/etc:
+  // esos sí son POIs válidos.
   const EXCLUIR_GEOSEARCH = /\b(Estaci[oó]n|Embalse|Arroyo|R[ií]o|Autov[ií]a|Autopista|Aeropuerto|Pol[ií]gono|Hospital|Universidad|Centro comercial|Pantano|Presa)\b|\(empresa\)|\(compañía\)|\(revista\)|^[A-Z]{1,3}-\d/i;
+
+  // BPC-16: filtro adicional ESTRICTO solo para el fallback de pueblos
+  // (obtenerPueblosWikipedia). Wikipedia geosearch devuelve cualquier
+  // artículo con coordenadas en el radio: palacios, conventos, ayuntamientos,
+  // observatorios... que se colaban como "pueblos" cuando Overpass fallaba y
+  // se persistían en IDB contaminando V1 y V3. Tres categorías:
+  //   1) Palabras al inicio del título que NUNCA son pueblo en España
+  //      (Palacio, Convento, Ayuntamiento, etc.). Excluyen sin ambigüedad.
+  //   2) Palabras ambivalentes (Iglesia, Torre, Fuente, Puente...) que SÍ
+  //      pueden encabezar nombres de pueblos legítimos (Torre Pacheco,
+  //      Puente Genil, Fuente Obejuna). Solo excluir si llevan paréntesis,
+  //      patrón típico de POI con municipio explícito: "X de Y (Municipio)".
+  //   3) Cualquier cosa que ya excluya EXCLUIR_GEOSEARCH (infraestructura).
+  const EXCLUIR_PUEBLOS_GEOSEARCH = new RegExp(
+    // Categoría 1: nunca son pueblo al inicio
+    '^(Palacio|Palacete|Convento|Monasterio|Ayuntamiento|Auditorio|Observatorio|Casa[-\\s]Museo|Casa de Cultura|Museo|Catedral|Dehesa)\\b' +
+    // Categoría 2: ambivalentes con paréntesis (POI dentro de un municipio)
+    '|^(Iglesia|Ermita|Capilla|Torre|Fuente|Castillo|Plaza|Cruz|Arco|Puente|Parque|Casa)\\b.*\\([^)]+\\)',
+    'i'
+  );
 
   const JACCARD_MIN_POI = 0.5;
   const JACCARD_MIN_MUNICIPIO = 0.3;
@@ -78,6 +101,7 @@
     matchLabels,
     STOPWORDS,
     EXCLUIR_GEOSEARCH,
+    EXCLUIR_PUEBLOS_GEOSEARCH,
     JACCARD_MIN_POI,
     JACCARD_MIN_MUNICIPIO,
     JACCARD_MIN_PEDANIA,

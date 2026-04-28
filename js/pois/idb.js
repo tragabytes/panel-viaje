@@ -15,7 +15,11 @@
 
   const IDB_NOMBRE = 'panel-viaje-cache';
   const IDB_STORE = 'pois';
-  const IDB_VERSION = 1;
+  // v2 (BPC-16): bump para purgar entradas pueblos:* contaminadas por el
+  // fallback Wikipedia geosearch antes de ampliar EXCLUIR_PUEBLOS_GEOSEARCH.
+  // Sin este bump, las entradas de IDB sobrevivirían 14 días y seguirían
+  // mostrando palacios/conventos/ayuntamientos como pueblos.
+  const IDB_VERSION = 2;
   const TTL_CACHE_IDB_MS = 14 * 24 * 60 * 60 * 1000;
 
   let dbPromise = null;
@@ -27,10 +31,37 @@
     dbPromise = new Promise((resolve) => {
       try {
         const req = indexedDB.open(IDB_NOMBRE, IDB_VERSION);
-        req.onupgradeneeded = () => {
+        req.onupgradeneeded = (e) => {
           const db = req.result;
           if (!db.objectStoreNames.contains(IDB_STORE)) {
             db.createObjectStore(IDB_STORE);
+          }
+          // BPC-16: migración v1→v2. Borra todas las entradas pueblos:*
+          // porque el fallback Wikipedia geosearch antiguo persistió como
+          // pueblos cosas que no lo son (palacios, conventos, ayuntamientos,
+          // observatorios). Las entradas pois:* sobre esos fake-pueblos
+          // quedan huérfanas y expirarán solas por TTL (14 días).
+          if (e.oldVersion < 2) {
+            try {
+              const tx = e.target.transaction;
+              const store = tx.objectStore(IDB_STORE);
+              const cursorReq = store.openCursor();
+              let borradas = 0;
+              cursorReq.onsuccess = () => {
+                const cursor = cursorReq.result;
+                if (!cursor) {
+                  if (typeof debug !== 'undefined' && borradas > 0) {
+                    debug.log(`IDB v1→v2 (BPC-16): ${borradas} entradas pueblos:* purgadas`);
+                  }
+                  return;
+                }
+                if (typeof cursor.key === 'string' && cursor.key.startsWith('pueblos:')) {
+                  cursor.delete();
+                  borradas++;
+                }
+                cursor.continue();
+              };
+            } catch (_) { /* silencioso: la app sigue funcionando con caché parcial */ }
           }
         };
         req.onsuccess = () => {

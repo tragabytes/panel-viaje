@@ -137,9 +137,11 @@
       color: var(--phos-200);
       line-height: 1;
     }
+    /* IU-25: la unidad km/h en verde fósforo para coherencia con el número
+       de velocidad y con las métricas de meteo. */
     .p1-speed-unit {
       font-size: 10px;
-      color: var(--hud-white-dim);
+      color: var(--phos-200);
     }
     .p1-speed-lim {
       font-size: 12px;
@@ -211,13 +213,15 @@
       gap: 8px;
       min-width: 0;
     }
+    /* IU-28: pastilla de vía y nombre de calle más grandes para verse en
+       marcha (Toyota Yaris a 60-80 cm). */
     .p1-road-shield {
       font-family: 'Space Grotesk', system-ui, sans-serif;
       font-weight: 700;
       background: var(--phos-300);
       color: #001d0a;
-      padding: 2px 8px;
-      font-size: 15px;
+      padding: 3px 10px;
+      font-size: 20px;
       letter-spacing: 0.04em;
       border-radius: 2px;
       flex-shrink: 0;
@@ -230,7 +234,7 @@
       font-weight: 400;
     }
     .p1-road-label {
-      font-size: 15px;
+      font-size: 17px;
       font-weight: 500;
       color: var(--hud-white);
       white-space: nowrap;
@@ -268,8 +272,9 @@
     }
     .p1-exit.visible { display: block; }
     .p1-exit-tag { font-size: 10px; margin-bottom: 2px; }
+    /* IU-28: número de salida más grande — protagonista visual del bloque. */
     .p1-exit-num {
-      font-size: 18px;
+      font-size: 26px;
       font-weight: 700;
       color: var(--phos-200);
       line-height: 1.1;
@@ -309,9 +314,12 @@
     }
 
     /* -------- Columna meteo -------- */
+    /* IU-25: justify-content space-between para que icono quede a la izquierda
+       y temperatura a la derecha alineada con LLUVIA/VIENTO/VISIB. */
     .p1-wx-now {
       display: flex;
       align-items: center;
+      justify-content: space-between;
       gap: 10px;
       padding-bottom: 5px;
       border-bottom: 1px solid var(--grid-line-strong);
@@ -339,9 +347,11 @@
       padding: 1px 0;
     }
 
-    /* Mini-forecast: 4 columnas con temp + barra + hora */
+    /* Mini-forecast: 4 columnas con temp + barra + hora.
+       IU-27: sin margin-top:auto (causaba un hueco vertical visible entre VISIB
+       y las barras cuando la columna era más alta que el contenido). El gap:4
+       de .p1-col-wx + el padding-top mantienen separación visual suficiente. */
     .p1-wx-forecast {
-      margin-top: auto;
       display: grid;
       grid-template-columns: repeat(4, 1fr);
       gap: 4px;
@@ -1566,25 +1576,27 @@
   </style>
 </head>
 <body>
-<!-- Sprite SVG meteo: 8 símbolos, ~3 KB. IU-06. -->
+<!-- Sprite SVG meteo: 8 símbolos, ~3 KB. IU-06.
+     IU-26: refactor a contorno monocromo con currentColor para que el icono
+     herede el color del contenedor (verde fósforo en V1, dim en story V2). -->
 <svg xmlns="http://www.w3.org/2000/svg" style="display:none">
   <!-- Sol -->
   <symbol id="meteo-sol" viewBox="0 0 24 24">
-    <circle cx="12" cy="12" r="5" fill="#fbbf24" />
-    <g stroke="#fbbf24" stroke-width="2" stroke-linecap="round">
-      <line x1="12" y1="1" x2="12" y2="4"/>
-      <line x1="12" y1="20" x2="12" y2="23"/>
-      <line x1="4.22" y1="4.22" x2="6.34" y2="6.34"/>
-      <line x1="17.66" y1="17.66" x2="19.78" y2="19.78"/>
-      <line x1="1" y1="12" x2="4" y2="12"/>
-      <line x1="20" y1="12" x2="23" y2="12"/>
-      <line x1="4.22" y1="19.78" x2="6.34" y2="17.66"/>
-      <line x1="17.66" y1="6.34" x2="19.78" y2="4.22"/>
+    <g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="4.5"/>
+      <line x1="12" y1="1.5" x2="12" y2="4"/>
+      <line x1="12" y1="20" x2="12" y2="22.5"/>
+      <line x1="4.4" y1="4.4" x2="6.4" y2="6.4"/>
+      <line x1="17.6" y1="17.6" x2="19.6" y2="19.6"/>
+      <line x1="1.5" y1="12" x2="4" y2="12"/>
+      <line x1="20" y1="12" x2="22.5" y2="12"/>
+      <line x1="4.4" y1="19.6" x2="6.4" y2="17.6"/>
+      <line x1="17.6" y1="6.4" x2="19.6" y2="4.4"/>
     </g>
   </symbol>
   <!-- Luna -->
   <symbol id="meteo-luna" viewBox="0 0 24 24">
-    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="#94a3b8"/>
+    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
   </symbol>
   <!-- Nube: outline HUD (IU-19) — hereda color del contenedor via currentColor -->
   <symbol id="meteo-nube" viewBox="0 0 24 24">
@@ -1592,19 +1604,19 @@
   </symbol>
   <!-- Sol+nube (parcialmente nublado día) -->
   <symbol id="meteo-sol-nube" viewBox="0 0 24 24">
-    <circle cx="10" cy="7" r="3.5" fill="#fbbf24"/>
-    <g stroke="#fbbf24" stroke-width="1.5" stroke-linecap="round">
-      <line x1="10" y1="1" x2="10" y2="2.5"/>
-      <line x1="4.4" y1="3.4" x2="5.5" y2="4.5"/>
-      <line x1="2" y1="7" x2="3.5" y2="7"/>
-      <line x1="15.6" y1="3.4" x2="14.5" y2="4.5"/>
-      <line x1="18" y1="7" x2="16.5" y2="7"/>
+    <g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="9" cy="7" r="3"/>
+      <line x1="9" y1="1.5" x2="9" y2="2.8"/>
+      <line x1="3.4" y1="7" x2="4.7" y2="7"/>
+      <line x1="5" y1="3" x2="5.9" y2="3.9"/>
+      <line x1="13.3" y1="7" x2="14.6" y2="7"/>
+      <line x1="13" y1="3" x2="12.1" y2="3.9"/>
+      <path d="M6.5 20a4 4 0 0 1-.37-7.98A6 6 0 0 1 18 13.5 3 3 0 0 1 17.5 19H6.5z"/>
     </g>
-    <path d="M6.5 20a4 4 0 0 1-.37-7.98A6 6 0 0 1 18 13.5 3 3 0 0 1 17.5 19H6.5z" fill="#94a3b8" opacity="0.85"/>
   </symbol>
   <!-- Niebla -->
   <symbol id="meteo-niebla" viewBox="0 0 24 24">
-    <g stroke="#94a3b8" stroke-width="2" stroke-linecap="round" opacity="0.7">
+    <g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round">
       <line x1="3" y1="8" x2="21" y2="8"/>
       <line x1="5" y1="12" x2="19" y2="12"/>
       <line x1="3" y1="16" x2="21" y2="16"/>
@@ -1612,8 +1624,8 @@
   </symbol>
   <!-- Lluvia -->
   <symbol id="meteo-lluvia" viewBox="0 0 24 24">
-    <path d="M6.5 14a4 4 0 0 1-.37-7.98A6 6 0 0 1 18 8.5 3 3 0 0 1 17.5 14H6.5z" fill="#64748b"/>
-    <g stroke="#60a5fa" stroke-width="1.5" stroke-linecap="round">
+    <g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M6.5 14a4 4 0 0 1-.37-7.98A6 6 0 0 1 18 8.5 3 3 0 0 1 17.5 14H6.5z"/>
       <line x1="8" y1="17" x2="7" y2="20"/>
       <line x1="12" y1="17" x2="11" y2="20"/>
       <line x1="16" y1="17" x2="15" y2="20"/>
@@ -1621,22 +1633,24 @@
   </symbol>
   <!-- Nieve -->
   <symbol id="meteo-nieve" viewBox="0 0 24 24">
-    <path d="M6.5 14a4 4 0 0 1-.37-7.98A6 6 0 0 1 18 8.5 3 3 0 0 1 17.5 14H6.5z" fill="#64748b"/>
-    <g fill="#e2e8f0">
-      <circle cx="8" cy="17.5" r="1.2"/>
-      <circle cx="12" cy="19" r="1.2"/>
-      <circle cx="16" cy="17.5" r="1.2"/>
+    <g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M6.5 14a4 4 0 0 1-.37-7.98A6 6 0 0 1 18 8.5 3 3 0 0 1 17.5 14H6.5z"/>
+      <circle cx="8" cy="18" r="0.7"/>
+      <circle cx="12" cy="19.5" r="0.7"/>
+      <circle cx="16" cy="18" r="0.7"/>
     </g>
   </symbol>
   <!-- Tormenta -->
   <symbol id="meteo-tormenta" viewBox="0 0 24 24">
-    <path d="M6.5 13a4 4 0 0 1-.37-7.98A6 6 0 0 1 18 7.5 3 3 0 0 1 17.5 13H6.5z" fill="#475569"/>
-    <polygon points="13,14 10,19 12,19 11,23 16,17 13.5,17 15,14" fill="#facc15"/>
+    <g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M6.5 13a4 4 0 0 1-.37-7.98A6 6 0 0 1 18 7.5 3 3 0 0 1 17.5 13H6.5z"/>
+      <polyline points="13,14 10,19 12,19 11,23 16,17 13.5,17 15,14"/>
+    </g>
   </symbol>
   <!-- Desconocido -->
   <symbol id="meteo-desconocido" viewBox="0 0 24 24">
-    <circle cx="12" cy="12" r="10" fill="none" stroke="#64748b" stroke-width="1.5"/>
-    <text x="12" y="16" text-anchor="middle" font-size="12" fill="#94a3b8" font-family="sans-serif">?</text>
+    <circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="1.5"/>
+    <text x="12" y="16" text-anchor="middle" font-size="12" fill="currentColor" font-family="sans-serif">?</text>
   </symbol>
 </svg>
 
@@ -1729,11 +1743,11 @@
       </div>
       <div class="p1-wx-row">
         <span class="u-caps u-dim">VIENTO</span>
-        <span id="meteoViento" class="u-tab">—</span>
+        <span id="meteoViento" class="u-tab u-phos">—</span>
       </div>
       <div class="p1-wx-row">
         <span class="u-caps u-dim">VISIB.</span>
-        <span id="meteoVisib" class="u-tab">—</span>
+        <span id="meteoVisib" class="u-tab u-phos">—</span>
       </div>
       <!-- Mini-forecast 4h: main.js inyecta columnas con hora + temp + barra + lluvia -->
       <div id="meteoPrevision" class="p1-wx-forecast"></div>
