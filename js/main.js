@@ -381,8 +381,12 @@
         const temp = h.temperatura != null ? Math.round(h.temperatura) + '°' : '—';
         const color = `rgba(125, 255, 160, ${alpha})`;
         const pctText = pct > 0 ? Math.round(pct) + '%' : '';
+        // IU-32: icono meteo de la hora a la izquierda de la temperatura.
+        // h.icono es el id del symbol del sprite (meteo-sol, meteo-lluvia, ...).
+        const iconoHora = h.icono || 'meteo-desconocido';
         return `<div class="p2-hr" style="font-weight:${fontWeight}; color:${color}">
           <span class="p2-hr-hour">${escapar(hora)}</span>
+          <span class="p2-hr-icon" aria-hidden="true">${MeteoCodigos.iconoSVG(iconoHora)}</span>
           <span class="p2-hr-temp">${escapar(temp)}</span>
           <div class="p2-hr-bar" style="width:${Math.round(pct)}%"></div>
           <span class="p2-hr-pct">${escapar(pctText)}</span>

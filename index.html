@@ -1107,15 +1107,24 @@
       gap: 2px;
       font-family: 'JetBrains Mono', monospace;
     }
+    /* IU-32: añadida columna 18px para el icono meteo de cada hora.
+       hora + icono + temp + barra + %. */
     .p2-hr {
       display: grid;
-      grid-template-columns: 32px 48px 1fr 32px;
+      grid-template-columns: 32px 18px 48px 1fr 32px;
       align-items: center;
       gap: 10px;
       font-size: 10px;
       line-height: 1.2;
       transition: font-weight 0.6s ease;
     }
+    .p2-hr-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--phos-300);
+    }
+    .p2-hr-icon svg { width: 16px; height: 16px; }
     .p2-hr-hour { font-weight: 400; opacity: 0.55; }
     .p2-hr-temp { font-variant-numeric: tabular-nums; }
     .p2-hr-bar {
@@ -1988,7 +1997,7 @@
   <script src="js/v2_lightningfx.js"></script>
   <script src="js/v2_snowfx.js"></script>
   <script src="js/v2_fogfx.js"></script>
-  <script src="js/main.js?v=bpc17"></script>
+  <script src="js/main.js?v=iu32"></script>
 
 </body>
 </html>
