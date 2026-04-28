@@ -3171,6 +3171,40 @@
           "(a) Prueba en carretera real con el movil viejo del salpicadero para validar el cambio en condiciones reales (datos compartidos, sol directo, conduccion). (b) Decidir si se anade fallback Wikimedia Commons geosearch tras esa prueba. (c) Bug separado: deduplicar POIs en V3 cuando aparecen mas veces de lo esperado (caso Busto de Manuel Lopez Villasenor x3). Proponer tarjeta cuando se aborde."
         ]
       ]
+    },
+    {
+      "n": 44,
+      "titulo": "Feedback prueba carretera 27/04: BPC-16, IU-25..28 y BPC-17",
+      "campos": [
+        [
+          "Fecha",
+          "28 de abril de 2026"
+        ],
+        [
+          "Fase trabajada",
+          "UI/Experiencia V2 y POIModule. Sesión orientada a feedback: Laureano envió una foto del panel en marcha por la M-50 hacia Las Rozas y un log de 26 minutos del 27/04/2026 (panel-viaje-20260427-181558.txt)."
+        ],
+        [
+          "Contexto de arranque",
+          "Feedback puntual sobre V1 (alineación de temperatura, color verde de métricas, iconos meteo en contorno, hueco entre métricas y mini-forecast, tipografía de vía y salida) y sobre el bloque pueblos/POIs (mezcla en V1 y duplicados en V3). El log destapó la causa raíz de la mezcla: el fallback Wikipedia geosearch metía como pueblos cosas como Palacio del Infante don Luis, Convento de la Encarnación, Ayuntamiento de Majadahonda, Auditorio Alfredo Kraus, Casa de Cultura Carmen Conde y Dehesa de Navalcarbón."
+        ],
+        [
+          "Lo que se ha hecho",
+          "(1) Análisis del log y propuesta de 6 tarjetas en morado (BPC-16, BPC-17, IU-25, IU-26, IU-27, IU-28) con contexto detallado. (2) Cierre del grupo Kanvas \"UI / Experiencia\" — renombrado a \"[CERRADO — usar V2]\" y movidas las 4 IU nuevas al grupo V2; ver decisión 37. (3) BPC-16 implementada: nueva regex POIMatch.EXCLUIR_PUEBLOS_GEOSEARCH (estricta) aplicada solo en obtenerPueblosWikipedia, manteniendo EXCLUIR_GEOSEARCH original para obtenerPOIsWikipedia. Bump IDB v1→v2 con purga de claves pueblos:* en onupgradeneeded. Validado con 16 casos (8 fakes excluidos, 8 pueblos legítimos pasan, incluyendo Torre Pacheco / Puente Genil / Fuente Obejuna que comparten prefijo con palabras del filtro). (4) IU-25..28 implementadas: justify-content space-between en .p1-wx-now (temperatura a la derecha), clases u-phos en VIENTO/VISIB/.p1-speed-unit, refactor de los 9 símbolos del sprite SVG meteo a fill=none stroke=currentColor, quitado margin-top:auto de .p1-wx-forecast, y subida de tamaños .p1-road-shield 15→20px / .p1-road-label 15→17px / .p1-exit-num 18→26px. Validado con preview local Chrome y screenshots de los 9 iconos a 60px. (5) BPC-17 implementada: dedupe por nombre+lat.toFixed(4)+lon.toFixed(4) en pintarPOIs() tanto para V1 strip como para V3 grid. Bumpado SW_VERSION v5→v6 (v6-2026-04-28-bpc17) y cache-buster main.js?v=iu24→bpc17 para forzar invalidación al desplegar. (6) BPC-18 propuesta para una iteración futura: durante la validación de BPC-16 aparecieron \"Finca Nueva El Enebrillo\" y \"Canto del Pico\" como pueblos cercanos en Torrelodones. La regex actual no los captura. Antes de codificar, hay que distinguir si vienen de Overpass (place=hamlet legítimo en OSM) o del fallback Wikipedia."
+        ],
+        [
+          "Decisiones tomadas",
+          "Decisión 37 (registrada en este mismo seguimiento): cierre del grupo \"UI / Experiencia\". A partir de ahora toda IU-XX nueva va al grupo \"UI / Experiencia V2\". Mantener V1 como archivo histórico (17 tarjetas verdes IU-01..IU-17) y renombrar su label a \"[CERRADO — usar V2]\" para que el límite sea visible en Obsidian."
+        ],
+        [
+          "Problemas encontrados",
+          "(a) IDB persistente sobrevive al fix lógico — los datos contaminados por el fallback Wikipedia se quedaban 14 días aunque corrigieras la regex. Resuelto en BPC-16 con bump de versión IDB y purga selectiva de claves pueblos:*. (b) El service worker mantenía la versión vieja del JS en el preview local — necesario unregister + caches.delete + bump del cache-buster (main.js?v=iu24→bpc17 + SW_VERSION v5→v6) para validar en runtime los cambios de BPC-17. (c) Caso descubierto durante la validación de BPC-16: \"Finca Nueva El Enebrillo\" y \"Canto del Pico\" siguen colándose como pueblos. No es alcance de BPC-16; queda en BPC-18."
+        ],
+        [
+          "Pendientes",
+          "(1) Verificar en una prueba en carretera real (PEC nueva) que tras desplegar v6 los pueblos cercanos son siempre poblaciones reales y no aparecen duplicados. El log debug debería mostrar \"IDB v1→v2 (BPC-16): N entradas pueblos:* purgadas\" en el primer arranque sobre el móvil contaminado. (2) Trabajar BPC-18 (Finca/Canto) cuando haya una nueva muestra de log que distinga la fuente. (3) Tarjetas BPC-16, BPC-17 e IU-25..28 quedan en cian — Laureano debe aprobarlas a verde tras una sesión real."
+        ]
+      ]
     }
   ],
   "problemas_abiertos": [],
