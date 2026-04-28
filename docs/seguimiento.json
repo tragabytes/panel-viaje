@@ -3205,6 +3205,40 @@
           "(1) Verificar en una prueba en carretera real (PEC nueva) que tras desplegar v6 los pueblos cercanos son siempre poblaciones reales y no aparecen duplicados. El log debug debería mostrar \"IDB v1→v2 (BPC-16): N entradas pueblos:* purgadas\" en el primer arranque sobre el móvil contaminado. (2) Trabajar BPC-18 (Finca/Canto) cuando haya una nueva muestra de log que distinga la fuente. (3) Tarjetas BPC-16, BPC-17 e IU-25..28 quedan en cian — Laureano debe aprobarlas a verde tras una sesión real."
         ]
       ]
+    },
+    {
+      "n": 45,
+      "titulo": "BPC-18: filtro de fake-pueblos también en resultados Overpass",
+      "campos": [
+        [
+          "Fecha",
+          "28 de abril de 2026"
+        ],
+        [
+          "Fase trabajada",
+          "POIModule. Continuación inmediata de la sesión 44: tras desplegar BPC-16/17 quedó pendiente de validar de dónde venían 'Finca Nueva El Enebrillo', 'Canto del Pico' y 'Urbanización Montealegría' como pueblos cercanos en Torrelodones."
+        ],
+        [
+          "Contexto de arranque",
+          "Investigación previa pedida por la propia BPC-18: distinguir si los fake-pueblos vienen de Overpass o del fallback Wikipedia, antes de codificar. Necesario añadir un getter debug.mensajes() y cache-busters en js/pois/*.js y js/debug.js para poder leer el log interno desde la consola del preview con la versión nueva."
+        ],
+        [
+          "Lo que se ha hecho",
+          "(1) Investigación con preview ?debug=1&sim=a6 + IDB limpio. Confirmado que el log dice 'POI pueblos: 5 en 637ms · más cercano: Torrelodones (4.6km)' SIN [Wikipedia] — los fakes vienen de Overpass directo. OSM tiene 'Urbanización Montealegría', 'Finca Nueva El Enebrillo', 'Canto del Pico' como place=hamlet. (2) Solución: nueva regex POIMatch.EXCLUIR_PUEBLOS_OSM aplicada en obtenerPueblosCercanos sobre el resultado Overpass, con tres pasadas en orden de confianza: village/town/city → pasa; hamlet con population/wikidata/wikipedia → pasa (rescata 'Cerro Muriano' real); hamlet sin señal → la regex decide. (3) Si el filtro deja la lista vacía, se cae al fallback Wikipedia. (4) debug.js: añadido debug.mensajes() — snapshot del historial accesible desde consola, queda como API estable. (5) Cache-busters bumpados a ?v=bpc18 en js/pois/*.js y js/debug.js. (6) Validado con 10 inputs sintéticos en runtime: 4/4 fakes confirmados descartados, 5/5 legítimos pasan."
+        ],
+        [
+          "Decisiones tomadas",
+          "Trade-off explícito en el filtro de hamlets sin señal OSM: aplicar regex EXCLUIR_PUEBLOS_OSM (Urbanización, Finca, Polígono, Canto, Cerro, Mirador, Loma, Peña, Cementerio, Pantano, Embalse, Presa, Aeropuerto). Acepta excluir hamlets reales con esos prefijos cuando OSM no los ha documentado con tags ricos — caso raro y aceptable porque puede recuperarse al añadir population/wikidata en OSM. El segundo filtro (orden de confianza) protege a 'Cerro Muriano' y similares."
+        ],
+        [
+          "Problemas encontrados",
+          "(a) El service worker y la caché HTTP del navegador hacen difícil iterar en preview: necesarios cache-busters explícitos en cada src de script para que el preview cargue la versión nueva tras editar. Resuelto añadiendo ?v=bpc18 a los scripts modificados. (b) 'La Puentecilla y Los Majuelos' (microparaje en Las Rozas) sigue pasando el filtro porque su nombre no arranca con palabras de la regex y no tiene señal OSM extra. Caso edge aceptable: si reaparece en pruebas reales, ampliar la regex con palabras como 'Las' + heurística posicional, o esperar a que OSM se enriquezca. (c) En el preview todos los mirrors de Overpass dieron timeout a la vez en varios ticks — la rama Overpass se valida con datos sintéticos, no con tráfico real."
+        ],
+        [
+          "Pendientes",
+          "(1) Verificar BPC-18 en una prueba en carretera real (PEC nueva) en Madrid + sierra: que los pueblos cercanos sean siempre poblaciones reales y el log debug muestre 'descartados por BPC-18: N' con números >0 cuando el área tenga muchas urbanizaciones. (2) Tarjetas BPC-17 y BPC-18 quedan en cian — Laureano debe aprobarlas a verde tras esa prueba. (3) Si tras BPC-18 siguen apareciendo fakes con patrones nuevos, abrir BPC-19 con los casos concretos."
+        ]
+      ]
     }
   ],
   "problemas_abiertos": [],
