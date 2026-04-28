@@ -902,7 +902,11 @@
         municipioActual = info.municipio || null;
         $municipio.textContent = info.municipio || '(municipio desconocido)';
         $admin.innerHTML = formatearAdminV1Html(info);
-        // V2
+        // IU-31: header global con el municipio actual como tercer crumb.
+        const $globalPlace = document.getElementById('globalPlace');
+        if ($globalPlace) $globalPlace.textContent = info.municipio || '';
+        // V2 (compatibilidad — los spans están ocultos pero main.js los sigue
+        // alimentando por si alguna ruta auxiliar los lee).
         $v2Municipio.textContent = info.municipio || '(municipio desconocido)';
         $v2Admin.textContent = formatearAdmin(info);
         // V3 cabecera

@@ -70,6 +70,10 @@
       --safe-bottom: env(safe-area-inset-bottom, 0px);
       --safe-left:   env(safe-area-inset-left, 0px);
       --safe-extra:  0px;
+      /* IU-31: altura aprox. del .app-header (sin safe-top, que cada vista
+         añade en su propio padding). 8px top + 28px velocidad + 6px bottom
+         + 1px borde = 43px. Si el header crece, ajustar aquí. */
+      --app-header-h: 43px;
     }
 
     /* =========================================================
@@ -81,8 +85,9 @@
       display: flex;
       flex-direction: column;
       gap: 6px;
+      /* IU-31: padding-top incluye el header global persistente. */
       padding:
-        calc(10px + var(--safe-top))
+        calc(10px + var(--safe-top) + var(--app-header-h))
         calc(14px + var(--safe-right) + var(--safe-extra))
         calc(10px + var(--safe-bottom))
         calc(14px + var(--safe-left));
@@ -95,14 +100,38 @@
       overflow: hidden;
     }
 
-    /* -------- Topbar: crumbs territoriales + velocidad -------- */
-    .p1-topbar {
+    /* -------- Cabecera global persistente (IU-31) --------
+       Sustituye al antiguo .p1-topbar. Vive fuera del visor, fija en el
+       borde superior y visible sobre las 4 vistas. main.js escribe los
+       crumbs (comunidad + pueblo) y la velocidad en un único sitio. */
+    .app-header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
       display: flex;
       justify-content: space-between;
       align-items: baseline;
+      gap: 8px;
+      padding:
+        calc(8px + var(--safe-top))
+        calc(40px + var(--safe-right) + var(--safe-extra))
+        6px
+        calc(14px + var(--safe-left));
+      background: rgba(8, 12, 14, 0.78);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
       border-bottom: 1px solid var(--grid-line-strong);
-      padding-bottom: 6px;
+      z-index: 40;
+      font-family: 'JetBrains Mono', ui-monospace, monospace;
+      color: var(--hud-white);
+      font-feature-settings: 'tnum' 1, 'zero' 1;
     }
+    body.fullscreen-activo .app-header {
+      padding-right: calc(14px + var(--safe-right) + var(--safe-extra));
+    }
+    .app-header-place:empty { display: none; }
+    .app-header-place:empty + .app-header-sep { display: none; }
     .p1-crumbs {
       display: flex;
       gap: 7px;
@@ -495,10 +524,13 @@
     /* IU-09: botón de pantalla completa en la esquina superior derecha de V1.
        Discreto, visible solo cuando no estamos ya en fullscreen. Al tocarlo
        invoca la Fullscreen API (estándar; Chrome Android ≥ 71). */
+    /* IU-31: el botón fullscreen vive sobre el header global, en la esquina
+       superior derecha. Sigue siendo position: fixed para que cualquier vista
+       pueda alcanzarlo. z-index por encima del header. */
     #btnFullscreen {
-      position: absolute;
-      top: calc(4px + var(--safe-top));
-      right: calc(6px + var(--safe-right) + var(--safe-extra));
+      position: fixed;
+      top: calc(8px + var(--safe-top));
+      right: calc(8px + var(--safe-right) + var(--safe-extra));
       width: 26px; height: 26px;
       background: rgba(255,255,255,0.08);
       border: 1px solid rgba(255,255,255,0.18);
@@ -510,7 +542,7 @@
       align-items: center;
       justify-content: center;
       padding: 0;
-      z-index: 20;
+      z-index: 50;
     }
     #btnFullscreen:active { opacity: 0.9; }
     body.fullscreen-activo #btnFullscreen { display: none; }
@@ -954,8 +986,9 @@
       width: 100%;
       height: 100%;
       z-index: 2;
+      /* IU-31: padding-top con espacio para el header global. */
       padding:
-        calc(10px + var(--safe-top))
+        calc(10px + var(--safe-top) + var(--app-header-h))
         calc(22px + var(--safe-right) + var(--safe-extra))
         calc(10px + var(--safe-bottom))
         calc(22px + var(--safe-left));
@@ -1025,9 +1058,10 @@
     /* Temperatura: número grande, peso ligero para que la "palabra" mande.
        JetBrains Mono para mantener tabular-nums y garantizar legibilidad.
        Escala con min(vw, vh) para landscape 640×360 sin cortes. */
+    /* IU-31: temperatura más grande tras subir la ubicación al header global. */
     .p2-temp {
       font-family: 'JetBrains Mono', monospace;
-      font-size: clamp(48px, min(13vw, 22vh), 96px);
+      font-size: clamp(72px, min(18vw, 28vh), 140px);
       font-weight: 200;
       line-height: 1;
       letter-spacing: -0.04em;
@@ -1148,7 +1182,7 @@
       display: flex;
       flex-direction: column;
       padding:
-        calc(8px + var(--safe-top))
+        calc(8px + var(--safe-top) + var(--app-header-h))
         calc(10px + var(--safe-right) + var(--safe-extra))
         calc(8px + var(--safe-bottom))
         calc(10px + var(--safe-left));
@@ -1168,23 +1202,27 @@
       display: flex;
       flex-direction: column;
       gap: 6px;
+      /* IU-31: padding-top con espacio para el header global. */
       padding:
-        calc(10px + var(--safe-top))
+        calc(10px + var(--safe-top) + var(--app-header-h))
         calc(14px + var(--safe-right) + var(--safe-extra))
         calc(10px + var(--safe-bottom))
         calc(14px + var(--safe-left));
       position: relative;
     }
 
+    /* IU-31: head V3 simplificado a una línea (título + counter). El lugar
+       ya viene del header global; sin necesidad del bloque .p3-v3-head-left. */
     .p3-v3-head {
       display: flex;
       justify-content: space-between;
-      align-items: flex-start;
+      align-items: baseline;
+      gap: 8px;
       border-bottom: 1px solid var(--grid-line-strong);
       padding-bottom: 6px;
-      padding-right: 34px; /* hueco para el botón fullscreen (26px + 6px + 2px) */
     }
-    body.fullscreen-activo .p3-v3-head { padding-right: 0; }
+    .p3-v3-head-title { font-size: 11px; }
+    /* Selectores legacy (IU-21) — mantenidos por si algún flujo escribe aquí. */
     .p3-v3-head-left {
       display: flex;
       flex-direction: column;
@@ -1414,10 +1452,11 @@
       pointer-events: none;
       z-index: 0;
     }
+    /* IU-31: V4 head como segunda línea bajo el header global. */
     .p4-coords {
       position: absolute;
-      top: calc(12px + var(--safe-top));
-      right: calc(40px + var(--safe-right) + var(--safe-extra));
+      top: calc(8px + var(--safe-top) + var(--app-header-h));
+      right: calc(14px + var(--safe-right) + var(--safe-extra));
       font-size: 10px;
       color: var(--hud-white-dim);
       letter-spacing: 0.14em;
@@ -1426,7 +1465,7 @@
     .p4-title {
       position: absolute;
       left: calc(16px + var(--safe-left));
-      top: calc(12px + var(--safe-top));
+      top: calc(8px + var(--safe-top) + var(--app-header-h));
       z-index: 2;
       display: flex;
       flex-direction: column;
@@ -1676,30 +1715,34 @@
   </footer>
 </section>
 
-<!-- IU-09: botón Fullscreen. Posicionado absolute en la esquina superior
-     derecha. Se oculta automáticamente cuando el documento está en fullscreen
-     (clase body.fullscreen-activo). -->
+<!-- IU-09: botón Fullscreen. Posicionado fixed en la esquina superior derecha,
+     sobre el header global (IU-31). -->
 <button id="btnFullscreen" type="button" aria-label="Pantalla completa" title="Pantalla completa">
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="4 10 4 4 10 4"/><polyline points="20 10 20 4 14 4"/><polyline points="20 14 20 20 14 20"/><polyline points="4 14 4 20 10 20"/></svg>
 </button>
 
+<!-- IU-31: cabecera global persistente sobre las 4 vistas. main.js escribe
+     #admin (comunidad), #globalPlace (municipio actual), #v1Velocidad y
+     #v1VelocidadLimite. #estado conserva su semántica (errores/avisos). -->
+<header class="app-header" id="appHeader">
+  <div class="p1-crumbs">
+    <span class="u-phos u-caps">ES</span>
+    <span class="p1-sep">·</span>
+    <span id="admin" class="u-caps"></span>
+    <span class="p1-sep app-header-sep">·</span>
+    <span id="globalPlace" class="u-caps app-header-place"></span>
+    <span id="estado" class="p1-estado"></span>
+  </div>
+  <div class="p1-speed">
+    <span id="v1Velocidad" class="p1-speed-num u-tab">—</span>
+    <span class="p1-speed-unit u-caps">km/h</span>
+    <span id="v1VelocidadLimite" class="p1-speed-lim u-tab u-dim"></span>
+  </div>
+</header>
+
 <div id="visor" class="visor">
   <section class="vista" id="vista1">
 
-  <!-- Topbar: breadcrumb territorial + velocidad cruda (IU-19) -->
-  <div class="p1-topbar">
-    <div class="p1-crumbs">
-      <span class="u-phos u-caps">ES</span>
-      <span class="p1-sep">·</span>
-      <span id="admin" class="u-caps"></span>
-      <span id="estado" class="p1-estado"></span>
-    </div>
-    <div class="p1-speed">
-      <span id="v1Velocidad" class="p1-speed-num u-tab">—</span>
-      <span class="p1-speed-unit u-caps">km/h</span>
-      <span id="v1VelocidadLimite" class="p1-speed-lim u-tab u-dim"></span>
-    </div>
-  </div>
 
   <!-- Grid principal: izquierda (vía/ubicación/salida/pueblos) + derecha (meteo) -->
   <div class="p1-grid">
@@ -1858,16 +1901,16 @@
          espacio posible, después ubicación, métricas, story (SIN LLUVIA
          PREVISTA / etc.) y timeline. -->
     <div class="p2-inner">
-      <!-- Palabra gigante arriba del todo, sin caption intermedio -->
+      <!-- Palabra gigante arriba del todo, sin caption intermedio.
+           IU-31: la ubicación se sube al header global; el hueco liberado
+           amplía la temperatura. -->
       <div id="v2MeteoDesc" class="p2-word" aria-live="polite"></div>
       <div id="v2MeteoTemp" class="p2-temp u-tab">—</div>
 
-      <!-- Ubicación (donde antes iba la story) -->
-      <div class="p2-caption u-caps">
-        <span id="v2Municipio" class="p2-caption-place"></span>
-        <span class="p2-caption-sep">·</span>
-        <span id="v2Admin" class="p2-caption-admin u-dim"></span>
-      </div>
+      <!-- IU-31: spans ocultos para mantener compatibilidad con main.js
+           (sigue escribiendo aquí; los datos también van al header global). -->
+      <span id="v2Municipio" class="p2-off"></span>
+      <span id="v2Admin" class="p2-off"></span>
 
       <!-- Métricas + story en la misma línea: viento · humedad · visib · SIN LLUVIA -->
       <div class="p2-weatherline">
@@ -1896,14 +1939,14 @@
   </section>
 
   <section class="vista" id="vista3">
-    <!-- Head HUD (IU-21): título + contador derecha, ubicación a la izquierda -->
+    <!-- Head V3: segunda línea bajo el header global (IU-31). El lugar lo
+         pinta el header; aquí solo el título y el contador en una sola línea. -->
     <div class="p3-v3-head">
-      <div class="p3-v3-head-left">
-        <div class="u-caps u-dim">PUNTOS DE INTERÉS</div>
-        <div id="v3Ubicacion" class="p3-v3-place u-caps">—</div>
-      </div>
+      <div class="u-caps u-dim p3-v3-head-title">PUNTOS DE INTERÉS</div>
       <div id="v3PoiCounter" class="p3-v3-counter u-caps">—</div>
     </div>
+    <!-- IU-31: span oculto para mantener compatibilidad con main.js. -->
+    <span id="v3Ubicacion" class="p1-off"></span>
 
     <!-- Carretera como pastilla pequeña alineada a la derecha (si hay) -->
     <span id="v3Carretera" class="v3-carretera p3-v3-road"></span>
@@ -1997,7 +2040,7 @@
   <script src="js/v2_lightningfx.js"></script>
   <script src="js/v2_snowfx.js"></script>
   <script src="js/v2_fogfx.js"></script>
-  <script src="js/main.js?v=iu32"></script>
+  <script src="js/main.js?v=iu31"></script>
 
 </body>
 </html>
