@@ -25,7 +25,7 @@
 			"x": 2200,
 			"y": 0,
 			"width": 380,
-			"height": 3100,
+			"height": 3280,
 			"label": "UI / Experiencia V2"
 		},
 		{
@@ -1088,6 +1088,16 @@
 			"text": "## IU-34 IU-34 V1 pueblos cercanos: layout horizontal con wrap\nCambio de layout pedido por Laureano en sesion 47.\n\nEstado actual: en V1 la lista 'PUEBLOS CERCANOS' (#poiScroll) muestra 3 items en columna, uno por linea: '3.0 km Torrelodones', '4.0 km Canto del Pico', '6.2 km Casa Vinatea'. Ocupa mucho alto vertical.\n\nCambio: pasar la lista a horizontal en una sola linea, separada por punto medio (·), con wrap a una segunda linea si los items no caben, manteniendo el item 'distancia + nombre' como unidad indivisible (no se rompe la distancia del nombre). Limite de items: 3 (igual que hoy). Sin truncado (un nombre largo hace que el item entero envuelva).\n\nVerificacion:\n- Simulador con ruta a6-salidas (800x450 y 640x360): los 3 pueblos caben en una linea cuando los nombres son cortos; envuelven a 2 lineas con nombre largo (p.ej. La Puentecilla y Los Majuelos).\n- Cada item se mantiene indivisible: 'X.X km Nombre' nunca se parte.\n- Separadores · ocultos al final de la lista.\n- ?debug=1 sin regresiones.\n- Solo afecta a V1; V3 grid no se toca.",
 			"x": 2220,
 			"y": 2920,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "e9e9200c",
+			"type": "text",
+			"text": "## IU-35 IU-35 V1 proxima salida: textos mas grandes y jerarquia cromatica\nCambio pedido por Laureano en sesion 47, aprovechando el espacio liberado en V1 por IU-33 e IU-34 (eliminacion de .p1-place y compactacion de pueblos a una linea horizontal).\n\nEstado actual:\n- .p1-exit-tag (PROXIMA SALIDA + distancia): 10px gris (u-dim).\n- .p1-exit-num (SALIDA 26): 26px verde.\n- .p1-exit-to (destinos): 12px gris.\n- .p1-exit-sig (luego N): 10px gris italica.\n\nCambios:\n1. .p1-exit-tag: 10px -> 13px; PROXIMA SALIDA en blanco (--hud-white). El separador · queda en --hud-white-mute (atenuado, neutro). #salidaDist en verde --phos-200, 13px.\n2. .p1-exit-num: SIN CAMBIO (26px verde).\n3. .p1-exit-to: 12px -> 18px; nombres de destino en blanco (--hud-white). 'via de servicio' (cuando aparece) se mantiene gris. Comprobar si el dato lo emite el modulo como sufijo separado o concatenado para decidir como aplicar el color.\n4. .p1-exit-sig: SIN CAMBIO (10px gris italica).\n\nVerificacion:\n- Simulador con ruta a6-salidas: bloque salida ocupa el espacio liberado sin desbordar.\n- Distancia y tag legibles desde 60-80 cm con luz solar.\n- Jerarquia: SALIDA 26 (verde grande) sigue siendo el protagonista; destinos en blanco a 18px son secundarios pero legibles; tag/distancia a 13px en su rol de etiqueta.\n- 'via de servicio' visualmente atenuado respecto a los destinos reales.",
+			"x": 2220,
+			"y": 3100,
 			"width": 280,
 			"height": 160,
 			"color": "5"
