@@ -2,6 +2,14 @@
 
 > Este archivo es la constitución del proyecto. Claude Code lo lee al arrancar cada sesión en este repositorio. Todas las reglas que aparecen aquí son de obligado cumplimiento, salvo indicación explícita en contrario del usuario durante la sesión.
 
+**Jerarquía cuando dos reglas chocan:**
+
+1. **Restricciones permanentes** (sección 2), **reglas técnicas duras** (sección 10) y **lista negativa** (sección 12) son *hard rules*: siempre ganan.
+2. **Principios de trabajo** (Karpathy, sección 11) y **estilo de Laureano** (sección 9) son *guías*: orientan el cómo, pero ceden ante una hard rule cuando hay conflicto real.
+3. **Comportamiento por sesión** (sección 13) describe el flujo por defecto, no una obligación inflexible. El usuario puede interrumpirlo en cualquier momento.
+
+Ejemplo de conflicto y resolución: la regla técnica "fallback siempre" (sec 10) gana sobre el principio Karpathy "no añadas manejo de errores para escenarios que no pueden darse" (sec 11.2) en cualquier función que dependa de una API externa, porque la red sí puede fallar y la regla técnica lo declara como escenario obligatorio a cubrir.
+
 ---
 
 ## 1. Qué es este proyecto
@@ -144,11 +152,15 @@ Si una tarjeta depende de otra que no está en verde, el sistema la pone automá
 
 ### 6.3. Regla dura: tarjeta activa obligatoria
 
-**No toques código del proyecto sin tener una tarjeta activa en estado naranja.** Este es el modo estricto de Kanvas. Si Laureano te pide un cambio pero no hay tarjeta para él, tu respuesta por defecto es: "eso no está en el tablero, ¿propongo una tarjeta nueva?".
+**No toques código de la aplicación sin tener una tarjeta activa en estado naranja.** Este es el modo estricto de Kanvas. Si Laureano te pide un cambio en `index.html`, `js/`, `service-worker.js` o cualquier asset que afecte al panel y no hay tarjeta para él, tu respuesta por defecto es: "eso no está en el tablero, ¿propongo una tarjeta nueva?".
 
-Laureano puede pedir expresamente "hazlo sin tarjeta" para cambios rápidos puntuales. Si lo hace, cumples, pero al final de la sesión dejas constancia del cambio en el seguimiento.
+**Excepciones que NO requieren tarjeta:**
 
-> **Nota operativa:** este modo estricto se usará durante las primeras 3-4 sesiones para afianzar la herramienta. Después, Laureano decidirá si mantiene el rigor o lo relaja.
+- **Cambios operativos del proyecto** que no afectan al runtime de la app: editar `CLAUDE.md`, `README.md`, `historico_setup.md`, scripts internos de mantenimiento, `.gitignore`.
+- **Cambios triviales de mantenimiento** dentro de un cambio mayor: corregir un typo en un comentario adyacente, ajustar un mensaje de log, renombrar una variable local con scope mínimo. Aplica el principio Karpathy 11.3 (cambios quirúrgicos) — si tienes que justificar más de dos líneas para hacerlo, mejor tarjeta.
+- **Petición expresa del usuario:** Laureano puede pedirte "hazlo sin tarjeta" para cualquier cambio. Si lo hace, cumples y dejas constancia del cambio en el seguimiento al final de la sesión.
+
+Si dudas si un cambio entra en una excepción, pregunta antes de tocar.
 
 ### 6.4. Interfaz con el tablero: `canvas-tool.py`
 
@@ -228,14 +240,13 @@ El proyecto tiene instalados los skills de Obsidian de kepano (https://github.co
 
 ## 9. Cómo trabaja Laureano conmigo
 
-Laureano tiene un estilo de trabajo concreto que debes respetar.
+Laureano tiene un estilo de trabajo concreto que debes respetar. Las reglas técnicas duras (medir, probar, fallback) viven en la sección 10; aquí solo el estilo de colaboración.
 
 - **Le gusta el diseño cuidado, la explicación clara del porqué de cada decisión, y que le consultes antes de tomar decisiones importantes.**
 - **Prefiere ir paso a paso y validar cada fase antes de avanzar.** No saltes fases.
 - **Si propone algo que contradice el plan o el seguimiento, coméntalo antes de implementarlo.** Es mejor parar y discutir que ejecutar algo incoherente.
-- **Pide que midas antes de asumir.** Si dices que una API es rápida, mídela. Si dices que un archivo pesa poco, cuenta los bytes.
-- **Pide pruebas reales antes de dar algo por hecho.** Un "esto debería funcionar" no cuenta como validación.
 - **Valora que le adviertas de riesgos.** Si ves que una decisión tiene una consecuencia que él puede no haber previsto, díselo aunque no te lo pregunte.
+- **Espera crítica honesta, no adulación.** Si te pide opinión sobre algo (un diseño, un texto, una decisión técnica), responde honestamente con puntos fuertes y débiles. Una respuesta del tipo "está perfecto, no veo nada que mejorar" cuando hay cosas que mejorar te resta valor como colaborador.
 
 ---
 
@@ -307,8 +318,6 @@ Transforma las tareas en criterios verificables antes de ejecutarlas:
 
 Para tareas de varios pasos, enuncia un plan breve con los checks de verificación antes de empezar. No des nada por terminado sin haberlo ejecutado y verificado contra el criterio definido.
 
-Este principio refuerza la regla ya existente en la sección 10: *"Probar antes de dar algo por hecho. Nunca afirmes que un módulo está listo sin haberlo ejecutado."*
-
 ---
 
 ## 12. Cosas que NO debes hacer
@@ -327,73 +336,31 @@ Lista negativa explícita. Si te descubres haciendo alguna de estas, para.
 
 ---
 
-## 13. Instrucciones para el primer arranque
+## 13. Comportamiento general esperado en cada sesión
 
-Esta sección se aplica **solo la primera vez** que arranques en este repositorio. Después de ejecutarla, Laureano la marcará como cumplida y podrás ignorarla.
+> El histórico de la instalación inicial (Kanvas + skills + tablero) vivía aquí en una sección 13 antes de la sesión 48. Se ha movido a `docs/historico_setup.md`. Ya no aplica como regla viva; queda como referencia.
 
-Cuando Laureano te salude por primera vez en este repo, tu primera tarea es completar la instalación del sistema de trabajo. Sigue estos pasos en orden, pidiendo confirmación a Laureano antes de cada bloque importante:
+**Al inicio de la sesión:**
 
-**Bloque A — Verificación del entorno:**
+- Si Laureano abre con una petición concreta (un cambio en V1, una pregunta, una idea), atiéndela primero. Mostrar el `status` del tablero antes que esa petición es burocracia innecesaria.
+- Si abre sin petición concreta (saludo genérico, "qué seguimos"), saluda brevemente y muestra el `status` del tablero Kanvas. Pregunta qué quiere trabajar hoy. No asumas continuidad con la sesión anterior — puede tener ideas nuevas.
+- Si va a trabajar en una tarjeta existente, usa `start <ID>` para moverla a naranja antes de tocar código.
+- Si va a crear una tarjeta nueva, propónla con `propose` y espera aprobación antes de empezar (salvo excepciones de la sección 6.3).
 
-1. Comprueba que estás en la carpeta correcta leyendo el `README.md` y el `package.json` si existe.
-2. Lee este `CLAUDE.md` entero si aún no lo has hecho.
-3. Lee el `estado_actual` del `docs/seguimiento.json` para saber en qué fase está el proyecto.
+**Durante la sesión:**
 
-**Bloque B — Instalación de skills de Obsidian:**
+- Comunica avances en mensajes cortos. No escribas parrafadas innecesarias.
+- Si encuentras un problema, documéntalo. Aunque lo resuelvas en el momento, queda constancia para el seguimiento.
+- Si necesitas tomar una decisión técnica que no está en el seguimiento, pregúntale antes.
 
-4. Comprueba si existe la carpeta `.claude/skills/`. Si no existe, créala.
-5. Descarga los skills de kepano desde https://github.com/kepano/obsidian-skills clonando el repo a una carpeta temporal fuera del proyecto (por ejemplo `/tmp/obsidian-skills` o el equivalente en Windows).
-6. Copia las cinco subcarpetas del directorio `skills/` del repo de kepano (`obsidian-markdown`, `obsidian-bases`, `json-canvas`, `obsidian-cli`, `defuddle`) a `.claude/skills/` en el proyecto.
-7. Borra la carpeta temporal.
-8. Verifica que los cinco `SKILL.md` están en `.claude/skills/<nombre>/SKILL.md`.
+**Al final de la sesión:**
 
-**Bloque C — Instalación de Kanvas:**
-
-9. Clona el repo de Kanvas (https://github.com/XMihura/Kanvas) a una carpeta temporal.
-10. Copia `canvas-tool.py` y `RULES.md` desde el repo de Kanvas a la raíz de este proyecto.
-11. Copia `examples/blank.canvas` desde el repo de Kanvas a la raíz de este proyecto y renómbralo a `tablero.canvas`.
-12. Borra la carpeta temporal de Kanvas.
-13. Comprueba que `python canvas-tool.py tablero.canvas status` funciona (necesita Python 3.7+ ya instalado en el sistema).
-
-**Bloque D — Primer tablero:**
-
-14. Lee el `estado_actual` y las últimas 2-3 sesiones del `seguimiento.json` para entender dónde estamos exactamente.
-15. Propón a Laureano una lista inicial de 5-10 tarjetas morfadas para el tablero, basadas en el siguiente hito inmediato (prueba en carretera + MotorwayExitModule + POIModule) y las ideas parqueadas más relevantes del seguimiento. Propón también los grupos adecuados.
-16. No las añadas al tablero todavía. Enséñaselas a Laureano como propuesta en texto. Cuando apruebe, usa `propose` y `propose-group` de la CLI para crearlas.
-
-**Bloque E — Commit inicial:**
-
-17. Commitea todo lo instalado con un mensaje tipo `setup: kanvas + skills obsidian + tablero inicial`.
-18. Actualiza el `seguimiento.json` añadiendo una sesión nueva que describa esta instalación como sesión de infraestructura (no de producto). Regenera el `.docx`.
-19. Commitea el seguimiento con un mensaje tipo `seguimiento: sesión <N> — instalación de kanvas y skills`.
-
-Cuando termines el bloque E, avisa a Laureano con un resumen claro de lo que se ha instalado y qué esperar del próximo arranque.
+- Mueve las tarjetas terminadas a cian con `finish`.
+- Actualiza el `seguimiento.json` según la sección 7.
+- Regenera el `.docx`.
+- Commitea todo según la sección 7.3.
+- Resume brevemente qué se ha hecho y qué queda para la próxima.
 
 ---
 
-## 14. Comportamiento general esperado en cada sesión
-
-Al inicio de una sesión normal (no la primera):
-
-1. Saluda brevemente y muestra el `status` del tablero Kanvas. Laureano quiere ver de un vistazo qué hay pendiente.
-2. Pregunta qué quiere trabajar hoy. No asumas. Puede tener ideas nuevas.
-3. Si va a trabajar en una tarjeta existente, usa `start <ID>` para moverla a naranja antes de tocar código.
-4. Si va a crear una tarjeta nueva, propónla con `propose` y espera aprobación antes de empezar.
-
-Durante la sesión:
-
-5. Comunica avances en mensajes cortos. No escribas parrafadas innecesarias.
-6. Si encuentras un problema, documéntalo. Aunque lo resuelvas en el momento, queda constancia para el seguimiento.
-7. Si necesitas tomar una decisión técnica que no está en el seguimiento, pregúntale antes.
-
-Al final de la sesión:
-
-8. Mueve las tarjetas terminadas a cian con `finish`.
-9. Actualiza el `seguimiento.json` según la sección 7.
-10. Regenera el `.docx`.
-11. Commitea todo según la sección 7.3.
-12. Resume brevemente qué se ha hecho y qué queda para la próxima.
-
----
-
-*Fin del CLAUDE.md. Última actualización: 12 de abril de 2026 — añadidos principios Karpathy (sección 11).*
+*Fin del CLAUDE.md. Última actualización: 5 de mayo de 2026 — limpieza operativa de sesión 48: añadida jerarquía de reglas en cabecera, modo estricto de Kanvas refinado con excepciones explícitas, eliminadas redundancias entre secciones 9 y 10, sección 13 (primer arranque) movida a `docs/historico_setup.md`, sección 14 renumerada a 13 y suavizada para no obligar al saludo + status cuando el usuario abre con petición concreta.*
