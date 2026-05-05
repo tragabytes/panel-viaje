@@ -9,7 +9,7 @@
 //
 // Para forzar actualización, subir SW_VERSION.
 
-const SW_VERSION = 'v12-2026-05-05-iu35';
+const SW_VERSION = 'v13-2026-05-05-iu36';
 const APP_CACHE = `panel-viaje-app-${SW_VERSION}`;
 const API_CACHE = `panel-viaje-api-${SW_VERSION}`;
 

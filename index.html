@@ -219,21 +219,31 @@
       #vista1[data-speeding="grave"] { animation: none; }
     }
 
-    /* -------- Grid principal 2 columnas -------- */
+    /* -------- Grid principal 2 columnas + fila de pueblos --------
+       IU-36: .p1-near sale de .p1-col-main y pasa a su propia fila que
+       abarca las 2 columnas, aprovechando el espacio vacío bajo la
+       columna meteo antes de envolver. Fila 1: main + wx (1fr, absorbe
+       el espacio sobrante); fila 2: near (auto, al pie). */
     .p1-grid {
       display: grid;
       grid-template-columns: 1fr 170px;
+      grid-template-rows: 1fr auto;
+      grid-template-areas:
+        "main wx"
+        "near near";
       gap: 14px;
       flex: 1;
       min-height: 0;
     }
     .p1-col-main {
+      grid-area: main;
       display: flex;
       flex-direction: column;
       gap: 8px;
       min-width: 0;
     }
     .p1-col-wx {
+      grid-area: wx;
       display: flex;
       flex-direction: column;
       gap: 4px;
@@ -329,8 +339,10 @@
        una unidad indivisible (white-space: nowrap en el li). Separador "·"
        como ::before del segundo item en adelante: si un item envuelve a la
        línea siguiente, el separador viaja con él (queda como bullet de
-       continuación). Sin truncado de nombres. */
-    .p1-near { margin-top: auto; }
+       continuación). Sin truncado de nombres.
+       IU-36: vive en su propia fila del grid (grid-area: near) que abarca
+       las dos columnas; ya no necesita margin-top: auto. */
+    .p1-near { grid-area: near; }
     .p1-near-tag { font-size: 10px; margin-bottom: 3px; }
     .p1-near-list {
       list-style: none;
@@ -1754,12 +1766,6 @@
         <div id="salidaDestinos" class="p1-exit-to"></div>
         <div id="salidaSig" class="p1-exit-sig u-dim"></div>
       </div>
-
-      <!-- Pueblos cercanos: main.js inyecta 3 items (max) en #poiScroll -->
-      <div class="p1-near">
-        <div class="p1-near-tag u-caps u-dim">PUEBLOS CERCANOS</div>
-        <ul id="poiScroll" class="p1-near-list"></ul>
-      </div>
     </div>
 
     <!-- Columna derecha: meteo compacto -->
@@ -1782,6 +1788,13 @@
       </div>
       <!-- Mini-forecast 4h: main.js inyecta columnas con hora + temp + barra + lluvia -->
       <div id="meteoPrevision" class="p1-wx-forecast"></div>
+    </div>
+
+    <!-- IU-36: pueblos cercanos en su propia fila del grid (abarca ambas
+         columnas). main.js inyecta 3 items (max) en #poiScroll. -->
+    <div class="p1-near">
+      <div class="p1-near-tag u-caps u-dim">PUEBLOS CERCANOS</div>
+      <ul id="poiScroll" class="p1-near-list"></ul>
     </div>
 
   </div>
@@ -2019,7 +2032,7 @@
   <script src="js/v2_lightningfx.js"></script>
   <script src="js/v2_snowfx.js"></script>
   <script src="js/v2_fogfx.js"></script>
-  <script src="js/main.js?v=iu35"></script>
+  <script src="js/main.js?v=iu36"></script>
 
 </body>
 </html>
