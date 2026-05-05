@@ -25,7 +25,7 @@
 			"x": 2200,
 			"y": 0,
 			"width": 380,
-			"height": 2920,
+			"height": 3100,
 			"label": "UI / Experiencia V2"
 		},
 		{
@@ -920,7 +920,7 @@
 			"y": 2740,
 			"width": 280,
 			"height": 160,
-			"color": "5"
+			"color": "4"
 		},
 		{
 			"id": "daf29577",
@@ -1081,6 +1081,16 @@
 			"width": 280,
 			"height": 160,
 			"color": "4"
+		},
+		{
+			"id": "f5ed992d",
+			"type": "text",
+			"text": "## IU-34 IU-34 V1 pueblos cercanos: layout horizontal con wrap\nCambio de layout pedido por Laureano en sesion 47.\n\nEstado actual: en V1 la lista 'PUEBLOS CERCANOS' (#poiScroll) muestra 3 items en columna, uno por linea: '3.0 km Torrelodones', '4.0 km Canto del Pico', '6.2 km Casa Vinatea'. Ocupa mucho alto vertical.\n\nCambio: pasar la lista a horizontal en una sola linea, separada por punto medio (·), con wrap a una segunda linea si los items no caben, manteniendo el item 'distancia + nombre' como unidad indivisible (no se rompe la distancia del nombre). Limite de items: 3 (igual que hoy). Sin truncado (un nombre largo hace que el item entero envuelva).\n\nVerificacion:\n- Simulador con ruta a6-salidas (800x450 y 640x360): los 3 pueblos caben en una linea cuando los nombres son cortos; envuelven a 2 lineas con nombre largo (p.ej. La Puentecilla y Los Majuelos).\n- Cada item se mantiene indivisible: 'X.X km Nombre' nunca se parte.\n- Separadores · ocultos al final de la lista.\n- ?debug=1 sin regresiones.\n- Solo afecta a V1; V3 grid no se toca.",
+			"x": 2220,
+			"y": 2920,
+			"width": 280,
+			"height": 160,
+			"color": "5"
 		}
 	],
 	"edges": [
