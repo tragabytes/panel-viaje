@@ -11,6 +11,15 @@
 			"label": "UI / Experiencia [CERRADO — usar V2]"
 		},
 		{
+			"id": "group-uiexpeaa9",
+			"type": "group",
+			"x": 2200,
+			"y": 0,
+			"width": 380,
+			"height": 3460,
+			"label": "UI / Experiencia V2"
+		},
+		{
 			"id": "group-bugspr",
 			"type": "group",
 			"x": 1320,
@@ -18,15 +27,6 @@
 			"width": 380,
 			"height": 3280,
 			"label": "Bugs prueba carretera"
-		},
-		{
-			"id": "group-uiexpeaa9",
-			"type": "group",
-			"x": 2200,
-			"y": 0,
-			"width": 380,
-			"height": 3280,
-			"label": "UI / Experiencia V2"
 		},
 		{
 			"id": "group-poimod",
@@ -1098,6 +1098,16 @@
 			"text": "## IU-35 IU-35 V1 proxima salida: textos mas grandes y jerarquia cromatica\nCambio pedido por Laureano en sesion 47, aprovechando el espacio liberado en V1 por IU-33 e IU-34 (eliminacion de .p1-place y compactacion de pueblos a una linea horizontal).\n\nEstado actual:\n- .p1-exit-tag (PROXIMA SALIDA + distancia): 10px gris (u-dim).\n- .p1-exit-num (SALIDA 26): 26px verde.\n- .p1-exit-to (destinos): 12px gris.\n- .p1-exit-sig (luego N): 10px gris italica.\n\nCambios:\n1. .p1-exit-tag: 10px -> 13px; PROXIMA SALIDA en blanco (--hud-white). El separador · queda en --hud-white-mute (atenuado, neutro). #salidaDist en verde --phos-200, 13px.\n2. .p1-exit-num: SIN CAMBIO (26px verde).\n3. .p1-exit-to: 12px -> 18px; nombres de destino en blanco (--hud-white). 'via de servicio' (cuando aparece) se mantiene gris. Comprobar si el dato lo emite el modulo como sufijo separado o concatenado para decidir como aplicar el color.\n4. .p1-exit-sig: SIN CAMBIO (10px gris italica).\n\nVerificacion:\n- Simulador con ruta a6-salidas: bloque salida ocupa el espacio liberado sin desbordar.\n- Distancia y tag legibles desde 60-80 cm con luz solar.\n- Jerarquia: SALIDA 26 (verde grande) sigue siendo el protagonista; destinos en blanco a 18px son secundarios pero legibles; tag/distancia a 13px en su rol de etiqueta.\n- 'via de servicio' visualmente atenuado respecto a los destinos reales.",
 			"x": 2220,
 			"y": 3100,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "0a9c130c",
+			"type": "text",
+			"text": "## IU-36 IU-36 V1 pueblos cercanos: ocupar ancho completo bajo el meteo\nContinuacion del feedback de la prueba en carretera: en V1 la lista de pueblos vive dentro de .p1-col-main (1fr), por lo que su ancho disponible es viewport - 170px (col meteo) - 14px (gap). Cuando los nombres son medio largos se acerca al wrap incluso aunque el bloque meteo de la derecha haya terminado mas arriba y haya espacio vacio debajo.\n\nCambio: sacar .p1-near de .p1-col-main y ponerlo como una fila propia en .p1-grid que abarque las dos columnas. Asi pueblos tiene todo el ancho del visor, aprovechando el espacio vacio bajo la columna meteo antes de envolver.\n\nImplementacion:\n- HTML: mover el div .p1-near fuera de .p1-col-main, hijo directo de .p1-grid (despues de .p1-col-wx).\n- CSS .p1-grid: añadir grid-template-areas con dos filas. main+wx en la fila 1; near abarcando las dos columnas en la fila 2. grid-template-rows: 1fr auto para que pueblos quede al pie y main+wx absorban el espacio sobrante.\n- CSS .p1-near: eliminar margin-top: auto (ya no tiene sentido en una fila propia).\n\nVerificacion:\n- A 800x450 con 3 pueblos cortos (Torrelodones, Canto del Pico, Casa Vinatea): 1 linea, mucho margen.\n- Con 3 pueblos medios-largos (La Puentecilla y Los Majuelos, Las Rozas de Madrid, Majadahonda): caben en 1 linea (no envuelven).\n- Wrap solo cuando los 3 sean tan largos que ni con todo el ancho caben (caso raro).\n- Strip inferior (.p1-bottom con POI + gasolineras) sin cambio.",
+			"x": 2220,
+			"y": 3280,
 			"width": 280,
 			"height": 160,
 			"color": "5"

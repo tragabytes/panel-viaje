@@ -7,7 +7,7 @@
     "nota_pie": "Actualizar al final de cada sesión de trabajo"
   },
   "estado_actual": {
-    "fase_actual": "UI / Experiencia V2 (continuacion de IU-31). Sesion 47 cierra tres tarjetas en cian sobre V1 que se refuerzan entre si: IU-33 (HAB/M migrados a la cabecera global con altura dinamica), IU-34 (pueblos cercanos en una linea horizontal con wrap por unidad) e IU-35 (bloque proxima salida con textos mas grandes y jerarquia cromatica nueva). El balance global de V1 cambia: el alto se redistribuye desde el bloque ubicacion (eliminado) y los pueblos (compactados) hacia el bloque salida (que ahora luce destinos legibles a 18px) y mantiene SALIDA NN como protagonista visual.",
+    "fase_actual": "UI / Experiencia V2 (continuacion). Sesion 48 cierra IU-36 tras feedback de prueba real (foto del panel funcionando en el coche): .p1-near sale de .p1-col-main y pasa a ocupar una fila propia del grid de V1 que abarca las dos columnas. Asi pueblos cercanos dispone de todo el ancho del visor (vs solo 1fr antes), aprovechando el hueco vacio bajo la columna meteo y reduciendo drasticamente el wrap a 2 lineas en pueblos con nombres medios.",
     "ultima_actualizacion": "5 de mayo de 2026",
     "siguiente_hito": "Prueba en carretera real del panel rediseñado (queda por proponer una tarjeta PEC- que englobe IU-29..33 + BPC-17/18). Validar en el movil del salpicadero: cabecera global con HAB y M en una sola linea para municipios habituales, wrap correcto en pueblos con nombres largos, y que V2/V3/V4 respeten el padding-top dinamico. Paralelamente, ideas parqueadas: PO-XX nuevas fuentes de POI siguen abiertas.",
     "bloqueos": "Ninguno."
@@ -3339,6 +3339,40 @@
         [
           "Pendientes",
           "(1) IU-33 queda en cian. Laureano la pasa a verde tras la proxima prueba en carretera real (que englobara tambien IU-29..32 e BPC-17/18 si aun estan en cian). (2) Considerar tarjeta DT- para añadir comando 'approve' a canvas-tool.py (purple->red), evitando la friccion de tener que abrir Obsidian. (3) Verificar en el movil real que el wrap a dos lineas no rompe la sensacion de jerarquia visual cuando ocurre — si molesta, plantear truncar comarca con ellipsis antes de envolver. (4) IU-34 tambien queda en cian; verificar en carretera real que el wrap a 2 lineas no aparece en pueblos habituales (3 nombres cortos casi siempre caben en una linea). (5) Si en marcha algun nombre largo causa wrap recurrente y molesta visualmente, abrir tarjeta para reconsiderar truncado con ellipsis (decision (e) de esta sesion). (6) IU-35 tambien queda en cian; verificar en carretera real que la nueva jerarquia cromatica del bloque salida es legible desde 60-80 cm con luz solar (PROXIMA SALIDA en blanco frente a los demas tags en gris debe destacar la criticidad sin distraer). (7) Confirmar que la regex /^v[ií]a de servicio$/i cubre todas las variantes que aparecen en OSM en España; si en marcha aparecen destinos no detectados (p.ej. 'Via de servicio Norte', 'Salida servicio'), ampliar el patron."
+        ]
+      ]
+    },
+    {
+      "n": 48,
+      "titulo": "IU-36 — pueblos cercanos en V1 ocupan ancho completo (feedback prueba)",
+      "campos": [
+        [
+          "Fecha",
+          "5 de mayo de 2026"
+        ],
+        [
+          "Fase trabajada",
+          "UI/Experiencia V2 (continuacion). Tras desplegar IU-33/34/35 (sesion 47) Laureano hizo una prueba breve en el coche y mando foto del panel funcionando. Detecto que la linea de pueblos cercanos, aunque en una sola fila tras IU-34, solo disponia del ancho de .p1-col-main (1fr - 170px de col meteo - gap), mientras que la columna meteo deja un hueco grande vacio bajo el timeline. Pidio que pueblos use ese espacio antes de envolver a una segunda linea."
+        ],
+        [
+          "Contexto de arranque",
+          "Tarjeta IU-36 propuesta y aprobada. Se evaluo si era continuacion de IU-34 o tarjeta nueva: separada porque el cambio toca el GRID de V1 (no la lista en si) y nace de feedback de prueba real, no de la planificacion previa."
+        ],
+        [
+          "Lo que se ha hecho",
+          "(1) HTML index.html: el bloque .p1-near sale de .p1-col-main y pasa a ser hijo directo de .p1-grid (despues de .p1-col-wx). (2) CSS .p1-grid: añadidas grid-template-areas (\"main wx\" / \"near near\") y grid-template-rows: 1fr auto. Las columnas main+wx ocupan la fila 1 (1fr, absorbe el espacio sobrante) y near ocupa la fila 2 (auto, al pie de la vista, 100% ancho). (3) CSS .p1-col-main y .p1-col-wx ganan grid-area: main / wx. (4) CSS .p1-near pierde margin-top: auto y gana grid-area: near. (5) SW_VERSION v12 -> v13; cache-buster main.js v=iu35 -> v=iu36. Validado por preview_inspect a 800x450: pueblos ocupan 772px (vs 588px antes), y un set de 3 nombres largos (La Puentecilla y Los Majuelos + Las Rozas de Madrid + Majadahonda) que en sesion 47 envolvia a 2 lineas (35px), ahora cabe en 1 linea (16px) con todos los items a top=411."
+        ],
+        [
+          "Decisiones tomadas",
+          "(a) Nueva fila al pie del grid (\"near near\") en lugar de merge horizontal con .p1-col-main + extender a la derecha cuando hay hueco: la solucion grid-area es declarativa, estable y no depende de medir el alto del meteo en JS. (b) grid-template-rows: 1fr auto en lugar de auto auto: garantiza que main+wx absorban el espacio vertical sobrante y pueblos quede pegado al borde inferior del grid (donde estaba antes con margin-top: auto)."
+        ],
+        [
+          "Problemas encontrados",
+          "(a) Tras editar el HTML el primer preview_eval mostraba solo 2 hijos en .p1-grid (faltaba .p1-near). Resuelto con location.reload() — la pagina servida tenia version anterior en memoria del Service Worker o del navegador. No es bug del proyecto, recordatorio de que tras editar HTML del index siempre conviene reload explicito antes de validar."
+        ],
+        [
+          "Pendientes",
+          "(1) IU-36 queda en cian; pasa a verde tras la siguiente prueba real en el coche, junto con IU-33/34/35. (2) Si en marcha el POI strip inferior (.p1-bottom) queda muy pegado al bloque pueblos, plantear separador o margin extra. (3) Considerar si la fila pueblos deberia tener un border-top sutil para marcar la separacion respecto al grid superior, ahora que ocupa todo el ancho."
         ]
       ]
     }
