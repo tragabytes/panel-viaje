@@ -132,15 +132,21 @@
     }
     .app-header-place:empty { display: none; }
     .app-header-place:empty + .app-header-sep { display: none; }
+    /* IU-33: meta gris (comarca · población · altitud) tras el municipio.
+       Vacío por defecto; main.js lo rellena con prefijo " · " incluido. */
+    .app-header-meta {
+      color: var(--hud-white-dim);
+      font-size: 11px;
+    }
+    .app-header-meta:empty { display: none; }
     .p1-crumbs {
       display: flex;
-      gap: 7px;
+      flex-wrap: wrap;
+      column-gap: 7px;
+      row-gap: 2px;
       align-items: baseline;
       font-size: 11px;
       min-width: 0;
-      overflow: hidden;
-      white-space: nowrap;
-      text-overflow: ellipsis;
     }
     .p1-sep { color: var(--hud-white-mute); }
     .p1-estado {
@@ -276,22 +282,10 @@
       margin-top: 2px;
     }
 
-    /* -------- Ubicación actual -------- */
-    .p1-place-name {
-      font-family: 'Space Grotesk', system-ui, sans-serif;
-      font-size: 17px;
-      font-weight: 500;
-      color: var(--hud-white);
-      line-height: 1.1;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-    .p1-place-meta {
-      font-size: 10px;
-      margin-top: 1px;
-    }
-    .p1-place-meta:empty { display: none; }
+    /* IU-33: el bloque .p1-place de V1 (#municipio + #datosMunicipio) se
+       eliminó porque duplicaba al crumb de la cabecera global. La meta
+       (comarca · HAB · M) vive ahora en #globalPlaceMeta dentro de
+       .app-header. */
 
     /* -------- Próxima salida -------- */
     .p1-exit {
@@ -1697,6 +1691,7 @@
     <span id="admin" class="u-caps"></span>
     <span class="p1-sep app-header-sep">·</span>
     <span id="globalPlace" class="u-caps app-header-place"></span>
+    <span id="globalPlaceMeta" class="app-header-meta u-caps"></span>
     <span id="estado" class="p1-estado"></span>
   </div>
   <div class="p1-speed">
@@ -1723,11 +1718,9 @@
         </div>
       </div>
 
-      <!-- Ubicación actual: municipio + metadatos -->
-      <div class="p1-place">
-        <div id="municipio" class="p1-place-name">—</div>
-        <div id="datosMunicipio" class="p1-place-meta u-caps u-dim"></div>
-      </div>
+      <!-- IU-33: el bloque .p1-place se eliminó. El municipio ahora se ve
+           únicamente en la cabecera global (#globalPlace) y los metadatos
+           (comarca · HAB · M) en #globalPlaceMeta dentro del mismo header. -->
 
       <!-- Próxima salida: visible solo en autovía -->
       <div class="p1-exit" id="salidaBloque">
@@ -2006,7 +1999,7 @@
   <script src="js/v2_lightningfx.js"></script>
   <script src="js/v2_snowfx.js"></script>
   <script src="js/v2_fogfx.js"></script>
-  <script src="js/main.js?v=iu29"></script>
+  <script src="js/main.js?v=iu33"></script>
 
 </body>
 </html>

@@ -206,9 +206,10 @@
     const $salidaDist       = document.getElementById('salidaDist');
     const $salidaSig        = document.getElementById('salidaSig');
     const $salidaDestinos   = document.getElementById('salidaDestinos');
-    const $municipio        = document.getElementById('municipio');
     const $admin            = document.getElementById('admin');
-    const $datosMunicipio   = document.getElementById('datosMunicipio');
+    // IU-33: meta gris en cabecera global (comarca · HAB · M). Sustituye al
+    // antiguo #datosMunicipio que vivía en .p1-place dentro de V1.
+    const $globalPlaceMeta  = document.getElementById('globalPlaceMeta');
     const $municipioInfo    = document.getElementById('municipioInfo');
     const $municipioFoto    = document.getElementById('municipioFoto');
     const $municipioDesc    = document.getElementById('municipioDesc');
@@ -260,6 +261,20 @@
     const $v4Coords         = document.getElementById('v4Coords');
     const $v4Placename      = document.getElementById('v4Placename');
     const $v4Pins           = document.getElementById('v4Pins');
+
+    // IU-33: la cabecera global puede crecer si los crumbs envuelven (pueblo
+    // largo + comarca + HAB + M no caben en una línea). Sincroniza el alto
+    // real con --app-header-h para que las vistas dejen el padding correcto.
+    const $appHeader = document.getElementById('appHeader');
+    if ($appHeader && 'ResizeObserver' in window) {
+      const ro = new ResizeObserver(() => {
+        const h = $appHeader.offsetHeight;
+        if (h > 0) {
+          document.documentElement.style.setProperty('--app-header-h', h + 'px');
+        }
+      });
+      ro.observe($appHeader);
+    }
 
     // --- Helpers ---
 
@@ -704,14 +719,18 @@
 
     function pintarPOIs(resultado) {
       poiPrimerResultadoPintado = true;
-      // Datos del municipio actual (población, altitud)
+      // IU-33: comarca · población · altitud van a la cabecera global, en gris,
+      // tras el nombre del municipio. El prefijo " · " forma parte del valor
+      // para que :empty oculte el span y su separador a la vez.
       const dm = resultado.datosMunicipio;
       if (dm) {
         const partes = [];
         if (dm.comarca   != null) partes.push(dm.comarca);
         if (dm.poblacion != null) partes.push(dm.poblacion.toLocaleString('es') + ' hab');
         if (dm.altitud   != null) partes.push(dm.altitud + ' m');
-        $datosMunicipio.textContent = partes.join(' · ');
+        if ($globalPlaceMeta) {
+          $globalPlaceMeta.textContent = partes.length ? ' · ' + partes.join(' · ') : '';
+        }
         if (dm.descripcion || dm.foto) {
           if (dm.foto) {
             $municipioFoto.src = POIFuentes.normalizarFotoCommons(dm.foto, 400);
@@ -725,7 +744,7 @@
           $municipioInfo.style.display = 'none';
         }
       } else {
-        $datosMunicipio.textContent = '';
+        if ($globalPlaceMeta) $globalPlaceMeta.textContent = '';
         $municipioInfo.style.display = 'none';
       }
 
@@ -900,7 +919,8 @@
         ultimaUbicacionMostrada = clave;
 
         municipioActual = info.municipio || null;
-        $municipio.textContent = info.municipio || '(municipio desconocido)';
+        // IU-33: el span #municipio dentro de V1 se eliminó; el nombre del
+        // municipio se escribe únicamente en #globalPlace (cabecera global).
         $admin.innerHTML = formatearAdminV1Html(info);
         // IU-31: header global con el municipio actual como tercer crumb.
         const $globalPlace = document.getElementById('globalPlace');
