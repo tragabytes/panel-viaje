@@ -308,33 +308,37 @@
     .p1-exit-sig { font-size: 10px; font-style: italic; }
     .p1-exit-sig:empty { display: none; }
 
-    /* -------- Pueblos cercanos -------- */
+    /* -------- Pueblos cercanos --------
+       IU-34: layout horizontal con wrap. Cada item "distancia + nombre" es
+       una unidad indivisible (white-space: nowrap en el li). Separador "·"
+       como ::before del segundo item en adelante: si un item envuelve a la
+       línea siguiente, el separador viaja con él (queda como bullet de
+       continuación). Sin truncado de nombres. */
     .p1-near { margin-top: auto; }
     .p1-near-tag { font-size: 10px; margin-bottom: 3px; }
     .p1-near-list {
       list-style: none;
       padding: 0;
       margin: 0;
-    }
-    .p1-near-list li {
       display: flex;
-      gap: 10px;
+      flex-wrap: wrap;
+      row-gap: 2px;
       align-items: baseline;
       font-size: 13px;
-      padding: 1px 0;
+    }
+    .p1-near-list li {
+      display: inline-flex;
+      gap: 5px;
+      align-items: baseline;
       white-space: nowrap;
-      overflow: hidden;
     }
-    .p1-near-dist {
-      min-width: 52px;
-      text-align: right;
-      font-size: 12px;
+    .p1-near-list li + li::before {
+      content: '·';
+      color: var(--hud-white-mute);
+      margin: 0 8px;
     }
-    .p1-near-name {
-      color: var(--hud-white);
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
+    .p1-near-dist { font-size: 12px; }
+    .p1-near-name { color: var(--hud-white); }
 
     /* -------- Columna meteo -------- */
     /* IU-25: justify-content space-between para que icono quede a la izquierda
@@ -1999,7 +2003,7 @@
   <script src="js/v2_lightningfx.js"></script>
   <script src="js/v2_snowfx.js"></script>
   <script src="js/v2_fogfx.js"></script>
-  <script src="js/main.js?v=iu33"></script>
+  <script src="js/main.js?v=iu34"></script>
 
 </body>
 </html>
