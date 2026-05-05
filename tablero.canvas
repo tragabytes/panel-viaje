@@ -25,7 +25,7 @@
 			"x": 2200,
 			"y": 0,
 			"width": 380,
-			"height": 2740,
+			"height": 2920,
 			"label": "UI / Experiencia V2"
 		},
 		{
@@ -103,86 +103,6 @@
 			"color": "4"
 		},
 		{
-			"id": "daf29577",
-			"type": "text",
-			"text": "## PO-12 Photon como fallback final cuando Overpass+Wikidata quedan vacíos\nPhoton se descartó como geocodificador administrativo pero su capacidad de devolver el POI más cercano es útil como último eslabón de la cascada: Overpass → Wikipedia geosearch → Photon. Activar solo cuando los dos anteriores devuelven cero resultados. Evaluar cobertura en carretera antes de activar por defecto.",
-			"x": 900,
-			"y": 2020,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "a1081e25",
-			"type": "text",
-			"text": "## IU-11 Animaciones meteo adicionales (nieve, niebla, tormenta)\nSobre la base de IU-10, añadir animaciones para códigos WMO de nieve (copos cayendo y oscilando), niebla (capa difuminada con opacidad pulsante lenta) y tormenta (flash ocasional cada ~20 s). Mismas restricciones que IU-10: solo transform y opacity, duraciones largas, respetar prefers-reduced-motion. Depende de IU-10 para reutilizar el sistema de mapeo código WMO → animación.",
-			"x": 1780,
-			"y": 1840,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "f729c306",
-			"type": "text",
-			"text": "## IU-12 Luminaria celeste realista con momento del día (sol/luna + amanecer/atardecer)\nSistema base de animaciones de V2 full-inmersión. (1) Cálculo del estado 'momento del día' derivado de sunrise/sunset de Open-Meteo: noche, amanecer, día, atardecer. (2) Luminaria celeste posicionada 60-70% fuera de pantalla en esquina superior-derecha: de día sol realista (SVG con gradiente radial blanco→amarillo→naranja y halo blur), de noche luna fría (gris-azul con mismo halo). (3) Iluminación ambiental: radial-gradient gigante con mix-blend-mode:screen centrado en la luminaria, baña la pantalla de calidez/frialdad según hora. (4) God-rays: 4-5 líneas de luz radiales con animación lenta (20-40s) de entrada/salida por opacidad. Dorados de día, azul frío de noche, cálidos rosa/naranja en crepúsculos. (5) Partículas flotantes: 6-8 puntos brillantes con mix-blend-mode:screen, muy lentos. De noche en despejado reemplazan a estrellas con twinkle sutil. Solo CSS/SVG, coste GPU puro. Regla: opacidades máximas <=0.4. Pausa cuando V2 no visible vía IntersectionObserver.",
-			"x": 1780,
-			"y": 2020,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "93b56dae",
-			"type": "text",
-			"text": "## IU-13 Motor Canvas 2D de lluvia con impacto, viento e intensidad variable\nSustituye la lluvia CSS de IU-10 por un motor Canvas 2D más realista. Nuevo módulo js/v2_rainfx.js (~150 líneas): pool de 30-50 gotas con {x, y, vx, vy, len, life}. Lee datos reales de WeatherModule: precipitacion_mm_h (densidad y velocidad) y wind_speed/wind_direction (componente horizontal vx, las gotas caen inclinadas). Aspecto de agua: gota renderizada como línea con gradiente vertical azul traslúcido + pequeño brillo superior. Impacto al llegar a y>=95% del canvas: elipse horizontal que se expande y desvanece en 400ms simulando salpicadura sobre cristal. Optimización: IntersectionObserver pausa el RAF cuando V2 no visible. Canvas a devicePixelRatio*0.75, 30fps fijo. Respeta prefers-reduced-motion. Colores matizados por momento del día (IU-12): azul frío de noche, dorado en amanecer. Regla opacidad <=0.4.",
-			"x": 1780,
-			"y": 2200,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "b064e806",
-			"type": "text",
-			"text": "## IU-14 Tormenta: densidad x2, relámpago en forma de rama y eco cálido\nSobre el motor de lluvia de IU-13. Densidad de gotas x2 y viento forzado más fuerte para transmitir sensación de frente de tormenta. Relámpago rediseñado: en vez de flash blanco plano, SVG path de una rama bifurcada que aparece lateralmente en el Canvas con glow via feGaussianBlur. Duración 120ms + eco de luz cálida en toda la pantalla durante 300ms adicionales (simula el resplandor difuso tras el rayo). Frecuencia no periódica: pausa aleatoria entre 15 y 35 segundos entre rayos. De noche los rayos son más dramáticos por el contraste; de día la rama es gris-azul translúcida. Regla opacidad <=0.4. Depende de IU-13 (motor de partículas) e IU-12 (momento del día).",
-			"x": 1780,
-			"y": 2380,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "c01cde04",
-			"type": "text",
-			"text": "## IU-15 Nieve en Canvas y niebla volumétrica SVG con momento del día\nCompleta el sistema de full inmersión con las últimas 2 categorías. (1) Nieve en Canvas reusando el motor de IU-13: copos blobby con rotación lenta, oscilación senoidal, variación de tamaño y velocidad según viento real. De noche con sutil brillo frío azulado. (2) Niebla volumétrica: dos capas SVG con feTurbulence+feDisplacementMap creando ruido orgánico, desplazándose lento en direcciones opuestas. Colores matizados por momento del día (gris-azul de noche, rosado en amanecer). Medir coste del filter SVG en móvil viejo; si es caro, fallback a las 2 capas radiales actuales. Regla opacidad <=0.4. Depende de IU-12 (momento del día) e IU-13 (motor canvas para nieve).",
-			"x": 1780,
-			"y": 2560,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "a6140311",
-			"type": "text",
-			"text": "## BPC-12 Layout se rompe al volver a la vista principal tras deslizar\nSintoma: en Chrome Mobile, al deslizar a vista 2 o 3 y volver a la vista 1, la vista 1 pierde adaptacion y se corta informacion. El CSS ya usa 100dvh (index.html linea 28, 38), asi que el fix no es cambiar vh->dvh. Hipotesis a investigar: (a) el scroll-snap no reposiciona limpiamente al volver, (b) el viewport recalcula con retardo cuando la barra de Chrome se muestra/oculta, (c) el contenido en vista 1 asume una altura que ya no es valida tras el cambio. Probar: forzar recalculo con JS en visibilitychange o resize, o scroll-snap-stop: always, o recalcular alturas internas al evento scroll-end.",
-			"x": 1340,
-			"y": 2020,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "1258d06b",
-			"type": "text",
-			"text": "## BPC-13 BPC-13 Velocidad cortada por safe-area en vista 1\nEn el pantallazo de la sesión 26 (ruta ida al trabajo, M-501) la velocidad '34 km/h' aparece cortada por la derecha como '34 km/'. Causa probable: el viewport no respeta safe areas del navegador Android (iconos de estado, esquina redondeada, punch-hole). Solución: añadir viewport-fit=cover al meta viewport y aplicar env(safe-area-inset-right/top/bottom/left) en el padding del contenedor de vista 1. Validar en el móvil real, no sirve solo la preview de Claude. Si conviene, añadir un parametro ?safearea=N que pinte padding ficticio para iterar mas rapido en escritorio.",
-			"x": 1340,
-			"y": 2200,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
 			"id": "7033e6e4",
 			"type": "text",
 			"text": "## IU-10 Animaciones sutiles en fondo de V2 (meteo) — base + 3 estados\nAñadir capa SVG/CSS sobre el fondo actual de V2 que se anime según el código WMO devuelto por Open-Meteo. Infraestructura: contenedor absoluto detrás del contenido, función que mapea código WMO → clase de animación, respeta prefers-reduced-motion. Primera entrega: 3 animaciones (despejado con sol girando, nubes desplazándose, lluvia cayendo) con duraciones ≥ 30 s usando solo transform y opacity (no repintado de layout). Medir consumo de batería en el móvil viejo antes de añadir más.",
@@ -198,36 +118,6 @@
 			"text": "## IU-09 Boton opcional de pantalla completa (Fullscreen API)\nIdea de Laureano tras la prueba PEC-01: anadir un boton discreto que ponga el panel a pantalla completa y elimine la barra de Chrome Mobile. Mitiga el bug del layout cortado (BPC-12) y aprovecha mas superficie util. La Fullscreen API estandar (document.documentElement.requestFullscreen) funciona en Chrome Android. Por definir: posicion del boton, criterio de aparicion (siempre visible vs aparece solo al tocar), y si se guarda preferencia en localStorage. Abierto a discusion.",
 			"x": 1780,
 			"y": 1480,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "6bc542a5",
-			"type": "text",
-			"text": "## PO-11 Soporte de entidades singulares de población (pedanías turísticas)\nCastrillo de los Polvazares es pedanía de Astorga, no municipio, por lo que la consulta SPARQL para municipios españoles no lo encuentra. Sin embargo es un destino turístico reconocido. Ampliar la búsqueda para incluir entidades singulares de población (Q515869 en Wikidata) además de municipios, para dar cobertura a pedanías con valor turístico.",
-			"x": 900,
-			"y": 1840,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "bb9d7f72",
-			"type": "text",
-			"text": "## BPC-11 Distancias de pueblos cercanos no cambian al moverse\nSintoma: de Las Rozas a Majadahonda por la M-50, la barra inferior de pueblos cercanos mostro distancias estaticas aunque el coche avanzaba. Observacion: pois.js tiene codigo que recalcula distancias desde la posicion actual (linea ~283) pero aparentemente el render no se repinta en cada tick, o solo se repinta al refrescar la cache de 'pueblos cercanos'. Pasos: (1) depurar el ciclo render, (2) decidir si hay que forzar repintado en cada tick de GPS o invalidar mas agresivamente la cache, (3) validar en simulador con una ruta que recorra varios kilometros sin cambiar de pueblo dominante.",
-			"x": 1340,
-			"y": 1840,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "4ef49f3e",
-			"type": "text",
-			"text": "## BPC-14 Indicador del simulador tapa el botón fullscreen\nEn modo simulación (?sim=<ruta>), el recuadro amarillo 'sim <ruta> xN' se dibuja en la esquina superior-derecha y solapa el botón fullscreen de IU-09, impidiendo pincharlo. Reubicar el indicador del simulador (p.ej. esquina inferior-derecha o superior-izquierda) para que el botón fullscreen siga siendo accesible durante pruebas con simulador.",
-			"x": 1340,
-			"y": 2380,
 			"width": 280,
 			"height": 160,
 			"color": "4"
@@ -288,16 +178,6 @@
 			"text": "## PO-08 PO-08 Comarca en el bloque de ubicación\nAñadir P131 (localizado en entidad administrativa) a la query Wikidata del municipio para obtener la comarca. Mostrar como 'Maragatería · 11.169 hab · 868 m'. Da contexto geográfico que el conductor reconoce mejor que la provincia sola. Cambio menor en la SPARQL y en la línea de datos del municipio.",
 			"x": 900,
 			"y": 1300,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "0984c55a",
-			"type": "text",
-			"text": "## BPC-15 BPC-15 Velocidad V2 solapa la previsión meteo\nEn la vista de meteo (V2), el texto #v2Velocidad (bottom:12px right:16px, 18px) se solapa visualmente con la línea .v2-prevision cuando la cadena de previsión es larga (p.ej. 'Próx. 6h: 15°C → 21°C · lluvia máx 5%'). Verificado con simulador ?sim=a6 a 640×360: '100 km/h' cruza por encima del texto de previsión. Solución: mover #v2Velocidad a la esquina superior derecha (top:12px; right:48px), a la izquierda del botón fullscreen. La velocidad es dato periférico en V2 (vista glanceable de meteo); arriba no molesta y deja el centro limpio. Verificación: con las 3 rutas del simulador (a6, m505, cruce-a6-m505) y con previsión larga, la velocidad no se solapa con ningún otro texto. Revisar también que no choca con el botón fullscreen cuando aparece/desaparece.",
-			"x": 1340,
-			"y": 2560,
 			"width": 280,
 			"height": 160,
 			"color": "4"
@@ -438,26 +318,6 @@
 			"text": "## BPC-01 BP-01 Fix out tags→out body en MotorwayExit\nconstruirQuery usa 'out tags' que no incluye lat/lon. Todos los junctions son descartados. Cambiar a 'out body'. Una línea. Validar en simulador.",
 			"x": 1340,
 			"y": 40,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "b688649f",
-			"type": "text",
-			"text": "## IU-16 IU-16 Densidad de V1: tamaños + uso del hueco central\nEn la vista principal (V1) a 640×360 el contenido queda con letra pequeña y un hueco negro central de ~140-160px porque grid-template-rows 22px/1fr/auto/auto estira la fila central aunque el contenido de ambas columnas sea corto. Cambios: (1) Subir tamaños: municipio 20→26, admin 12→14, datos-municipio 11→13, meteo.temp 20→30, meteo.descripcion 13→16 con icono 16→20, meteo.sub 11→13, meteo.prevision 11→13. (2) Columna izquierda: quitar el display:none de #vista1 .municipio-info para reactivar foto+descripción Wikipedia (datos ya cacheados). (3) Columna derecha: añadir justify-content:center a .v1-der para que el bloque meteo se centre verticalmente en su columna en vez de quedar pegado arriba. NO añadir datos extra (amanecer/ocaso, etc) — decisión de Laureano en sesión 34. Verificación: simulador 640×360 con las 3 rutas (a6, m505, cruce-a6-m505); municipios con foto Wikipedia y sin foto; con maxspeed y sin maxspeed; con barra de gasolineras y sin ella. Nada debe desbordar ni provocar scroll vertical en V1.",
-			"x": 1780,
-			"y": 2740,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "da15aa27",
-			"type": "text",
-			"text": "## IU-17 Revision de diseno con Claude Design: mockups modernos y arriesgados\nPasar el proyecto panel-viaje por Claude Design (herramienta de Anthropic, lanzada 17-abr-2026) y pedirle una revision completa del panel con libertad creativa. Laureano conduce la sesion en Claude Design; Claude Code participa aportando contexto del proyecto si hace falta. === OBJETIVOS === (1) Look and feel moderno y minimalista para V1 (principal), V2 (meteo) y V3 (POIs). (2) Propuestas de animacion de fondo y transiciones entre vistas que respeten la regla de no distraer al conductor. (3) Ideas arriesgadas o disruptivas: tipografia, jerarquia, color, modos (dia/noche/tunel), formatos que hoy no se hayan considerado. === ENTREGABLE === Un conjunto de mockups o referencias visuales (HTML/URL/imagenes exportadas desde Claude Design). NO es codigo de produccion: el panel es vanilla JS por CLAUDE.md seccion 10, cualquier codigo exportado es solo referencia. === WORKFLOW === 1. Laureano abre Claude Design (requiere Pro/Max/Team/Enterprise). 2. Aporta contexto: restricciones del proyecto (movil viejo, pantalla 5.5 apaisada, conduccion, HTTPS, vanilla JS) y capturas/descripcion de V1/V2/V3 actuales. 3. Itera sobre las propuestas. 4. Exporta los mockups prometedores. 5. En una sesion posterior revisamos las ideas aqui y se crean tarjetas concretas IU-18, IU-19... por cada mejora aceptada. === CRITERIO DE EXITO === Tener al menos 3 propuestas distintas (conservadora, moderna, arriesgada) con mockups visuales, y un acuerdo sobre cuales entran al tablero como tareas de implementacion.",
-			"x": 1780,
-			"y": 2920,
 			"width": 280,
 			"height": 160,
 			"color": "4"
@@ -963,26 +823,6 @@
 			"color": "4"
 		},
 		{
-			"id": "f2832c30",
-			"type": "text",
-			"text": "## BPC-16 BPC-16 Fallback Wikipedia geosearch contamina la lista de pueblos con POIs\nCONTEXTO: en la sesión real del 27/04/2026 (log panel-viaje-20260427-181558.txt) la lista de \"pueblos cercanos\" en V1 incluye en Boadilla: Palacio del Infante don Luis, Fuente de Ventura Rodríguez, Convento de la Encarnación, Observatorio Montegancedo. En Las Rozas: Ayuntamiento de Majadahonda, Auditorio Alfredo Kraus, Casa de Cultura Carmen Conde. Eso son POIs, no pueblos. CAUSA: cuando Overpass falla, obtenerPueblosWikipedia() en js/pois/fuentes.js:82 hace geosearch con gsradius=10000 gslimit=50 y filtra solo con POIMatch.EXCLUIR_GEOSEARCH (js/pois/match.js:34), que NO excluye palacios, conventos, ayuntamientos, fuentes, observatorios, auditorios ni casas de cultura. Esos artículos entran como pueblos y se persisten en IndexedDB (RA-03), por eso siguen apareciendo aunque Overpass se recupere. Además contaminan V1 strip POI y V3 grid (causan los duplicados — ver BPC-17). SOLUCIÓN: (a) ampliar EXCLUIR_GEOSEARCH con palabras clave de patrimonio/edificios: Palacio, Iglesia, Ermita, Catedral, Castillo, Convento, Monasterio, Capilla, Torre, Fuente, Casa, Casa-Museo, Museo, Auditorio, Ayuntamiento, Casa de Cultura, Observatorio, Plaza, Parque, Dehesa, Cruz, Arco, Puente. (b) migración al cargar: purgar entradas IDB con clave pueblos:* contaminadas, o bumpear versión del esquema IDB y dejar que se regenere en frío. (c) futuro: migrar fallback a Wikidata SPARQL filtrando por wdt:P31 wd:Q2074737 (municipio) o Q3055118 (entidad singular de población) — garantía semántica fuerte. CRITERIO DE ÉXITO: tras una sesión nueva, el log no muestra como pueblos entradas con esos nombres; en V1 los 3 pueblos cercanos son siempre poblaciones reales; el strip POI deja de mostrar nombres de pueblos. Probar en zonas Wikipedia-densas (Madrid centro, ciudades históricas) y zonas pobres (campo). ARCHIVOS: js/pois/match.js, js/pois/fuentes.js, posiblemente js/pois/idb.js (purga).",
-			"x": 1340,
-			"y": 2740,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
-			"id": "48f9c95a",
-			"type": "text",
-			"text": "## BPC-17 BPC-17 V3 POIs grid muestra duplicados\nCONTEXTO: en la sesión real del 27/04/2026 V3 mostraba POIs repetidos. Consecuencia secundaria de BPC-16 (varios fake-pueblos a < 1.5 km comparten POIs reales que se duplican al aplanar la jerarquía pueblo→pois). Aunque BPC-16 elimine la causa raíz, conviene una capa defensiva. CAUSA: en js/main.js:777-789, pintarPOIs() construye poisV3 aplanando pueblos→pois sin deduplicar antes del slice(0,6). Si dos pueblos del array contienen el mismo POI (mismo nombre o mismas coords), aparece dos veces en el grid 3x2. SOLUCIÓN: tras el aplanado en main.js, deduplicar por clave compuesta nombre.toLowerCase() + lat.toFixed(4) + lon.toFixed(4) (usar solo nombre normalizado si las coords no llegan). Conservar la primera aparición — el pueblo más cercano gana. CRITERIO DE ÉXITO: con simulador y sesión real en zonas que en BPC-16 reproducían la mezcla (Boadilla, Las Rozas), V3 nunca muestra dos cards con el mismo título. El contador V3 (X · RADIO 25 KM) refleja el conteo deduplicado. DEPENDE DE BPC-16: implementar primero BPC-16 para que el dedupe trabaje sobre datos limpios; si se hace antes, oculta el síntoma sin arreglar la causa.",
-			"x": 1340,
-			"y": 2920,
-			"width": 280,
-			"height": 160,
-			"color": "4"
-		},
-		{
 			"id": "02e6aa81",
 			"type": "text",
 			"text": "## IU-25 IU-25 V1 meteo: temperatura a la derecha y verde fósforo en métricas\nCONTEXTO: feedback de sesión real del 27/04/2026. En V1 columna meteo, la temperatura (13°C en la foto) aparece pegada al icono y centrada, mientras que LLUVIA/VIENTO/VISIB están alineadas a la derecha — rompe la rejilla. Además, solo el número de LLUVIA está en verde fósforo (#meteoLluvia tiene clase u-phos en index.html:1728); VIENTO, VISIB y la unidad km/h de velocidad están en blanco/dim, lo que rompe la regla HUD de números clave en verde. CAMBIOS: (1) en index.html:312 .p1-wx-now: añadir margin-left:auto al span #meteoTemp o cambiar el flex a justify-content: space-between para que el icono quede a la izquierda y la temperatura a la derecha. (2) en index.html:1731 (#meteoViento) y 1736 (#meteoVisib): añadir clase u-phos. (3) .p1-speed-unit en index.html:140: cambiar color de var(--hud-white-dim) a var(--phos-200) para coherencia con el número de velocidad (que ya es verde). NOTA: el usuario pidió \"lluvia, viento y velocidad en verde\"; añadir visibilidad por consistencia visual queda razonable, pero confirmar con él si solo quiere las 3 mencionadas. CRITERIO DE ÉXITO: en simulador con cualquier ruta, todas las cifras numéricas de la columna meteo y la velocidad son verde fósforo; el icono+temperatura ocupan el ancho completo de la columna (icono a la izq, temperatura a la dcha alineada con LLUVIA/VIENTO/VISIB).",
@@ -1013,11 +853,161 @@
 			"color": "4"
 		},
 		{
+			"id": "0984c55a",
+			"type": "text",
+			"text": "## BPC-15 BPC-15 Velocidad V2 solapa la previsión meteo\nEn la vista de meteo (V2), el texto #v2Velocidad (bottom:12px right:16px, 18px) se solapa visualmente con la línea .v2-prevision cuando la cadena de previsión es larga (p.ej. 'Próx. 6h: 15°C → 21°C · lluvia máx 5%'). Verificado con simulador ?sim=a6 a 640×360: '100 km/h' cruza por encima del texto de previsión. Solución: mover #v2Velocidad a la esquina superior derecha (top:12px; right:48px), a la izquierda del botón fullscreen. La velocidad es dato periférico en V2 (vista glanceable de meteo); arriba no molesta y deja el centro limpio. Verificación: con las 3 rutas del simulador (a6, m505, cruce-a6-m505) y con previsión larga, la velocidad no se solapa con ningún otro texto. Revisar también que no choca con el botón fullscreen cuando aparece/desaparece.",
+			"x": 1340,
+			"y": 2560,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
 			"id": "066e7116",
 			"type": "text",
 			"text": "## IU-28 IU-28 V1 vía y salida: tipografía mayor\nCONTEXTO: feedback de sesión real del 27/04/2026. En el coche (Toyota Yaris, ~5.5 pulgadas a 60-80 cm), el bloque de vía actual (pastilla M-50/M-505 + nombre de calle) y el de próxima salida (SALIDA 76) se ven pequeños en relación al resto del HUD. La visión rápida en marcha pide más cuerpo en estos dos elementos prioritarios. CAMBIOS: subir tamaños proporcionalmente sin desbordar la columna izquierda: (1) .p1-road-shield 15→20px (index.html:220), aumentar padding interno si hace falta. (2) .p1-road-label 15→17px (index.html:233). (3) .p1-exit-num 18→26px (index.html:272), .p1-exit-word ajustar al alza también para mantener proporción. (4) revisar .p1-place-name 17px (index.html:249) — igual conviene 18-19px por consistencia con el shield más grande. CRITERIO DE ÉXITO: probar en simulador las 3 rutas (a6 con salidas autovía, m505 autonómica, cruce-a6-m505) y validar: (a) la pastilla y el nombre de la calle no rebosan ni se truncan en pantallas 640x360 y 854x480 (objetivo Toyota Yaris); (b) la columna izquierda mantiene proporción visual con la columna meteo; (c) los pueblos cercanos siguen visibles sin scroll; (d) si la salida tiene destinos largos (Cuatro Caminos / Aravaca / Pozuelo), comprobar que no choca con .p1-near. Si hace falta, reducir padding interno o usar clamp() para escalar con el viewport.",
 			"x": 2220,
 			"y": 1840,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "a95723f2",
+			"type": "text",
+			"text": "## IU-29 IU-29 V1 meteo: migrar a set de iconos profesional (Flaticon/Phosphor/Weather Icons)\nCONTEXTO: feedback Laureano sesión 45 — los iconos del sprite #meteo-* (creados a mano en IU-06/IU-26) se ven descuidados al lado del resto del HUD. Quiere subir nivel visual con un set profesional. CANDIDATOS A EVALUAR: (1) Flaticon — librería enorme, gratis con atribución obligatoria visible (rompe el HUD limpio), Pro 10€/mes sin atribución. Descarga manual SVG por SVG. (2) Phosphor Icons — MIT, sin atribución, set weather específico (sun, cloud, cloud-sun, cloud-rain, cloud-snow, cloud-fog, cloud-lightning, moon, question), integrable como sprite SVG mantenido. (3) Weather Icons (Erik Flowers) — licencia SIL OFL, set 100% meteorológico (~200 iconos), muy estilizado pero pesa más. PROPUESTA: empezar con Phosphor (cero fricción legal y técnica) y comparar con muestras de Flaticon de las que Laureano elija; decidir según gusto visual. PASOS: (a) descargar los 9 SVGs equivalentes a meteo-sol/luna/nube/sol-nube/niebla/lluvia/nieve/tormenta/desconocido. (b) reescribir el bloque <svg sprite> en index.html con los nuevos paths, manteniendo viewBox 0 0 24 24 e ids meteo-* exactos para no romper meteo_codigos.js. (c) ajustar stroke-width si los nuevos no quedan en línea con el contorno HUD (1.4-1.8). (d) probar los 9 estados en V1 con simulador y verificar herencia de currentColor (verde fósforo). MANTENER: convención fill=none stroke=currentColor (IU-26). El set elegido debe respetarlo o adaptarlo. ARCHIVOS: index.html (sprite SVG, líneas 1572-1639). DEPENDENCIAS: ninguna; IU-32 se beneficiará de los nuevos iconos cuando llegue.",
+			"x": 2220,
+			"y": 2020,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "925a6abe",
+			"type": "text",
+			"text": "## IU-30 IU-30 Simulador: ruta dedicada para previsualizar próxima salida en V1\nCONTEXTO: feedback Laureano sesión 45 — quiere ver en su móvil cómo queda el cartel de \"PRÓXIMA SALIDA\" con la tipografía nueva de IU-28 (.p1-exit-num 26px). La ruta actual ?sim=a6 pasa por salidas pero el cartel solo está visible unos pocos segundos a x10. PROPUESTA: añadir nueva ruta \"salida-a6\" en js/rutas.js que: (1) arranca ~1.5 km antes de la salida 12 (Las Rozas Centro, lat 40.4929 lon -3.8745 aprox.), (2) avanza despacio (60-80 km/h en lugar de 100) o con multiplicador x3 en lugar de x10 para que el cartel sea estable 10-15 segundos en pantalla, (3) cubre 1-2 salidas más para iterar visualmente. ALTERNATIVA: parámetro ?sim=a6&speedmult=3 si ya existe esa palanca; comprobar simulator.js. CRITERIO DE ÉXITO: con ?sim=salida-a6 abierto en el móvil, Laureano puede valorar tamaños/legibilidad del cartel salida sin tener que esperar a una sesión real. ARCHIVOS: js/rutas.js (definición de la nueva ruta), js/simulator.js (no debería tocarse si hay palanca de speed; revisar). USO PARA QA POSTERIOR: esta ruta queda en el simulador como herramienta de regresión visual para futuros cambios al bloque exit.",
+			"x": 2220,
+			"y": 2200,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "46f94e27",
+			"type": "text",
+			"text": "## IU-31 IU-31 Cabecera persistente sobre las 4 vistas (crumbs + velocidad) y reorganización de heads\nCONTEXTO: feedback Laureano sesión 45 — quiere que la cabecera \"ES · COMUNIDAD DE MADRID\" + velocidad de V1 se mantenga visible en las 4 vistas. Hoy solo está en V1 y cada vista tiene su propio head. CAMBIOS: (1) HEADER GLOBAL: extraer el topbar de V1 (#topbarCrumbs + #v1Velocidad) a un elemento .app-header con position: fixed; top: 0; left: 0; right: 0; z-index alto, respetando safe-area-top. main.js mantiene un único path de actualización para crumbs y velocidad (los selectores actuales pueden conservar id si reusamos los nodos, evitando refactor en pintarUbicacion/pintarVelocidad). Cada vista añade padding-top para no quedar tapada. (2) V2: subir el nombre del pueblo (info que ahora está bajo la temperatura) al header como tercer crumb tras la comunidad. Eliminar el bloque .p2-caption de dentro de #vista2. Liberar ese espacio para hacer .p2-temp más grande (probar 100→140px font-size, valorar contraste con .p2-word arriba). (3) V3: el head actual (.p3-v3-head) pierde el lugar (ya está en el header global). En su lugar, segunda línea con \"PUNTOS DE INTERÉS · <N> · RADIO 25 KM\". El número N es top6.length (POIs en pantalla, sirve para distinguir 6/6 vs 2/6); ver con Laureano si mantenemos formato actual o lo cambiamos a \"6/6 POIs\". (4) V4: misma jugada — la info actual del head de V4 baja a segunda línea bajo el header global. CUIDADOS: (a) la cabecera global pisa el botón fullscreen — recolocar a esquina superior dentro del header o esquina derecha de cada vista. (b) en exceso de velocidad (IU-23) el halo aplica a V1; ahora afecta también al header global (visual coherente). (c) safe-area: el header debe respetar safe-top y cada vista safe-bottom. ARCHIVOS: index.html (HTML del header + estructura de vistas), js/main.js (un único path de actualización), css inline. RIESGOS: refactor con efecto cascada — recomendable hacerlo con simulador delante y validar V1, V2, V3, V4 paso a paso. DECISIÓN PENDIENTE: formato del contador V3 — preguntar a Laureano antes de codificar.",
+			"x": 2220,
+			"y": 2380,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "b7d4b8da",
+			"type": "text",
+			"text": "## IU-32 IU-32 V2 timeline: icono meteo por hora junto a la temperatura\nCONTEXTO: feedback Laureano sesión 45 — la timeline 6h de V2 muestra hora + temperatura + barra de lluvia. Falta indicador visual del estado meteo de cada hora (la categoría más severa). CAMBIO: en main.js función que pinta #v2MeteoTimeline (buscar por id), por cada fila añadir un <svg width=16 height=16><use href=\"#meteo-X\"/></svg> donde X es el icono de la categoría más severa de la hora, calculado con MeteoCodigos.iconoDeCategoria(MeteoCodigos.categoriaMasSevera(horasFila)) — la lógica ya existe para la story line de V2 (resumenMeteoNh). CSS: añadir .p2-hr-icon { width:16px; height:16px; color: var(--phos-300); } y ajustar grid-template-columns de .p2-timeline-row para incluir la columna del icono. POSICIÓN: antes o después de la temperatura — probar ambos y elegir el que respete jerarquía visual. CRITERIO DE ÉXITO: en simulador con ruta a6, la timeline 6h muestra un icono pequeño verde fósforo por hora coherente con el código WMO de esa hora. ARCHIVOS: index.html (CSS .p2-timeline-row), js/main.js (renderizado de timeline). MEJORA SI YA HAY IU-29 EN VERDE: los iconos del sprite serán el set profesional, la timeline luce mejor. NO bloquea: con los iconos actuales (IU-26) también funciona.",
+			"x": 2220,
+			"y": 2560,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "6974b6dd",
+			"type": "text",
+			"text": "## IU-33 IU-33 V1 ubicacion: HAB y M a la cabecera global, sin duplicar pueblo en V1\nCambio de layout pedido por Laureano en sesion 47.\n\nEstado actual: en V1 el bloque ubicacion repite el nombre del pueblo (que ya esta en los crumbs de la cabecera global IU-31) y muestra debajo poblacion y altura (ej. '25.433 HAB . 844 M'). Esa misma cabecera ya muestra ES . COMUNIDAD . PUEBLO + velocidad.\n\nCambios:\n1. Cabecera global (.app-header / crumbs): anadir tras el nombre del pueblo el dato '<HAB> HAB . <M> M' en color gris secundario (no verde fosforo) para diferenciarlo de los crumbs principales. Opcion (a) acordada: todo en una linea, separadores con punto medio.\n2. Si el texto no cabe en una linea (pueblo largo + HAB + M + velocidad), permitir que la cabecera crezca (wrap o min-height aumentado). Actualizar --app-header-h si fuera necesario.\n3. Aplica a las 4 vistas (V1, V2, V3, V4) porque la cabecera es persistente.\n4. V1 cuerpo: eliminar el nombre del pueblo y la linea HAB/M del bloque ubicacion. Mantener el bloque via (A-6) y proxima salida intactos.\n\nVerificacion:\n- Simulador con ruta a6-salidas: V1 ya no muestra 'Las Rozas de Madrid' duplicado; cabecera muestra crumbs + '25.433 HAB . 844 M' en gris.\n- Cambiar de vista (swipe a V2/V3/V4): cabecera sigue mostrando HAB+M.\n- Pueblo con nombre largo (probar con simulador de prueba si hay alguna ruta que pase por uno): cabecera permite wrap.\n- ?debug=1 sin regresiones.",
+			"x": 2220,
+			"y": 2740,
+			"width": 280,
+			"height": 160,
+			"color": "5"
+		},
+		{
+			"id": "daf29577",
+			"type": "text",
+			"text": "## PO-12 Photon como fallback final cuando Overpass+Wikidata quedan vacíos\nPhoton se descartó como geocodificador administrativo pero su capacidad de devolver el POI más cercano es útil como último eslabón de la cascada: Overpass → Wikipedia geosearch → Photon. Activar solo cuando los dos anteriores devuelven cero resultados. Evaluar cobertura en carretera antes de activar por defecto.",
+			"x": 900,
+			"y": 2020,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "b064e806",
+			"type": "text",
+			"text": "## IU-14 Tormenta: densidad x2, relámpago en forma de rama y eco cálido\nSobre el motor de lluvia de IU-13. Densidad de gotas x2 y viento forzado más fuerte para transmitir sensación de frente de tormenta. Relámpago rediseñado: en vez de flash blanco plano, SVG path de una rama bifurcada que aparece lateralmente en el Canvas con glow via feGaussianBlur. Duración 120ms + eco de luz cálida en toda la pantalla durante 300ms adicionales (simula el resplandor difuso tras el rayo). Frecuencia no periódica: pausa aleatoria entre 15 y 35 segundos entre rayos. De noche los rayos son más dramáticos por el contraste; de día la rama es gris-azul translúcida. Regla opacidad <=0.4. Depende de IU-13 (motor de partículas) e IU-12 (momento del día).",
+			"x": 1780,
+			"y": 2380,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "c01cde04",
+			"type": "text",
+			"text": "## IU-15 Nieve en Canvas y niebla volumétrica SVG con momento del día\nCompleta el sistema de full inmersión con las últimas 2 categorías. (1) Nieve en Canvas reusando el motor de IU-13: copos blobby con rotación lenta, oscilación senoidal, variación de tamaño y velocidad según viento real. De noche con sutil brillo frío azulado. (2) Niebla volumétrica: dos capas SVG con feTurbulence+feDisplacementMap creando ruido orgánico, desplazándose lento en direcciones opuestas. Colores matizados por momento del día (gris-azul de noche, rosado en amanecer). Medir coste del filter SVG en móvil viejo; si es caro, fallback a las 2 capas radiales actuales. Regla opacidad <=0.4. Depende de IU-12 (momento del día) e IU-13 (motor canvas para nieve).",
+			"x": 1780,
+			"y": 2560,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "a6140311",
+			"type": "text",
+			"text": "## BPC-12 Layout se rompe al volver a la vista principal tras deslizar\nSintoma: en Chrome Mobile, al deslizar a vista 2 o 3 y volver a la vista 1, la vista 1 pierde adaptacion y se corta informacion. El CSS ya usa 100dvh (index.html linea 28, 38), asi que el fix no es cambiar vh->dvh. Hipotesis a investigar: (a) el scroll-snap no reposiciona limpiamente al volver, (b) el viewport recalcula con retardo cuando la barra de Chrome se muestra/oculta, (c) el contenido en vista 1 asume una altura que ya no es valida tras el cambio. Probar: forzar recalculo con JS en visibilitychange o resize, o scroll-snap-stop: always, o recalcular alturas internas al evento scroll-end.",
+			"x": 1340,
+			"y": 2020,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "1258d06b",
+			"type": "text",
+			"text": "## BPC-13 BPC-13 Velocidad cortada por safe-area en vista 1\nEn el pantallazo de la sesión 26 (ruta ida al trabajo, M-501) la velocidad '34 km/h' aparece cortada por la derecha como '34 km/'. Causa probable: el viewport no respeta safe areas del navegador Android (iconos de estado, esquina redondeada, punch-hole). Solución: añadir viewport-fit=cover al meta viewport y aplicar env(safe-area-inset-right/top/bottom/left) en el padding del contenedor de vista 1. Validar en el móvil real, no sirve solo la preview de Claude. Si conviene, añadir un parametro ?safearea=N que pinte padding ficticio para iterar mas rapido en escritorio.",
+			"x": 1340,
+			"y": 2200,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "4ef49f3e",
+			"type": "text",
+			"text": "## BPC-14 Indicador del simulador tapa el botón fullscreen\nEn modo simulación (?sim=<ruta>), el recuadro amarillo 'sim <ruta> xN' se dibuja en la esquina superior-derecha y solapa el botón fullscreen de IU-09, impidiendo pincharlo. Reubicar el indicador del simulador (p.ej. esquina inferior-derecha o superior-izquierda) para que el botón fullscreen siga siendo accesible durante pruebas con simulador.",
+			"x": 1340,
+			"y": 2380,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "b688649f",
+			"type": "text",
+			"text": "## IU-16 IU-16 Densidad de V1: tamaños + uso del hueco central\nEn la vista principal (V1) a 640×360 el contenido queda con letra pequeña y un hueco negro central de ~140-160px porque grid-template-rows 22px/1fr/auto/auto estira la fila central aunque el contenido de ambas columnas sea corto. Cambios: (1) Subir tamaños: municipio 20→26, admin 12→14, datos-municipio 11→13, meteo.temp 20→30, meteo.descripcion 13→16 con icono 16→20, meteo.sub 11→13, meteo.prevision 11→13. (2) Columna izquierda: quitar el display:none de #vista1 .municipio-info para reactivar foto+descripción Wikipedia (datos ya cacheados). (3) Columna derecha: añadir justify-content:center a .v1-der para que el bloque meteo se centre verticalmente en su columna en vez de quedar pegado arriba. NO añadir datos extra (amanecer/ocaso, etc) — decisión de Laureano en sesión 34. Verificación: simulador 640×360 con las 3 rutas (a6, m505, cruce-a6-m505); municipios con foto Wikipedia y sin foto; con maxspeed y sin maxspeed; con barra de gasolineras y sin ella. Nada debe desbordar ni provocar scroll vertical en V1.",
+			"x": 1780,
+			"y": 2740,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "da15aa27",
+			"type": "text",
+			"text": "## IU-17 Revision de diseno con Claude Design: mockups modernos y arriesgados\nPasar el proyecto panel-viaje por Claude Design (herramienta de Anthropic, lanzada 17-abr-2026) y pedirle una revision completa del panel con libertad creativa. Laureano conduce la sesion en Claude Design; Claude Code participa aportando contexto del proyecto si hace falta. === OBJETIVOS === (1) Look and feel moderno y minimalista para V1 (principal), V2 (meteo) y V3 (POIs). (2) Propuestas de animacion de fondo y transiciones entre vistas que respeten la regla de no distraer al conductor. (3) Ideas arriesgadas o disruptivas: tipografia, jerarquia, color, modos (dia/noche/tunel), formatos que hoy no se hayan considerado. === ENTREGABLE === Un conjunto de mockups o referencias visuales (HTML/URL/imagenes exportadas desde Claude Design). NO es codigo de produccion: el panel es vanilla JS por CLAUDE.md seccion 10, cualquier codigo exportado es solo referencia. === WORKFLOW === 1. Laureano abre Claude Design (requiere Pro/Max/Team/Enterprise). 2. Aporta contexto: restricciones del proyecto (movil viejo, pantalla 5.5 apaisada, conduccion, HTTPS, vanilla JS) y capturas/descripcion de V1/V2/V3 actuales. 3. Itera sobre las propuestas. 4. Exporta los mockups prometedores. 5. En una sesion posterior revisamos las ideas aqui y se crean tarjetas concretas IU-18, IU-19... por cada mejora aceptada. === CRITERIO DE EXITO === Tener al menos 3 propuestas distintas (conservadora, moderna, arriesgada) con mockups visuales, y un acuerdo sobre cuales entran al tablero como tareas de implementacion.",
+			"x": 1780,
+			"y": 2920,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "f2832c30",
+			"type": "text",
+			"text": "## BPC-16 BPC-16 Fallback Wikipedia geosearch contamina la lista de pueblos con POIs\nCONTEXTO: en la sesión real del 27/04/2026 (log panel-viaje-20260427-181558.txt) la lista de \"pueblos cercanos\" en V1 incluye en Boadilla: Palacio del Infante don Luis, Fuente de Ventura Rodríguez, Convento de la Encarnación, Observatorio Montegancedo. En Las Rozas: Ayuntamiento de Majadahonda, Auditorio Alfredo Kraus, Casa de Cultura Carmen Conde. Eso son POIs, no pueblos. CAUSA: cuando Overpass falla, obtenerPueblosWikipedia() en js/pois/fuentes.js:82 hace geosearch con gsradius=10000 gslimit=50 y filtra solo con POIMatch.EXCLUIR_GEOSEARCH (js/pois/match.js:34), que NO excluye palacios, conventos, ayuntamientos, fuentes, observatorios, auditorios ni casas de cultura. Esos artículos entran como pueblos y se persisten en IndexedDB (RA-03), por eso siguen apareciendo aunque Overpass se recupere. Además contaminan V1 strip POI y V3 grid (causan los duplicados — ver BPC-17). SOLUCIÓN: (a) ampliar EXCLUIR_GEOSEARCH con palabras clave de patrimonio/edificios: Palacio, Iglesia, Ermita, Catedral, Castillo, Convento, Monasterio, Capilla, Torre, Fuente, Casa, Casa-Museo, Museo, Auditorio, Ayuntamiento, Casa de Cultura, Observatorio, Plaza, Parque, Dehesa, Cruz, Arco, Puente. (b) migración al cargar: purgar entradas IDB con clave pueblos:* contaminadas, o bumpear versión del esquema IDB y dejar que se regenere en frío. (c) futuro: migrar fallback a Wikidata SPARQL filtrando por wdt:P31 wd:Q2074737 (municipio) o Q3055118 (entidad singular de población) — garantía semántica fuerte. CRITERIO DE ÉXITO: tras una sesión nueva, el log no muestra como pueblos entradas con esos nombres; en V1 los 3 pueblos cercanos son siempre poblaciones reales; el strip POI deja de mostrar nombres de pueblos. Probar en zonas Wikipedia-densas (Madrid centro, ciudades históricas) y zonas pobres (campo). ARCHIVOS: js/pois/match.js, js/pois/fuentes.js, posiblemente js/pois/idb.js (purga).",
+			"x": 1340,
+			"y": 2740,
 			"width": 280,
 			"height": 160,
 			"color": "4"
@@ -1033,44 +1023,64 @@
 			"color": "4"
 		},
 		{
-			"id": "a95723f2",
+			"id": "a1081e25",
 			"type": "text",
-			"text": "## IU-29 IU-29 V1 meteo: migrar a set de iconos profesional (Flaticon/Phosphor/Weather Icons)\nCONTEXTO: feedback Laureano sesión 45 — los iconos del sprite #meteo-* (creados a mano en IU-06/IU-26) se ven descuidados al lado del resto del HUD. Quiere subir nivel visual con un set profesional. CANDIDATOS A EVALUAR: (1) Flaticon — librería enorme, gratis con atribución obligatoria visible (rompe el HUD limpio), Pro 10€/mes sin atribución. Descarga manual SVG por SVG. (2) Phosphor Icons — MIT, sin atribución, set weather específico (sun, cloud, cloud-sun, cloud-rain, cloud-snow, cloud-fog, cloud-lightning, moon, question), integrable como sprite SVG mantenido. (3) Weather Icons (Erik Flowers) — licencia SIL OFL, set 100% meteorológico (~200 iconos), muy estilizado pero pesa más. PROPUESTA: empezar con Phosphor (cero fricción legal y técnica) y comparar con muestras de Flaticon de las que Laureano elija; decidir según gusto visual. PASOS: (a) descargar los 9 SVGs equivalentes a meteo-sol/luna/nube/sol-nube/niebla/lluvia/nieve/tormenta/desconocido. (b) reescribir el bloque <svg sprite> en index.html con los nuevos paths, manteniendo viewBox 0 0 24 24 e ids meteo-* exactos para no romper meteo_codigos.js. (c) ajustar stroke-width si los nuevos no quedan en línea con el contorno HUD (1.4-1.8). (d) probar los 9 estados en V1 con simulador y verificar herencia de currentColor (verde fósforo). MANTENER: convención fill=none stroke=currentColor (IU-26). El set elegido debe respetarlo o adaptarlo. ARCHIVOS: index.html (sprite SVG, líneas 1572-1639). DEPENDENCIAS: ninguna; IU-32 se beneficiará de los nuevos iconos cuando llegue.",
-			"x": 2220,
+			"text": "## IU-11 Animaciones meteo adicionales (nieve, niebla, tormenta)\nSobre la base de IU-10, añadir animaciones para códigos WMO de nieve (copos cayendo y oscilando), niebla (capa difuminada con opacidad pulsante lenta) y tormenta (flash ocasional cada ~20 s). Mismas restricciones que IU-10: solo transform y opacity, duraciones largas, respetar prefers-reduced-motion. Depende de IU-10 para reutilizar el sistema de mapeo código WMO → animación.",
+			"x": 1780,
+			"y": 1840,
+			"width": 280,
+			"height": 160,
+			"color": "4"
+		},
+		{
+			"id": "f729c306",
+			"type": "text",
+			"text": "## IU-12 Luminaria celeste realista con momento del día (sol/luna + amanecer/atardecer)\nSistema base de animaciones de V2 full-inmersión. (1) Cálculo del estado 'momento del día' derivado de sunrise/sunset de Open-Meteo: noche, amanecer, día, atardecer. (2) Luminaria celeste posicionada 60-70% fuera de pantalla en esquina superior-derecha: de día sol realista (SVG con gradiente radial blanco→amarillo→naranja y halo blur), de noche luna fría (gris-azul con mismo halo). (3) Iluminación ambiental: radial-gradient gigante con mix-blend-mode:screen centrado en la luminaria, baña la pantalla de calidez/frialdad según hora. (4) God-rays: 4-5 líneas de luz radiales con animación lenta (20-40s) de entrada/salida por opacidad. Dorados de día, azul frío de noche, cálidos rosa/naranja en crepúsculos. (5) Partículas flotantes: 6-8 puntos brillantes con mix-blend-mode:screen, muy lentos. De noche en despejado reemplazan a estrellas con twinkle sutil. Solo CSS/SVG, coste GPU puro. Regla: opacidades máximas <=0.4. Pausa cuando V2 no visible vía IntersectionObserver.",
+			"x": 1780,
 			"y": 2020,
 			"width": 280,
 			"height": 160,
-			"color": "5"
+			"color": "4"
 		},
 		{
-			"id": "925a6abe",
+			"id": "93b56dae",
 			"type": "text",
-			"text": "## IU-30 IU-30 Simulador: ruta dedicada para previsualizar próxima salida en V1\nCONTEXTO: feedback Laureano sesión 45 — quiere ver en su móvil cómo queda el cartel de \"PRÓXIMA SALIDA\" con la tipografía nueva de IU-28 (.p1-exit-num 26px). La ruta actual ?sim=a6 pasa por salidas pero el cartel solo está visible unos pocos segundos a x10. PROPUESTA: añadir nueva ruta \"salida-a6\" en js/rutas.js que: (1) arranca ~1.5 km antes de la salida 12 (Las Rozas Centro, lat 40.4929 lon -3.8745 aprox.), (2) avanza despacio (60-80 km/h en lugar de 100) o con multiplicador x3 en lugar de x10 para que el cartel sea estable 10-15 segundos en pantalla, (3) cubre 1-2 salidas más para iterar visualmente. ALTERNATIVA: parámetro ?sim=a6&speedmult=3 si ya existe esa palanca; comprobar simulator.js. CRITERIO DE ÉXITO: con ?sim=salida-a6 abierto en el móvil, Laureano puede valorar tamaños/legibilidad del cartel salida sin tener que esperar a una sesión real. ARCHIVOS: js/rutas.js (definición de la nueva ruta), js/simulator.js (no debería tocarse si hay palanca de speed; revisar). USO PARA QA POSTERIOR: esta ruta queda en el simulador como herramienta de regresión visual para futuros cambios al bloque exit.",
-			"x": 2220,
+			"text": "## IU-13 Motor Canvas 2D de lluvia con impacto, viento e intensidad variable\nSustituye la lluvia CSS de IU-10 por un motor Canvas 2D más realista. Nuevo módulo js/v2_rainfx.js (~150 líneas): pool de 30-50 gotas con {x, y, vx, vy, len, life}. Lee datos reales de WeatherModule: precipitacion_mm_h (densidad y velocidad) y wind_speed/wind_direction (componente horizontal vx, las gotas caen inclinadas). Aspecto de agua: gota renderizada como línea con gradiente vertical azul traslúcido + pequeño brillo superior. Impacto al llegar a y>=95% del canvas: elipse horizontal que se expande y desvanece en 400ms simulando salpicadura sobre cristal. Optimización: IntersectionObserver pausa el RAF cuando V2 no visible. Canvas a devicePixelRatio*0.75, 30fps fijo. Respeta prefers-reduced-motion. Colores matizados por momento del día (IU-12): azul frío de noche, dorado en amanecer. Regla opacidad <=0.4.",
+			"x": 1780,
 			"y": 2200,
 			"width": 280,
 			"height": 160,
-			"color": "5"
+			"color": "4"
 		},
 		{
-			"id": "46f94e27",
+			"id": "6bc542a5",
 			"type": "text",
-			"text": "## IU-31 IU-31 Cabecera persistente sobre las 4 vistas (crumbs + velocidad) y reorganización de heads\nCONTEXTO: feedback Laureano sesión 45 — quiere que la cabecera \"ES · COMUNIDAD DE MADRID\" + velocidad de V1 se mantenga visible en las 4 vistas. Hoy solo está en V1 y cada vista tiene su propio head. CAMBIOS: (1) HEADER GLOBAL: extraer el topbar de V1 (#topbarCrumbs + #v1Velocidad) a un elemento .app-header con position: fixed; top: 0; left: 0; right: 0; z-index alto, respetando safe-area-top. main.js mantiene un único path de actualización para crumbs y velocidad (los selectores actuales pueden conservar id si reusamos los nodos, evitando refactor en pintarUbicacion/pintarVelocidad). Cada vista añade padding-top para no quedar tapada. (2) V2: subir el nombre del pueblo (info que ahora está bajo la temperatura) al header como tercer crumb tras la comunidad. Eliminar el bloque .p2-caption de dentro de #vista2. Liberar ese espacio para hacer .p2-temp más grande (probar 100→140px font-size, valorar contraste con .p2-word arriba). (3) V3: el head actual (.p3-v3-head) pierde el lugar (ya está en el header global). En su lugar, segunda línea con \"PUNTOS DE INTERÉS · <N> · RADIO 25 KM\". El número N es top6.length (POIs en pantalla, sirve para distinguir 6/6 vs 2/6); ver con Laureano si mantenemos formato actual o lo cambiamos a \"6/6 POIs\". (4) V4: misma jugada — la info actual del head de V4 baja a segunda línea bajo el header global. CUIDADOS: (a) la cabecera global pisa el botón fullscreen — recolocar a esquina superior dentro del header o esquina derecha de cada vista. (b) en exceso de velocidad (IU-23) el halo aplica a V1; ahora afecta también al header global (visual coherente). (c) safe-area: el header debe respetar safe-top y cada vista safe-bottom. ARCHIVOS: index.html (HTML del header + estructura de vistas), js/main.js (un único path de actualización), css inline. RIESGOS: refactor con efecto cascada — recomendable hacerlo con simulador delante y validar V1, V2, V3, V4 paso a paso. DECISIÓN PENDIENTE: formato del contador V3 — preguntar a Laureano antes de codificar.",
-			"x": 2220,
-			"y": 2380,
+			"text": "## PO-11 Soporte de entidades singulares de población (pedanías turísticas)\nCastrillo de los Polvazares es pedanía de Astorga, no municipio, por lo que la consulta SPARQL para municipios españoles no lo encuentra. Sin embargo es un destino turístico reconocido. Ampliar la búsqueda para incluir entidades singulares de población (Q515869 en Wikidata) además de municipios, para dar cobertura a pedanías con valor turístico.",
+			"x": 900,
+			"y": 1840,
 			"width": 280,
 			"height": 160,
-			"color": "5"
+			"color": "4"
 		},
 		{
-			"id": "b7d4b8da",
+			"id": "bb9d7f72",
 			"type": "text",
-			"text": "## IU-32 IU-32 V2 timeline: icono meteo por hora junto a la temperatura\nCONTEXTO: feedback Laureano sesión 45 — la timeline 6h de V2 muestra hora + temperatura + barra de lluvia. Falta indicador visual del estado meteo de cada hora (la categoría más severa). CAMBIO: en main.js función que pinta #v2MeteoTimeline (buscar por id), por cada fila añadir un <svg width=16 height=16><use href=\"#meteo-X\"/></svg> donde X es el icono de la categoría más severa de la hora, calculado con MeteoCodigos.iconoDeCategoria(MeteoCodigos.categoriaMasSevera(horasFila)) — la lógica ya existe para la story line de V2 (resumenMeteoNh). CSS: añadir .p2-hr-icon { width:16px; height:16px; color: var(--phos-300); } y ajustar grid-template-columns de .p2-timeline-row para incluir la columna del icono. POSICIÓN: antes o después de la temperatura — probar ambos y elegir el que respete jerarquía visual. CRITERIO DE ÉXITO: en simulador con ruta a6, la timeline 6h muestra un icono pequeño verde fósforo por hora coherente con el código WMO de esa hora. ARCHIVOS: index.html (CSS .p2-timeline-row), js/main.js (renderizado de timeline). MEJORA SI YA HAY IU-29 EN VERDE: los iconos del sprite serán el set profesional, la timeline luce mejor. NO bloquea: con los iconos actuales (IU-26) también funciona.",
-			"x": 2220,
-			"y": 2560,
+			"text": "## BPC-11 Distancias de pueblos cercanos no cambian al moverse\nSintoma: de Las Rozas a Majadahonda por la M-50, la barra inferior de pueblos cercanos mostro distancias estaticas aunque el coche avanzaba. Observacion: pois.js tiene codigo que recalcula distancias desde la posicion actual (linea ~283) pero aparentemente el render no se repinta en cada tick, o solo se repinta al refrescar la cache de 'pueblos cercanos'. Pasos: (1) depurar el ciclo render, (2) decidir si hay que forzar repintado en cada tick de GPS o invalidar mas agresivamente la cache, (3) validar en simulador con una ruta que recorra varios kilometros sin cambiar de pueblo dominante.",
+			"x": 1340,
+			"y": 1840,
 			"width": 280,
 			"height": 160,
-			"color": "5"
+			"color": "4"
+		},
+		{
+			"id": "48f9c95a",
+			"type": "text",
+			"text": "## BPC-17 BPC-17 V3 POIs grid muestra duplicados\nCONTEXTO: en la sesión real del 27/04/2026 V3 mostraba POIs repetidos. Consecuencia secundaria de BPC-16 (varios fake-pueblos a < 1.5 km comparten POIs reales que se duplican al aplanar la jerarquía pueblo→pois). Aunque BPC-16 elimine la causa raíz, conviene una capa defensiva. CAUSA: en js/main.js:777-789, pintarPOIs() construye poisV3 aplanando pueblos→pois sin deduplicar antes del slice(0,6). Si dos pueblos del array contienen el mismo POI (mismo nombre o mismas coords), aparece dos veces en el grid 3x2. SOLUCIÓN: tras el aplanado en main.js, deduplicar por clave compuesta nombre.toLowerCase() + lat.toFixed(4) + lon.toFixed(4) (usar solo nombre normalizado si las coords no llegan). Conservar la primera aparición — el pueblo más cercano gana. CRITERIO DE ÉXITO: con simulador y sesión real en zonas que en BPC-16 reproducían la mezcla (Boadilla, Las Rozas), V3 nunca muestra dos cards con el mismo título. El contador V3 (X · RADIO 25 KM) refleja el conteo deduplicado. DEPENDE DE BPC-16: implementar primero BPC-16 para que el dedupe trabaje sobre datos limpios; si se hace antes, oculta el síntoma sin arreglar la causa.",
+			"x": 1340,
+			"y": 2920,
+			"width": 280,
+			"height": 160,
+			"color": "4"
 		}
 	],
 	"edges": [

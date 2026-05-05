@@ -7,9 +7,9 @@
     "nota_pie": "Actualizar al final de cada sesión de trabajo"
   },
   "estado_actual": {
-    "fase_actual": "Mejora de fotos POI en V3 (sesion 43, sin tarjeta Kanvas a peticion explicita). Tres patas: (a) URLs Wikidata Special:FilePath normalizadas a HTTPS con ?width=400 para que sirvan thumbnail de Commons en vez del archivo original (a veces 5-15 MB); (b) eliminado loading=lazy en V3 grid y onerror que hace swap a icono SVG si la foto falla; (c) sustituido el placeholder de rayas con texto PHOTO por iconos SVG tematicos de 8 tipos OSM (castle/church/monument/ruins/viewpoint/star/peak/pin) en color fosforo dim, coherentes con la estetica HUD y los iconos meteo. Ajuste cromatico: cabecera V3 (municipio + comunidad) pasa de blanco a verde fosforo --phos-300; nombres de POI se mantienen en --hud-white para preservar jerarquia visual.",
-    "ultima_actualizacion": "25 de abril de 2026",
-    "siguiente_hito": "Prueba en carretera real del panel redisenado (nueva PEC- que proponer): validar layouts, rendimiento y la mejora visual de POIs sin foto en el movil viejo del salpicadero. Si tras la prueba se confirma que el ratio de POIs sin foto es alto (sesion 43 midio 6/9 = 67% en ruta a6 con cache fresca), evaluar si merece la pena anadir una capa de fallback Wikimedia Commons geosearch en enriquecerPOI. Paralelamente, ideas parqueadas: FN-07 comarcas, PO-XX nuevas fuentes de POI.",
+    "fase_actual": "UI / Experiencia V2 (continuacion de IU-31). En sesion 47 se cierra IU-33: el bloque .p1-place de V1 (#municipio + #datosMunicipio) se elimina porque duplicaba el nombre del pueblo que ya vive en la cabecera global. La meta (comarca, poblacion, altitud) se migra a un nuevo span #globalPlaceMeta dentro de .app-header, en gris (--hud-white-dim) tras el municipio. .p1-crumbs pasa de nowrap+ellipsis a flex-wrap: wrap con column/row-gap, permitiendo que la cabecera crezca si pueblo+meta+velocidad no caben en una linea. --app-header-h pasa de fija (43px desde sesion 46) a dinamica via ResizeObserver sobre #appHeader, para que V2/V3/V4 respeten el alto real sin que el contenido se cuele bajo el header.",
+    "ultima_actualizacion": "5 de mayo de 2026",
+    "siguiente_hito": "Prueba en carretera real del panel rediseñado (queda por proponer una tarjeta PEC- que englobe IU-29..33 + BPC-17/18). Validar en el movil del salpicadero: cabecera global con HAB y M en una sola linea para municipios habituales, wrap correcto en pueblos con nombres largos, y que V2/V3/V4 respeten el padding-top dinamico. Paralelamente, ideas parqueadas: PO-XX nuevas fuentes de POI siguen abiertas.",
     "bloqueos": "Ninguno."
   },
   "fases": [
@@ -1457,6 +1457,40 @@
         [
           "Consecuencias",
           "Las propuestas IU-XX futuras viven todas en V2 mientras esa siga siendo la era vigente del diseño. Si en el futuro arranca una V3 de diseño (rediseño completo), se cerrará V2 igual y se abrirá V3. CLAUDE.md sección 6 no necesita cambios — la regla del agente queda anotada aquí. Si por error se propusiera una IU en el grupo cerrado, basta con moverla manualmente al V2 reeditando tablero.canvas (la CLI no soporta mover entre grupos, requiere edición JSON con el skill json-canvas)."
+        ]
+      ]
+    },
+    {
+      "id": 38,
+      "titulo": "Altura de la cabecera global dinamica (ResizeObserver) en lugar de fija",
+      "campos": [
+        [
+          "Fecha",
+          "5 de mayo de 2026"
+        ],
+        [
+          "Contexto",
+          "En sesion 46 (IU-31) se eligio --app-header-h fija a 43px en :root, con el plan de ajustarla manualmente si el header crecia en el futuro. La sesion 47 (IU-33) materializo ese caso: la cabecera ahora muestra crumbs ES + Comunidad + Pueblo, meta gris (comarca + HAB + M) y velocidad. En anchos modestos (640px) o con pueblos de nombre largo, los crumbs envuelven a dos lineas y la cabecera crece de 43 a 58px. Con la variable fija, el contenido de V2/V3/V4 se colaba bajo el header en esos casos."
+        ],
+        [
+          "Decision",
+          "Sustituir --app-header-h fija por una variable que se sincroniza con $appHeader.offsetHeight a traves de un ResizeObserver. El valor inicial 43px en :root sirve de fallback si JS falla."
+        ],
+        [
+          "Alternativas consideradas",
+          "(a) Mantener --app-header-h fija a 43px y aceptar el solape ocasional. (b) Subir la fija a 58px de margen siempre, perdiendo espacio util en el caso normal. (c) Usar ResizeObserver sobre #appHeader y actualizar la variable en cada cambio. (d) Usar @container queries (no aplicable: afecta a otra seccion, no al propio header)."
+        ],
+        [
+          "Razon",
+          "ResizeObserver es trivial (5 lineas, vanilla, soportado en Chrome 146 del salpicadero), reactivo y robusto frente a cualquier evolucion futura del header (mas crumbs, fuentes mayores, banner de error). Coste nulo en rendimiento: el observer solo dispara cuando el header realmente cambia de tamaño (rara vez, al cambiar de pueblo)."
+        ],
+        [
+          "Parametros operativos",
+          "ResizeObserver sobre document.getElementById('appHeader'); en cada callback se lee $appHeader.offsetHeight y se escribe en document.documentElement.style.setProperty('--app-header-h', h + 'px') siempre que h > 0. Sin debounce: el observer ya filtra cambios redundantes."
+        ],
+        [
+          "Consecuencias",
+          "El padding-top de las 4 vistas queda siempre alineado con el alto real del header. La nota de la sesion 46 'ajustable manualmente si el header crece' queda obsoleta y se sustituye por esta decision. Si en el futuro se quiere recuperar la fijeza (p.ej. para evitar saltos de layout al cambiar de pueblo), basta con eliminar el ResizeObserver y volver a definir --app-header-h en :root."
         ]
       ]
     }
@@ -3271,6 +3305,40 @@
         [
           "Pendientes",
           "(1) Verificar el bloque IU-29..32 en una prueba en carretera real: header persistente cuando se desliza entre vistas, iconos meteo nuevos a tamaño real, cartel de salida con la nueva tipografía. (2) Si algún icono Flaticon chirría al ver el panel en marcha (meteo-nube pequeño, meteo-tormenta con rayo desplazado, meteo-luna muy detallada), abrir tarjeta para sustituir solo ese. (3) BPC-17, BPC-18 e IU-29..32 quedan en cian — Laureano debe aprobarlas a verde tras la prueba real. (4) Considerar si la cabecera global debe ocultar el municipio cuando se va a alta velocidad o cuando hay error de Nominatim, para evitar 'Comunidad de Madrid · ·' con crumb vacío (el CSS .app-header-place:empty + .app-header-sep ya oculta el separador; verificar en producción)."
+        ]
+      ]
+    },
+    {
+      "n": 47,
+      "titulo": "IU-33 V1 ubicacion: HAB y M migrados a la cabecera global",
+      "campos": [
+        [
+          "Fecha",
+          "5 de mayo de 2026"
+        ],
+        [
+          "Fase trabajada",
+          "UI/Experiencia V2. Sesion corta de feedback visual sobre IU-31 (cabecera global). Laureano detecto al revisar el panel que el nombre del municipio aparecia dos veces: en la cabecera global (crumb #globalPlace, IU-31) y en el cuerpo de V1 (#municipio dentro de .p1-place, herencia de IU-19). Pidio eliminar la duplicacion y compactar HAB+M en la cabecera, manteniendo el color gris."
+        ],
+        [
+          "Contexto de arranque",
+          "Tarjeta IU-33 propuesta y aprobada. Antes de codificar se negocio el alcance de la 'meta' que se mueve al header: el bloque #datosMunicipio mostraba comarca + HAB + M (PO-08, sesion 32), pero Laureano solo menciono HAB y M. Se acordo incluir comarca tambien para preservar PO-08 sin scope creep (mismo dm, una linea de codigo). Tambien se acordo 'opcion a' (todo en una linea) y permitir que la cabecera crezca si no cabe."
+        ],
+        [
+          "Lo que se ha hecho",
+          "(1) HTML index.html: eliminado el bloque .p1-place de V1 (#municipio + #datosMunicipio); añadido span id=globalPlaceMeta class='app-header-meta u-caps' dentro de .app-header tras #globalPlace. (2) CSS: nueva regla .app-header-meta con color var(--hud-white-dim) y :empty {display:none}; .p1-crumbs pasa de {overflow:hidden; white-space:nowrap; text-overflow:ellipsis} a {flex-wrap:wrap; column-gap:7px; row-gap:2px}; reglas .p1-place-name y .p1-place-meta eliminadas (CSS muerto, Karpathy 11.3). (3) main.js: $municipio y $datosMunicipio sustituidos por $globalPlaceMeta; en pintarPOIs el meta se escribe como ' · ' + partes.join(' · ') (prefijo incluido para que :empty oculte el span y su separador a la vez); linea $municipio.textContent = info.municipio eliminada. (4) ResizeObserver sobre #appHeader que sincroniza --app-header-h con offsetHeight (decision 38). (5) SW_VERSION v9 -> v10 y cache-buster main.js v=iu29 -> v=iu33. Verificado en simulador con ruta a6-salidas: a 800x450 -> 'ES + COMUNIDAD DE MADRID + LAS ROZAS DE MADRID + 25.433 HAB + 844 M' en una linea, header 43px; a 640x360 -> wrap a dos lineas, header 58px, V2/V3 respetan padding-top. Color del meta verificado por preview_inspect: rgb(138,154,149) = --hud-white-dim."
+        ],
+        [
+          "Decisiones tomadas",
+          "(a) Comarca incluida en el meta junto a HAB y M: preserva PO-08 sin scope creep — mismo origen (dm de POIModule), una linea de codigo. (b) Decision 38: --app-header-h pasa de fija a dinamica via ResizeObserver. Ver decision 38 para contexto completo. (c) Prefijo ' · ' incluido en el textContent del meta en lugar de separador HTML aparte: simplifica el ocultado por :empty (un solo selector cubre meta y separador)."
+        ],
+        [
+          "Problemas encontrados",
+          "(a) Preview MCP timeouts en screenshots de V4 al cabo de varias navegaciones, ya documentado en sesion 46 — V4 verificado por el camino CSS (mismo --app-header-h que V2/V3). (b) preview_eval con Promise + requestAnimationFrame se cuelga ocasionalmente; sustituido por setTimeout simple en las pruebas. (c) Friccion del flujo Kanvas: la CLI canvas-tool.py no tiene comando approve (purple->red), Laureano tuvo que cambiar el color manualmente en Obsidian. Considerado añadir un comando approve en una futura tarjeta de Deuda tecnica."
+        ],
+        [
+          "Pendientes",
+          "(1) IU-33 queda en cian. Laureano la pasa a verde tras la proxima prueba en carretera real (que englobara tambien IU-29..32 e BPC-17/18 si aun estan en cian). (2) Considerar tarjeta DT- para añadir comando 'approve' a canvas-tool.py (purple->red), evitando la friccion de tener que abrir Obsidian. (3) Verificar en el movil real que el wrap a dos lineas no rompe la sensacion de jerarquia visual cuando ocurre — si molesta, plantear truncar comarca con ellipsis antes de envolver."
         ]
       ]
     }
