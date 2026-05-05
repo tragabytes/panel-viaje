@@ -1186,7 +1186,19 @@
           $salidaDist.textContent = r.proxima.distanciaKm + ' km';
           $salidaSig.textContent  = r.siguiente ? 'luego ' + r.siguiente.ref : '';
           if (r.proxima.destinos) {
-            $salidaDestinos.textContent = r.proxima.destinos;
+            // IU-35: 'vía de servicio' (case-insensitive, con/sin tilde) se
+            // pinta en gris atenuado para diferenciarla de los destinos
+            // reales que van en blanco. El resto del split por ' · ' se
+            // escapa y se concatena tal cual.
+            const PARTS_SEP = ' · ';
+            const SVC_RE = /^v[ií]a de servicio$/i;
+            $salidaDestinos.innerHTML = r.proxima.destinos
+              .split(PARTS_SEP)
+              .map(p => SVC_RE.test(p.trim())
+                ? '<span class="p1-exit-svc">' + escapar(p) + '</span>'
+                : escapar(p)
+              )
+              .join(PARTS_SEP);
             $salidaDestinos.classList.add('visible');
           } else {
             $salidaDestinos.textContent = '';

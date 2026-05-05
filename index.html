@@ -287,14 +287,25 @@
        (comarca · HAB · M) vive ahora en #globalPlaceMeta dentro de
        .app-header. */
 
-    /* -------- Próxima salida -------- */
+    /* -------- Próxima salida --------
+       IU-35: textos del bloque más grandes y nueva jerarquía cromática
+       aprovechando el espacio liberado por IU-33 e IU-34. PRÓXIMA SALIDA
+       en blanco (info crítica para conducir), distancia en verde, destinos
+       en blanco; "vía de servicio" se mantiene gris (.p1-exit-svc) porque
+       es metainformación, no un destino real. SALIDA NN sin cambio
+       (protagonista). "luego N" sin cambio (nota de pie). */
     .p1-exit {
       border-left: 2px solid var(--phos-400);
       padding: 2px 0 2px 10px;
       display: none;
     }
     .p1-exit.visible { display: block; }
-    .p1-exit-tag { font-size: 10px; margin-bottom: 2px; }
+    .p1-exit-tag {
+      font-size: 13px;
+      margin-bottom: 3px;
+      color: var(--hud-white);
+    }
+    .p1-exit-tag-sep { color: var(--hud-white-mute); margin: 0 4px; }
     /* IU-28: número de salida más grande — protagonista visual del bloque. */
     .p1-exit-num {
       font-size: 26px;
@@ -303,8 +314,13 @@
       line-height: 1.1;
     }
     .p1-exit-word { letter-spacing: 0.05em; }
-    .p1-exit-to { font-size: 12px; margin-top: 1px; }
+    .p1-exit-to {
+      font-size: 18px;
+      margin-top: 2px;
+      color: var(--hud-white);
+    }
     .p1-exit-to:empty { display: none; }
+    .p1-exit-svc { color: var(--hud-white-dim); }
     .p1-exit-sig { font-size: 10px; font-style: italic; }
     .p1-exit-sig:empty { display: none; }
 
@@ -1728,14 +1744,14 @@
 
       <!-- Próxima salida: visible solo en autovía -->
       <div class="p1-exit" id="salidaBloque">
-        <div class="p1-exit-tag u-caps u-dim">
-          PRÓXIMA SALIDA · <span id="salidaDist" class="u-tab">—</span>
+        <div class="p1-exit-tag u-caps">
+          PRÓXIMA SALIDA<span class="p1-exit-tag-sep">·</span><span id="salidaDist" class="u-tab u-phos">—</span>
         </div>
         <div class="p1-exit-num u-tab">
           <span class="p1-exit-word">SALIDA</span>
           <span id="salidaNum">—</span>
         </div>
-        <div id="salidaDestinos" class="p1-exit-to u-dim"></div>
+        <div id="salidaDestinos" class="p1-exit-to"></div>
         <div id="salidaSig" class="p1-exit-sig u-dim"></div>
       </div>
 
@@ -2003,7 +2019,7 @@
   <script src="js/v2_lightningfx.js"></script>
   <script src="js/v2_snowfx.js"></script>
   <script src="js/v2_fogfx.js"></script>
-  <script src="js/main.js?v=iu34"></script>
+  <script src="js/main.js?v=iu35"></script>
 
 </body>
 </html>
