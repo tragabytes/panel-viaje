@@ -7,10 +7,10 @@
     "nota_pie": "Actualizar al final de cada sesión de trabajo"
   },
   "estado_actual": {
-    "fase_actual": "UI / Experiencia V2 (continuacion) + limpieza operativa. Sesion 48 cierra IU-36 (pueblos cercanos en V1 ocupan ancho completo bajo el meteo) tras feedback de prueba real, y aprovecha para hacer una limpieza operativa del CLAUDE.md sin tarjeta (cambio del marco de trabajo, no del runtime): añadida jerarquia de reglas en cabecera, sec 6.3 refinada con excepciones explicitas, eliminadas redundancias entre sec 9 y 10, sec 13 (primer arranque) movida a docs/historico_setup.md. CLAUDE.md pasa de 399 a 366 lineas, de 14 a 13 secciones.",
-    "ultima_actualizacion": "5 de mayo de 2026",
-    "siguiente_hito": "Prueba en carretera real del panel rediseñado (queda por proponer una tarjeta PEC- que englobe IU-29..33 + BPC-17/18). Validar en el movil del salpicadero: cabecera global con HAB y M en una sola linea para municipios habituales, wrap correcto en pueblos con nombres largos, y que V2/V3/V4 respeten el padding-top dinamico. Paralelamente, ideas parqueadas: PO-XX nuevas fuentes de POI siguen abiertas.",
-    "bloqueos": "Ninguno."
+    "fase_actual": "Deuda tecnica + resiliencia (sesion 49). Auditoria multiagente del codigo completo (38 hallazgos verificados de 52 brutos) convertida en 14 tarjetas (DT-11..DT-22, RA-04, RA-05), aprobadas por Laureano y EJECUTADAS Y VERIFICADAS TODAS en la propia sesion 49. El panel gasta ahora una fraccion de los datos y CPU de antes: meteo 1 peticion/sesion en vez de 1 cada 30 s en marcha, Nominatim con radios dinamicos por velocidad + limiter serializado, fallos de red ya no se cachean como datos (patron BPC-08 extendido a POIs/gasolineras/RoadRef), rAF de efectos V2 con stop real, SW v14 sin doble descarga ni ventana offline rota, y purgado el codigo muerto post-rediseño (incluida la foto de municipio que se descargaba para un bloque invisible).",
+    "ultima_actualizacion": "20 de agosto de 2026",
+    "siguiente_hito": "Laureano verifica las 14 tarjetas en cian (mas IU-36 pendiente de sesion 48) y las pasa a verde. Despues, la prueba en carretera real del panel (queda por proponer la tarjeta PEC- que englobe IU-29..36 + BPC-17/18 + validacion en movil real de lo no verificable en escritorio: aspecto del trazo plano de lluvia, watchdog de FPS de niebla, y consumo de datos real con los nuevos radios).",
+    "bloqueos": "Ninguno. Nota de entorno: los mirrors de Overpass rate-limitaron la IP de desarrollo durante toda la sesion 49; los gates que dependian de Overpass se verificaron con mocks o con los fallbacks reales (que funcionaron)."
   },
   "fases": [
     {
@@ -1492,6 +1492,91 @@
           "Consecuencias",
           "El padding-top de las 4 vistas queda siempre alineado con el alto real del header. La nota de la sesion 46 'ajustable manualmente si el header crece' queda obsoleta y se sustituye por esta decision. Si en el futuro se quiere recuperar la fijeza (p.ej. para evitar saltos de layout al cambiar de pueblo), basta con eliminar el ResizeObserver y volver a definir --app-header-h en :root."
         ]
+      ]
+    },
+    {
+      "id": 39,
+      "titulo": "SW v14: sin ?v= en los scripts, exclusion de endpoints por coordenada y tope de API_CACHE (DT-11)",
+      "campos": [
+        ["Fecha", "20 de agosto de 2026 (sesion 49)"],
+        ["Contexto", "La auditoria detecto que los 9 scripts con ?v= no casaban con el precache del SW (que lista URLs sin query y cache.match compara la URL completa): cada bump de SW_VERSION descargaba todo el JS dos veces y dejaba una ventana de arranque offline roto. Ademas API_CACHE guardaba toda respuesta GET con URLs de coordenadas casi unicas, sin TTL ni tope: crecia sin limite y su fallback offline casi nunca acertaba."],
+        ["Decision", "Eliminar los ?v= (la invalidacion la gobierna SW_VERSION, cuyo bump borra APP_CACHE entera), añadir cache.match(request, {ignoreSearch:true}) en cacheFirst como cinturon, excluir del cache.put de networkFirst los endpoints parametrizados por coordenada (nominatim, api.open-meteo.com, photon.komoot.io, query.wikidata.org — sus SPARQL llevan Point(lon lat) — y el geosearch de es.wikipedia.org), y tope FIFO de 100 entradas en API_CACHE (recortarApiCache tras cada put). Wikipedia REST por titulo y por pageids si se cachean (URLs repetibles, contenido no perecedero)."],
+        ["Alternativas consideradas", "(a) Precachear las URLs exactas con query — fragil: habria que sincronizar el precache con cada bump de ?v=. (b) Solo ignoreSearch sin quitar los ?v= — resolvia el offline pero mantenia la doble descarga por caché HTTP. (c) Normalizar claves redondeando coordenadas para que el fallback acertara — mas complejidad para un beneficio dudoso (meteo rancia servida como fresca)."],
+        ["Parametros operativos", "SW_VERSION = v14-2026-08-20-s49. MAX_API_ENTRIES = 100. API_NO_CACHEAR_HOSTS = [nominatim.openstreetmap.org, api.open-meteo.com, photon.komoot.io, query.wikidata.org] + es.wikipedia.org solo si search incluye list=geosearch."],
+        ["Consecuencias", "Verificado en local: cada JS se descarga UNA vez sin query, caches.keys() solo contiene v14 tras activate, el precache sirve js/main.js, API_CACHE queda sin hosts excluidos, y el panel arranca entero con el servidor parado (test offline). Los clientes desplegados se actualizan por el flujo estandar del SW (byte-diff → install → activate)."]
+      ]
+    },
+    {
+      "id": 40,
+      "titulo": "Nominatim: radios de cache dinamicos por velocidad, limiter serializado y dedupe en vuelo (DT-13)",
+      "campos": [
+        ["Fecha", "20 de agosto de 2026 (sesion 49)"],
+        ["Contexto", "El radio de cache de carretera (80 m) era menor que el paso entre ticks a velocidad de autovia: ~15-20 peticiones Nominatim/min sostenidas (medido en vivo: 42-60 por minuto con pares disparados en el MISMO segundo — el limiter calculaba la espera sobre una foto compartida del reloj y dos llamadas concurrentes dormian lo mismo y disparaban a la vez, violando el 1 req/s de Nominatim)."],
+        ["Decision", "(1) respetarLimite pasa a cola serializada (promesa encadenada: cada turno espera al anterior y fija el reloj al despertar). (2) Dedupe de peticion en vuelo por funcion (patron peticionEnCurso de weather.js). (3) Radios de cache dinamicos: radio = max(base, velocidad_ms x segundos_objetivo), con ubicacion x30 s y carretera x12 s; main.js pasa velEfectivaKmh. (4) Tokens de secuencia en actualizarUbicacionAdministrativa/actualizarCarretera: una respuesta que llega despues que la de un tick posterior se descarta (antes pisaba municipio/via mas recientes con 3G lento). (5) Recorte de parametros: namedetails fuera siempre (nadie lo consumia), extratags solo en zoom 17."],
+        ["Parametros operativos", "Objetivo de cadencia en marcha: ubicacion ~1 req/30 s, carretera ~1 req/12 s (a 120 km/h → radios ~1000 m y ~400 m). Suelos: 200 m y 80 m (caso urbano lento/a pie identico a antes). INTERVALO_MIN_MS sigue en 1100."],
+        ["Razon", "Los radios dinamicos convierten la politica declarada (ubicacion ~30 s) en comportamiento real sin perder precision urbana. Verificado con test unitario en vivo: 300 m a 100 km/h → cache, 500 m → red, 300 m a 20 km/h → red (suelo), z14 sin extratags/namedetails, z17 con extratags sin namedetails, y cero pares de disparo en el mismo segundo tras el fix."],
+        ["Consecuencias", "En conduccion real la cadencia Nominatim baja un orden de magnitud. El simulador no puede demostrar la mejora completa (sus puntos estan a ~750 m, fuera de cualquier radio), cosa que quedo anotada al interpretar las mediciones."]
+      ]
+    },
+    {
+      "id": 41,
+      "titulo": "Meteo: radio de cache 8 km y clave de repintado con temperatura (DT-12)",
+      "campos": [
+        ["Fecha", "20 de agosto de 2026 (sesion 49)"],
+        ["Contexto", "RADIO_CACHE_M = 1000 anulaba el TTL de 15 min en movimiento: a velocidad de autovia, una peticion a Open-Meteo cada ~30 s (~120/hora frente a las ~4/hora de la politica). Medido en vivo antes del fix: 15 peticiones en 70 s. Ademas la clave de repintado hora|weatherCode descartaba respuestas frescas ya pagadas cuando cambiaba la temperatura pero no el codigo WMO."],
+        ["Decision", "RADIO_CACHE_M 1000 → 8000 (la meteo no cambia de forma significativa en 8 km; el modelo de Open-Meteo trabaja con celdas de varios km). Clave de repintado pasa a hora|weatherCode|Math.round(temperatura). Limpieza de campos: apparent_temperature (current y hourly), humedad horaria y viento horario dejan de pedirse (ningun consumidor los leia; RainFX/SnowFX leen el viento del current). El debug.warn de cache reusada pasa a debug.log (inflaba el contador de avisos del exportador de trayectos)."],
+        ["Consecuencias", "Verificado en vivo tras el fix: 1 peticion Open-Meteo por sesion entera de ruta (la primera), con hits de cache a distancias de hasta 5,6 km y edades de 1-2 min. TTL de 15 min vuelve a mandar."]
+      ]
+    },
+    {
+      "id": 42,
+      "titulo": "DT-20 resuelto por medicion: la query de junctions se queda como esta",
+      "campos": [
+        ["Fecha", "20 de agosto de 2026 (sesion 49)"],
+        ["Contexto", "La auditoria sospechaba que el `.via out body geom` de MotorwayExit descargaba la geometria completa de la autovia (potencialmente cientos de KB) usando solo dos vertices por junction."],
+        ["Decision", "Medir antes de tocar (regla de la sec 10). Medicion real con la query exacta de construirQuery en la A-6 (radio 50 km, overpass-api.de): 62.951 B de JSON, ~9,8 KB comprimido en el cable, 32 junctions, 61 ways, solo 428 puntos de geometria — los ways de autovia estan partidos en las junctions, asi que la query NO descarga la autovia entera. Muy por debajo del umbral de 100 KB: no se toca la query; se documenta la medicion en un comentario sobre construirQuery."],
+        ["Consecuencias", "Si alguien reabre esto: la variante `.via out tags` es inviable (pierde el array nodes[] y hace imposible casar junction↔way); la alternativa correcta seria `.via out body` + `node(w.via)(around.juncs:400)` + out skel. Y ojo: 3 curls seguidos a overpass-api.de devolvieron un 429 — espaciar si se re-mide."]
+      ]
+    },
+    {
+      "id": 43,
+      "titulo": "Miniaturas V3 con loading=lazy (reversion razonada de la precarga) (DT-18)",
+      "campos": [
+        ["Fecha", "20 de agosto de 2026 (sesion 49)"],
+        ["Contexto", "La decision documentada en pintarPOIs era precargar las 6 miniaturas del grid V3 sin lazy 'para que esten listas al deslizar'. Coste real: cada refresco del set de pueblos descargaba ~100-300 KB de thumbnails aunque V3 no se visitara nunca (la mayoria de los viajes)."],
+        ["Decision", "loading=lazy en las 6 img. Chrome empieza a precargar ~1250 px antes de que el elemento entre en viewport: con V3 a un deslizamiento de distancia, en la practica las fotos llegan listas igualmente. La regla dura 'minimiza peticiones' pesa mas que la instantaneidad de una vista secundaria."],
+        ["Consecuencias", "El comentario del codigo documenta la reversion y el porque. Si en el movil real se nota pop-in molesto al entrar en V3, la alternativa es precarga disparada por el IntersectionObserver de V2 (a medio deslizamiento), no volver a la descarga incondicional."]
+      ]
+    },
+    {
+      "id": 44,
+      "titulo": "Efectos V2: stop() real del rAF, trazo plano en renderGota y watchdog de FPS con auto-degradacion en FogFX (DT-15)",
+      "campos": [
+        ["Fecha", "20 de agosto de 2026 (sesion 49)"],
+        ["Contexto", "RainFX y SnowFX reprogramaban el rAF como primera instruccion del tick y no existia cancelAnimationFrame en todo js/: dos bucles a ~60 Hz durante todo el viaje aunque no lloviera y V2 no fuera visible (el comentario de cabecera prometia una pausa que no existia). renderGota creaba un createLinearGradient por gota y frame (hasta ~3.000 objetos/s en tormenta). FogFX (SVG+CSS, sin rAF) no tenia degradacion por rendimiento: un movil lento que soporta feDisplacementMap sufria siempre el camino caro."],
+        ["Decision", "(1) stop() con cancelAnimationFrame; el tick comprueba visibilidad y debeAnimar ANTES de reprogramar; rearme desde setMeteo y el IntersectionObserver; setMeteo(null) es null-safe y para el motor. (2) Trazo plano (strokeStyle) en vez de gradiente por gota; el punto de brillo se conserva; si la validacion visual en el movil real lo echa en falta, la alternativa documentada es sprite offscreen. (3) FogFX gana watchdog: sampler rAF activo SOLO con data-meteo-cat=niebla y V2 visible; <25 fps durante 5 s seguidos → clase v2-fog-fallback + persistencia en localStorage (fogfx-fallback=1) + debug.log con la serie de FPS medida. Esa medicion registrada ES la que pedia la tarjeta."],
+        ["Parametros operativos", "UMBRAL_FPS=25 (ajustable via FogFX._setUmbralFps para tests), VENTANA_SEG=5, CLAVE_LS=fogfx-fallback. Verificado en vivo: 0 programaciones de rAF con cielo despejado (antes ~120/s entre ambos motores), ciclo armado→detenido correcto para lluvia y nieve, y la rama de persistencia arranca directa en fallback."],
+        ["Consecuencias", "El disparo real del watchdog por FPS bajos y el aspecto del trazo plano no son verificables en el entorno de escritorio (ventana sin composicion): quedan para la revision de Laureano en el movil del salpicadero."]
+      ]
+    },
+    {
+      "id": 45,
+      "titulo": "Stub window.debug en index.html como red de seguridad de arranque (DT-17)",
+      "campos": [
+        ["Fecha", "20 de agosto de 2026 (sesion 49)"],
+        ["Contexto", "debug.js declara `const debug` a nivel top de script clasico — un binding lexico global que NO es window.debug. Cinco archivos (weather, simulator, wakelock, location, main — 62 llamadas) usan debug.* sin guarda typeof; si debug.js no carga (primera visita con 3G a cortes, sin SW aun), el primer debug.log de arrancarPanel lanzaba ReferenceError y mataba el panel entero."],
+        ["Decision", "Stub inline en index.html ANTES de los scripts: window.debug = {log(){}, warn(){}, error(){}, activo(){return false}, mensajes(){return []}}. Semantica validada: una propiedad de datos del objeto global NO bloquea la declaracion lexica posterior (no hay SyntaxError) y el const la eclipsa por cadena de ambitos cuando debug.js carga; si no carga, las llamadas desnudas resuelven al stub. NO se añadieron guardas typeof a los 5 archivos (cambio minimo, principio 11.3)."],
+        ["Consecuencias", "Verificado con iframe sin debug.js: el panel arranca entero (llega hasta el estado de GPS) — y el grupo de control accidental (HTML pre-stub sin debug.js) murio con el estado vacio, confirmando el problema original. Coste asumido: sin debug.js tampoco hay persistencia de logs en Trayectos. La linea de debug.js del arbol de CLAUDE.md sec 4 documenta el stub."]
+      ]
+    },
+    {
+      "id": 46,
+      "titulo": "Tope de 8000 mensajes persistidos por trayecto (DT-21)",
+      "campos": [
+        ["Fecha", "20 de agosto de 2026 (sesion 49)"],
+        ["Contexto", "Trayectos persiste TODOS los logs en todos los viajes (decision FN-02a: antes del check de ?debug=1) y solo rotaba entre trayectos: a 2-4 mensajes/s en marcha, decenas de miles de filas IDB por viaje largo, con transaccion readwrite cada 3 s durante horas. Medido en vivo: 2.328 mensajes en 8 minutos de simulador."],
+        ["Decision", "MAX_MENSAJES_TRAYECTO = 8000 (cubre >1 h de viaje con margen). Al alcanzarlo se persiste UNA linea warn de aviso y se dejan de persistir mensajes de ese trayecto; el track NO tiene tope (1 punto/30 s o 500 m, barato). El contador cuenta mensajes encolados, no filas confirmadas (aproximacion asumida y documentada). Complemento: el panel visual de debug pasa a append incremental (antes reconstruia los 50 divs y forzaba reflow en CADA mensaje)."],
+        ["Consecuencias", "Verificado en vivo: corte exacto en 8000 con la linea de aviso presente en el export, y el panel visual añade 1 nodo y poda 1 por mensaje (50 hijos constantes)."]
       ]
     }
   ],
@@ -3375,9 +3460,62 @@
           "(1) IU-36 queda en cian; pasa a verde tras la siguiente prueba real en el coche, junto con IU-33/34/35. (2) Si en marcha el POI strip inferior (.p1-bottom) queda muy pegado al bloque pueblos, plantear separador o margin extra. (3) Considerar si la fila pueblos deberia tener un border-top sutil para marcar la separacion respecto al grid superior, ahora que ocupa todo el ancho."
         ]
       ]
+    },
+    {
+      "n": 49,
+      "titulo": "Auditoria integral multiagente + ejecucion de las 14 tarjetas resultantes (12 DT + 2 RA) en una sola sesion",
+      "campos": [
+        [
+          "Fecha",
+          "20 de agosto de 2026"
+        ],
+        [
+          "Fase trabajada",
+          "Deuda tecnica + resiliencia. Laureano abrio pidiendo 'darle duro' y una ultrarevision del codigo. Se ejecuto una auditoria multiagente (workflow de 12 agentes: 6 lentes de busqueda — obsoleto, bugs, red, rendimiento, reglas, integracion index+main — y verificadores escepticos por lote con la instruccion de refutar en caso de duda): 52 hallazgos brutos → 38 confirmados, 15 refutados o fusionados. Los confirmados se convirtieron en 14 tarjetas (DT-11..DT-22 en Deuda tecnica, RA-04/RA-05 en Resiliencia API). Laureano las aprobo TODAS y pidio completarlas en la sesion sin depender de el, con pruebas de calidad."
+        ],
+        [
+          "Contexto de arranque",
+          "Plan en dos olas por solapamiento de archivos (main.js lo tocaban 7 tarjetas): Ola 1 con 3 agentes en paralelo sobre modulos disjuntos (RESILIENCIA: RA-04+RA-05+DT-20+iconos de DT-14e; EFECTOS: DT-15; LOGS: DT-21), Ola 2 secuencial en el bucle principal con orden DT-14 → DT-16 → DT-13 → DT-12 → DT-18 → DT-22 → DT-19 → DT-17 → DT-11 (la purga primero porque eliminaba maquinaria que DT-16 habria tenido que orquestar; el SW al final con bump unico v14). Dos agentes exploradores mapearon antes main.js/index.html y los modulos con numeros de linea verificados, y un agente de diseño produjo la especificacion por tarjeta — incluida la medicion real de DT-20 que desactivo su implementacion."
+        ],
+        [
+          "Lo que se ha hecho",
+          "TODAS las tarjetas implementadas Y verificadas con gate propio: (1) DT-14 purga — foto de municipio invisible que se descargaba igualmente, 9 spans compat ocultos escritos por tick, pastilla V3 + chip maxspeed + bucle FN-08 sobre chips invisibles, ~120 lineas de CSS muerto pre-HUD, iconos emoji de POIs persistidos sin renderizarse; gate: grep 0 referencias + smoke en 3 rutas identico. (2) DT-16 — maxspeed ligado a la via vigente: reset inmediato al cambiar de clave (variable Y DOM — el fix del refresco inmediato salio de detectar en el gate una ventana de 1 tick con el limite viejo visible), callback RoadRef con guarda de vigencia, re-consulta intra-via (2 km / 5 min), caso B ya no hereda el limite de la via anterior; gate con RoadRef mockeado por posicion: transiciones A-6/120 → M-505/90 sin combinaciones prohibidas. (3) DT-13 — ver decision 40; gate unitario en vivo con 6 aserciones. (4) DT-12 — ver decision 41; gate: 1 peticion meteo/sesion (antes 1 cada 5-6 s). (5) DT-18 — claves estructurales en pintarPOIs/pintarGasolineras con camino rapido de solo-distancias (V1/V3 por textContent, V4 con calcularPinsV4 extraido y reposicionado por estilo), lazy en miniaturas V3; gate con resultado congelado: 57 de 60 ticks por el camino rapido y gasolineras 0 mutaciones (los 3 rebuilds restantes eran promesas rezagadas pre-congelacion — ruido del test). (6) DT-22 — V2 tambien se resetea en error de meteo (con apagado real de FX via setMeteo(null)), literal RADIO 15 KM desde POIFuentes.RADIO_PUEBLOS_M en V3 y V4, comarca de Wikidata pisa el placename provisional de V4, selector del separador de cabecera arreglado con :has(). (7) DT-19 — cabecera sin backdrop-filter (fondo a 0.92), halo grave en ::after con box-shadow estatico animando solo opacity; gate por estilos computados. (8) DT-17 — ver decision 45. (9) DT-11 — ver decision 39; incluye test offline con el servidor parado. (10) RA-04 — patron BPC-08 extendido: POIs/enriquecimiento no persisten [] de fallo de red (con esFalloRed distinguiendo 404/disambiguation de red), sentinela {__negativo:true} para la cache negativa de municipio (el null se releia como miss y repetia SPARQL cada sesion), gasolineras con TTL_FALLO 30 s, RoadRef distingue sin-ref confirmado (TTL largo) de fallo de mirrors (TTL 30 s); gate en vivo con Overpass parcheado a fallo: 'sin cachear' en cada intento y recuperacion al restaurar. (11) RA-05 — backoff de 2 min en el refresco por distancia de MotorwayExit y candado de POIModule liberado en flujo.finally (no al ganar el timeout el race); gate: con flujo colgado artificialmente, 0 flujos nuevos en 30 s de ticks. (12) DT-15 — ver decision 44. (13) DT-21 — ver decision 46. (14) DT-20 — ver decision 42. Ademas: regresion final (6 rutas + simSpeedNull + node --check de los 14 js tocados, consola limpia) y arbol de CLAUDE.md sec 4 sincronizado con el repo real (cambio operativo sin tarjeta, sec 6.3)."
+        ],
+        [
+          "Decisiones tomadas",
+          "Decisiones 39-46 registradas en el array de decisiones: SW v14 (39), radios Nominatim dinamicos + limiter serializado (40), radio meteo 8 km (41), DT-20 por medicion (42), lazy V3 razonado (43), efectos V2 con stop real + watchdog FogFX (44), stub window.debug (45), tope 8000 msg/trayecto (46). Ademas: las 14 tarjetas quedan en cian — verde lo pone Laureano tras su revision, idealmente con la prueba en carretera."
+        ],
+        [
+          "Problemas encontrados",
+          "(a) ENTORNO DE VERIFICACION EN LOCAL — tres trampas que costaron varios ciclos: (1) la cache HTTP heuristica de Chrome servia JS/HTML viejos sin revalidar (python http.server no manda Cache-Control; archivos con mtime de meses ganan dias de frescura heuristica) COMBINADA con el cacheFirst del SW: el protocolo que funciona es borrar caches del SW PRIMERO, revalidar todo con fetch cache:reload DESPUES (asi el fetch del SW hereda el modo reload y llega a red), y navegar con un parametro unico por run; (2) la ventana del navegador sin composicion (pane oculto) congela rAF, IntersectionObserver y screenshots, y throttlea timers — los gates de rAF se hicieron con un shim de requestAnimationFrame sobre setTimeout y los visuales quedaron como instantaneas estructurales del DOM; (3) los mirrors de Overpass rate-limitaron la IP todo el dia (respuestas de error sin CORS), asi que los gates dependientes de Overpass usaron mocks por posicion o los fallbacks reales (que funcionaron: Wikipedia geosearch rescato los POIs de la Maragateria con fotos por pageid). (b) El gate de DT-16 detecto una ventana real de 1 tick en la que el numero del limite viejo seguia visible tras cambiar de via (la variable ya era null pero el DOM solo se refrescaba en el tick GPS) — corregida con pintarLimiteVelocidad() inmediato en los tres puntos. (c) DT-12 se dio inicialmente por verificada con datos del codigo VIEJO servido por la cache heuristica — la medicion pre-fix (15 peticiones/70 s, pares Nominatim en el mismo segundo) acabo siendo la foto perfecta del problema, y la post-fix real la confirmo resuelta. (d) P37 registrado como limitacion consciente."
+        ],
+        [
+          "Pendientes",
+          "(1) Laureano revisa las 14 tarjetas en cian y las pasa a verde (o las devuelve). (2) Validar en el movil real lo no verificable en escritorio: aspecto del trazo plano de la lluvia (si pierde calidad, escalar a sprite offscreen — documentado en renderGota), disparo real del watchdog de FPS de niebla, y consumo de datos con los nuevos radios. (3) Proponer la tarjeta PEC- de la prueba en carretera que englobe IU-29..36 + BPC-17/18 + estas validaciones. (4) La etiqueta del grupo 'Deuda tecnica' en tablero.canvas tiene la tilde corrompida desde alguna sesion anterior (mojibake 'tÃ©cnica') — cosmetico, no rompe nada; arreglarlo algun dia con el skill json-canvas. (5) Idea parqueada que dejo el agente de diseño: un parametro ?fx=lluvia|tormenta|nieve|niebla para forzar efectos V2 sin depender de la meteo real seria el cambio de mayor retorno para iterar sobre los efectos."
+        ]
+      ]
     }
   ],
-  "problemas_abiertos": [],
+  "problemas_abiertos": [
+    {
+      "id": "P37",
+      "titulo": "Municipio parcial persistido 14 dias si Wikidata cae pero Wikipedia responde",
+      "campos": [
+        [
+          "Sesión",
+          "49"
+        ],
+        [
+          "Descripción",
+          "En obtenerDatosMunicipio, si las capas 1-2 (Wikidata SPARQL) fallan por red pero la capa 3 (Wikipedia, no critica) devuelve descripcion, se persiste un resultado parcial (sin poblacion/altitud/comarca) durante los 14 dias del TTL de IDB. La guarda BPC-08 no cubre este caso porque el catch de la capa 3 no marca falloRed (deliberado: es una capa no critica). Detectado durante RA-04; se decidio NO ampliar el alcance de la tarjeta."
+        ],
+        [
+          "Estado",
+          "Limitacion consciente, sin arreglo previsto. Impacto bajo: el municipio muestra descripcion pero no HAB/M durante como maximo 14 dias en trayectos por la misma zona; se autocorrige al expirar el TTL. Si molesta en la practica, la solucion es marcar el resultado parcial con un TTL corto propio."
+        ]
+      ]
+    }
+  ],
   "problemas_resueltos": [
     {
       "id": "P01",

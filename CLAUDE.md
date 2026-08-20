@@ -62,30 +62,45 @@ Estas restricciones son permanentes y condicionan cualquier decisión técnica d
 ├── canvas-tool.py                  CLI de Kanvas (ver sección 6)
 ├── RULES.md                        Reglas completas del flujo Kanvas
 ├── tablero.canvas                  Tablero Kanvas del proyecto (Obsidian Canvas)
+├── service-worker.js               PWA: precache de assets + NetworkFirst para APIs (DT-01/DT-11)
+├── manifest.webmanifest            Manifest de la PWA (instalable)
 ├── .claude/
 │   └── skills/                     Skills de Obsidian de kepano (ver sección 8)
+├── css/
+│   └── style.css                   Tokens y utilidades compartidas (el grueso del CSS vive inline en index.html)
+├── fonts/                          Tipografías self-host (JetBrains Mono, Space Grotesk, Archivo Black — IU-18)
+├── icons/                          Iconos PWA (192 y 512 px)
 ├── js/                             Módulos JavaScript del panel
-│   ├── debug.js                    Panel de debug en pantalla con ?debug=1 (expone const debug global; usar typeof debug !== 'undefined' como guarda)
-│   ├── trayectos.js                Persistencia de logs por trayecto en IndexedDB + exportador (FN-02)
+│   ├── main.js                     Orquestador: refs DOM, pintado de vistas, tick GPS y actualizaciones (DT-08)
+│   ├── geo.js                      Utilidades geodésicas compartidas (DT-02)
+│   ├── debug.js                    Panel de debug en pantalla con ?debug=1 (expone const debug global — NO window.debug; index.html define un stub window.debug como red de seguridad de arranque, DT-17)
+│   ├── trayectos.js                Persistencia de logs por trayecto en IndexedDB + exportador (FN-02; tope 8000 msg/trayecto, DT-21)
 │   ├── wakelock.js                 Wake Lock API para mantener la pantalla encendida
 │   ├── carreteras.js               Clasificación estatal/autonómica + tabla de mapeo
 │   ├── overpass.js                 Cascada de mirrors Overpass compartida
-│   ├── roadref.js                  Fallback Overpass para rescatar ref de vías
-│   ├── location.js                 LocationModule (Nominatim zoom 14 + 17)
+│   ├── roadref.js                  Fallback Overpass para rescatar ref de vías + maxspeed
+│   ├── location.js                 LocationModule (Nominatim zoom 14 + 17; radios de caché dinámicos por velocidad, DT-13)
 │   ├── meteo_codigos.js            Tabla WMO → texto + categoría + icono + icono SVG
-│   ├── weather.js                  WeatherModule (Open-Meteo; expone mm/h y sunrise/sunset)
+│   ├── weather.js                  WeatherModule (Open-Meteo; radio de caché 8 km, DT-12)
 │   ├── motorwayexit.js             Próxima salida de autovía (Overpass)
 │   ├── gasolineras.js              GasolinerasModule (Overpass)
-│   ├── pois.js                     POIModule (Overpass + Wikidata + Wikipedia + Photon)
-│   ├── rutas.js                    Catálogo de rutas del simulador
+│   ├── pois/                       POIModule dividido por responsabilidad (DT-10)
+│   │   ├── core.js                 Orquestación, cachés y flujo actualizar()
+│   │   ├── fuentes.js              Overpass + Wikidata + Wikipedia + Photon
+│   │   ├── idb.js                  Caché persistente en IndexedDB (TTL 14 días)
+│   │   └── match.js                Matching de nombres (Jaccard)
+│   ├── rutas.js                    Catálogo de rutas del simulador (6 rutas)
 │   ├── simulator.js                Simulador de GPS activable con ?sim=<ruta>
-│   ├── v2_rainfx.js                Motor Canvas 2D de lluvia en V2 (IU-13)
+│   ├── v2_rainfx.js                Motor Canvas 2D de lluvia en V2 (IU-13; rAF con stop real, DT-15)
 │   ├── v2_lightningfx.js           Rayo SVG + eco cálido para tormenta en V2 (IU-14)
-│   ├── v2_snowfx.js                Motor Canvas 2D de nieve en V2 (IU-15)
-│   └── v2_fogfx.js                 Niebla volumétrica SVG en V2 (IU-15; fallback con ?fogfallback=1)
+│   ├── v2_snowfx.js                Motor Canvas 2D de nieve en V2 (IU-15; rAF con stop real, DT-15)
+│   └── v2_fogfx.js                 Niebla volumétrica SVG en V2 (IU-15; fallback con ?fogfallback=1 y watchdog de FPS con auto-degradación, DT-15)
 ├── docs/                           Documentación y sistema de seguimiento
 │   ├── seguimiento.json            FUENTE CANÓNICA de historia (ver sección 5)
 │   ├── generar_seguimiento.js      Script Node.js que genera el .docx desde el JSON
+│   ├── historico_setup.md          Histórico de la instalación inicial (antigua sección 13)
+│   ├── package.json                Dependencias del generador del .docx
+│   ├── prototipo-v2/               Prototipos del rediseño HUD (IU-17)
 │   ├── seguimiento_desarrollo_panel_viaje.docx   Generado automáticamente
 │   ├── plan_desarrollo_panel_viaje.docx          Plan maestro
 │   └── instrucciones_proyecto_panel_viaje.docx   Instrucciones originales
@@ -363,4 +378,4 @@ Lista negativa explícita. Si te descubres haciendo alguna de estas, para.
 
 ---
 
-*Fin del CLAUDE.md. Última actualización: 5 de mayo de 2026 — limpieza operativa de sesión 48: añadida jerarquía de reglas en cabecera, modo estricto de Kanvas refinado con excepciones explícitas, eliminadas redundancias entre secciones 9 y 10, sección 13 (primer arranque) movida a `docs/historico_setup.md`, sección 14 renumerada a 13 y suavizada para no obligar al saludo + status cuando el usuario abre con petición concreta.*
+*Fin del CLAUDE.md. Última actualización: 20 de agosto de 2026 (sesión 49) — árbol de la sección 4 sincronizado con el repo real (js/main.js, js/geo.js, js/pois/, css/, fonts/, icons/, service-worker.js, manifest, docs ampliados) y nota del stub window.debug (DT-17). Anterior: 5 de mayo de 2026 — limpieza operativa de sesión 48: añadida jerarquía de reglas en cabecera, modo estricto de Kanvas refinado con excepciones explícitas, eliminadas redundancias entre secciones 9 y 10, sección 13 (primer arranque) movida a `docs/historico_setup.md`, sección 14 renumerada a 13 y suavizada para no obligar al saludo + status cuando el usuario abre con petición concreta.*

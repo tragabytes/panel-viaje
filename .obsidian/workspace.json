@@ -15,9 +15,9 @@
               "state": {
                 "file": "tablero.canvas",
                 "viewState": {
-                  "x": 3004.4554710200787,
-                  "y": 1529.535551841033,
-                  "zoom": -0.8913954194872988
+                  "x": 2870.92079876733,
+                  "y": 2971.5641892056306,
+                  "zoom": -0.9312932320153653
                 }
               },
               "icon": "lucide-layout-dashboard",
@@ -188,17 +188,18 @@
   },
   "active": "92840a95ac70fffc",
   "lastOpenFiles": [
-    "service-worker.js.tmp.8240.1776973372220",
-    "service-worker.js.tmp.8240.1776973367562",
-    "js/main.js",
-    "index.html.tmp.8240.1776972833301",
-    "js/pois/core.js",
-    "js/pois/fuentes.js",
-    "js/pois/idb.js",
-    "js/pois/match.js",
-    "js/pois",
-    "index.html.tmp.8240.1776972478911",
-    "service-worker.js",
+    "docs/seguimiento.json.tmp.21592.b5dd1b58ec0f",
+    "CLAUDE.md.tmp.21592.8aee7dbc4b77",
+    "CLAUDE.md.tmp.21592.90ed25a0f541",
+    "index.html.tmp.21592.c52b3d1cef07",
+    "service-worker.js.tmp.21592.0cbec69ebc4a",
+    "service-worker.js.tmp.21592.6816cf952fd2",
+    "service-worker.js.tmp.21592.1e25720e5f5c",
+    "service-worker.js.tmp.21592.1ca181b4e78d",
+    "index.html.tmp.21592.7a4eb2f63322",
+    "index.html.tmp.21592.22263d91cbb0",
+    "index.html.tmp.21592.b5c5afda565b",
+    "docs/prototipo-v2/README.md",
     "icons/icon-512.png",
     "icons/icon-192.png",
     "RULES.md",
