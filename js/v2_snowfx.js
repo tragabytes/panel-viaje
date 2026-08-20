@@ -2,8 +2,10 @@
 // SnowFX — motor Canvas 2D de nieve para la Vista 2 (IU-15).
 //
 // Reutiliza el mismo patrón que RainFX (IU-13): canvas a dpr*0.75, 30 fps,
-// IntersectionObserver propio para pausar fuera de viewport, y tintado
-// por momento del día (IU-12).
+// tintado por momento del día (IU-12) y ciclo de vida rAF de DT-15 (el
+// bucle solo corre con nieve y V2 en viewport; en cualquier otro caso
+// tick() se detiene con cancelAnimationFrame y lo rearman setMeteo o el
+// IntersectionObserver).
 //
 // Copos "blobby" compuestos por 4 elipses superpuestas rotadas, con
 // rotación lenta propia y oscilación senoidal horizontal. Velocidad y
@@ -146,16 +148,22 @@
     return !!(meteoActual && meteoActual.categoria === 'nieve');
   }
 
+  // DT-15: cancela el rAF y limpia pool y canvas. El bucle no vuelve a
+  // correr hasta que start() lo rearme (setMeteo / IntersectionObserver).
+  function stop() {
+    if (!running && !raf) return;
+    running = false;
+    if (raf) { cancelAnimationFrame(raf); raf = null; }
+    copos.length = 0;
+    if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (typeof debug !== 'undefined') debug.log('SnowFX: rAF detenido');
+  }
+
   function tick(now) {
+    // Condición de parada ANTES de reprogramar: sin nieve o con V2 fuera
+    // de viewport no queda ningún callback pendiente (DT-15).
+    if (!visibleEnViewport || !debeAnimar()) { stop(); return; }
     raf = requestAnimationFrame(tick);
-    if (!visibleEnViewport) return;
-    if (!debeAnimar()) {
-      if (copos.length > 0) {
-        copos.length = 0;
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-      }
-      return;
-    }
     if (now - lastFrame < FRAME_MS) return;
     lastFrame = now;
     ajustarPool(poolObjetivo);
@@ -164,10 +172,11 @@
   }
 
   function start() {
-    if (running || reducedMotion) return;
+    if (running || reducedMotion || !visibleEnViewport || !debeAnimar()) return;
     running = true;
     lastFrame = 0;
     raf = requestAnimationFrame(tick);
+    if (typeof debug !== 'undefined') debug.log('SnowFX: rAF armado');
   }
 
   function renderEstatico() {
@@ -223,6 +232,9 @@
         entries.forEach(function (e) {
           visibleEnViewport = e.intersectionRatio >= 0.5;
         });
+        // DT-15: rearme al volver al viewport (la parada al ocultarse la
+        // hace el propio tick). start() se autoprotege si no toca animar.
+        if (visibleEnViewport) start();
       }, { threshold: [0, 0.5, 1] });
       iobs.observe(vista2);
     }
@@ -248,6 +260,9 @@
         ' · wc=' + (m && m.weatherCode) +
         ' · pool=' + poolObjetivo);
     }
+    // DT-15: rearme del bucle si esta meteo trae nieve (start() se
+    // autoprotege si no toca animar).
+    if (!reducedMotion) start();
   }
 
   function setMomento(mom) {

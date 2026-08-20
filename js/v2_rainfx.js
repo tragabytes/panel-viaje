@@ -5,11 +5,17 @@
 // de #vista2, pool de 18-50 gotas según intensidad real (mm/h), con
 // inclinación derivada del viento, impactos elípticos al tocar el borde
 // inferior, y tintado por momento del día (IU-12). Respeta
-// prefers-reduced-motion (único frame estático) y pausa el RAF cuando
-// V2 sale del viewport.
+// prefers-reduced-motion (único frame estático).
+//
+// Ciclo de vida del rAF (DT-15): el bucle solo corre cuando hay lluvia o
+// tormenta Y V2 está en viewport. En cualquier otro caso tick() se
+// detiene a sí mismo con cancelAnimationFrame (cielo despejado = cero
+// callbacks). El rearme lo hacen setMeteo (al llegar precipitación) y el
+// IntersectionObserver (al volver V2 al viewport).
 //
 // API pública:
-//   RainFX.init({ vista2? })  → crea canvas y arranca (o estático si RM)
+//   RainFX.init({ vista2? })  → crea canvas (el bucle arranca solo si
+//                               ya hay precipitación; estático si RM)
 //   RainFX.setMeteo(meteo)    → actualiza densidad, velocidad, viento
 //   RainFX.setMomento(str)    → 'dia' | 'amanecer' | 'atardecer' | 'noche'
 
@@ -164,11 +170,12 @@
   function renderGota(g, pal) {
     var x0 = g.x, y0 = g.y;
     var x1 = g.x - g.vx * 2, y1 = g.y - g.len;
-    var grad = ctx.createLinearGradient(x1, y1, x0, y0);
-    grad.addColorStop(0, 'rgba(0,0,0,0)');
-    grad.addColorStop(0.55, pal.gota);
-    grad.addColorStop(1, pal.gota);
-    ctx.strokeStyle = grad;
+    // DT-15: trazo plano en lugar de degradado por gota. El
+    // createLinearGradient + addColorStop creaba hasta ~3.000 objetos/s
+    // en tormenta y, a 0,95 px sobre fondo oscuro, el degradado era
+    // imperceptible. Si algún día se echa en falta, la alternativa es un
+    // sprite offscreen pre-renderizado.
+    ctx.strokeStyle = pal.gota;
     ctx.lineWidth = 0.95;
     ctx.lineCap = 'round';
     ctx.beginPath();
@@ -220,17 +227,23 @@
     return cat === 'lluvia' || cat === 'tormenta';
   }
 
+  // DT-15: cancela el rAF y limpia pools y canvas. El bucle no vuelve a
+  // correr hasta que start() lo rearme (setMeteo / IntersectionObserver).
+  function stop() {
+    if (!running && !raf) return;
+    running = false;
+    if (raf) { cancelAnimationFrame(raf); raf = null; }
+    gotas.length = 0;
+    splashes.length = 0;
+    if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (typeof debug !== 'undefined') debug.log('RainFX: rAF detenido');
+  }
+
   function tick(now) {
+    // Condición de parada ANTES de reprogramar: sin precipitación o con
+    // V2 fuera de viewport no queda ningún callback pendiente (DT-15).
+    if (!visibleEnViewport || !debeAnimar()) { stop(); return; }
     raf = requestAnimationFrame(tick);
-    if (!visibleEnViewport) return;
-    if (!debeAnimar()) {
-      if (gotas.length > 0 || splashes.length > 0) {
-        gotas.length = 0;
-        splashes.length = 0;
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-      }
-      return;
-    }
     if (now - lastFrame < FRAME_MS) return;
     lastFrame = now;
     ajustarPool(poolObjetivo);
@@ -239,10 +252,11 @@
   }
 
   function start() {
-    if (running || reducedMotion) return;
+    if (running || reducedMotion || !visibleEnViewport || !debeAnimar()) return;
     running = true;
     lastFrame = 0;
     raf = requestAnimationFrame(tick);
+    if (typeof debug !== 'undefined') debug.log('RainFX: rAF armado');
   }
 
   function renderEstatico() {
@@ -305,6 +319,9 @@
         entries.forEach(function (e) {
           visibleEnViewport = e.intersectionRatio >= 0.5;
         });
+        // DT-15: rearme al volver al viewport (la parada al ocultarse la
+        // hace el propio tick). start() se autoprotege si no toca animar.
+        if (visibleEnViewport) start();
       }, { threshold: [0, 0.5, 1] });
       iobs.observe(vista2);
     }
@@ -331,6 +348,9 @@
         ' · mm/h=' + mmPorHora(meteoActual).toFixed(1) +
         ' · pool=' + poolObjetivo);
     }
+    // DT-15: rearme del bucle si esta meteo trae precipitación (start()
+    // se autoprotege si no toca animar).
+    if (!reducedMotion) start();
   }
 
   function setMomento(mom) {
