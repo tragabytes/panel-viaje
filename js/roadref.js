@@ -39,10 +39,11 @@ const __global__ = (typeof window !== 'undefined') ? window : globalThis;
 __global__.RoadRef = (() => {
   const RADIO_CACHE_M = 300;
   const RADIO_BUSQUEDA_M = 25;
-  // DT-05 (sesión 33): TTL para refrescar más allá del radio.
-  //  · 5 min para caches con ref válida (raro que cambie más rápido).
-  //  · 30 s cuando la caché es ref:null: cubre fallos transitorios de
-  //    Overpass; tras 30 s probamos de nuevo aunque el coche no se mueva.
+  // DT-05 (sesión 33) + RA-04: TTL para refrescar más allá del radio.
+  //  · TTL_OK (5 min) para respuestas confirmadas: con ref válida O sin-ref
+  //    legítimo (Overpass respondió y la vía no tiene código).
+  //  · TTL_NULL (30 s) SOLO para fallo de mirrors: tras 30 s probamos de
+  //    nuevo aunque el coche no se mueva.
   const TTL_OK_MS = 5 * 60 * 1000;
   const TTL_NULL_MS = 30 * 1000;
 
@@ -51,7 +52,7 @@ __global__.RoadRef = (() => {
   // un sitio común, basta con cambiarla en dos archivos — coste mínimo.
   const REGEX_CODIGO = /^[A-Z]{1,3}-?\d{1,4}$/i;
 
-  let cache = null; // { lat, lon, ref, maxspeedKmh }
+  let cache = null; // { lat, lon, ref, maxspeedKmh, ts, fallo }
 
   // Construye la query QL. Pedimos solo tags de ways con highway y ref.
   // `out tags 3` = solo campo tags, sin coordenadas ni nodos, máximo 3
@@ -129,7 +130,9 @@ __global__.RoadRef = (() => {
   function cacheExpiradoPorTTL() {
     if (!cache) return true;
     const edadMs = Date.now() - (cache.ts || 0);
-    const ttl = cache.ref ? TTL_OK_MS : TTL_NULL_MS;
+    // RA-04: el TTL corto solo aplica a cachés nacidas de un fallo de
+    // mirrors; un sin-ref legítimo (fallo:false) usa el TTL largo.
+    const ttl = (cache.ref || !cache.fallo) ? TTL_OK_MS : TTL_NULL_MS;
     if (edadMs > ttl) {
       if (typeof debug !== 'undefined') {
         debug.log(`RoadRef caché expirada por TTL (edad ${Math.round(edadMs / 1000)}s, era ${cache.ref || 'null'})`);
@@ -162,13 +165,13 @@ __global__.RoadRef = (() => {
         const n = (datos.elements || []).length;
         debug.log(`RoadRef · ${n} ways · ref=${info.ref || 'null'}${info.maxspeedKmh != null ? ' · max ' + info.maxspeedKmh + 'km/h' : ''}`);
       }
-      cache = { lat, lon, ref: info.ref, maxspeedKmh: info.maxspeedKmh, ts: Date.now() };
+      cache = { lat, lon, ref: info.ref, maxspeedKmh: info.maxspeedKmh, ts: Date.now(), fallo: false };
       return info;
     } catch (err) {
       // Todos los mirrors fallaron. Cacheamos null con TTL corto (TTL_NULL_MS)
       // para no martillear en tics sucesivos pero reintentar pronto si la red
       // se recupera aunque el coche esté parado.
-      cache = { lat, lon, ref: null, maxspeedKmh: null, ts: Date.now() };
+      cache = { lat, lon, ref: null, maxspeedKmh: null, ts: Date.now(), fallo: true };
       return { ref: null, maxspeedKmh: null };
     }
   }

@@ -34,8 +34,12 @@
   // cambian con frecuencia pero precios/aperturas sí; si el coche se queda
   // parado mucho, no queremos mostrar datos de hace medio día.
   const TTL_CACHE_MS = 2 * 60 * 60 * 1000;
+  // RA-04: TTL corto para cachés nacidas de un fallo de red (patrón TTL_NULL
+  // de roadref.js): no martillear mirrors en cada tick, pero permitir
+  // recuperación rápida cuando la red vuelva.
+  const TTL_FALLO_MS = 30 * 1000;
 
-  let cache = null; // { lat, lon, lista, ts }
+  let cache = null; // { lat, lon, lista, ts, fallo }
   let enVuelo = null; // Promise compartida si ya hay una consulta en curso
 
   function construirQuery(lat, lon) {
@@ -82,9 +86,9 @@
       return lista;
     } catch (err) {
       if (typeof debug !== 'undefined') {
-        debug.log(`Gasolineras: fallo (${err.message}), devolviendo vacío`);
+        debug.log(`Gasolineras: fallo (${err.message}) → sin cachear`);
       }
-      return [];
+      return null;
     }
   }
 
@@ -104,9 +108,11 @@
     if (typeof lat !== 'number' || typeof lon !== 'number') return [];
 
     if (cache) {
-      // DT-05: invalidar por TTL si lleva demasiado tiempo.
+      // DT-05: invalidar por TTL si lleva demasiado tiempo. RA-04: si la
+      // caché nació de un fallo de red, el TTL es el corto (TTL_FALLO_MS).
       const edadMs = Date.now() - (cache.ts || 0);
-      if (edadMs > TTL_CACHE_MS) {
+      const ttl = cache.fallo ? TTL_FALLO_MS : TTL_CACHE_MS;
+      if (edadMs > ttl) {
         if (typeof debug !== 'undefined') {
           debug.log(`Gasolineras cache expirada por TTL (edad ${Math.round(edadMs / 60000)}min)`);
         }
@@ -128,7 +134,14 @@
 
     enVuelo = (async () => {
       const lista = await consultar(lat, lon);
-      cache = { lat, lon, lista, ts: Date.now() };
+      if (lista === null) {
+        // RA-04: fallo de red → caché vacía marcada con `fallo` para que
+        // expire por TTL_FALLO_MS. El contrato público sigue devolviendo array.
+        cache = { lat, lon, lista: [], ts: Date.now(), fallo: true };
+        enVuelo = null;
+        return [];
+      }
+      cache = { lat, lon, lista, ts: Date.now(), fallo: false };
       enVuelo = null;
       return lista;
     })();

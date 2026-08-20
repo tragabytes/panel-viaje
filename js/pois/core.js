@@ -29,23 +29,11 @@
     'archaeological_site', 'attraction', 'viewpoint', 'peak',
   ];
 
-  const ICONOS = {
-    castle: '🏰', fort: '🏯', city_gate: '🏯',
-    cathedral: '⛪', monastery: '⛪', church: '⛪', chapel: '⛪',
-    monument: '🗿', memorial: '🗿',
-    ruins: '🏛️', archaeological_site: '🏛️',
-    viewpoint: '👁️', attraction: '⭐', peak: '⛰️',
-  };
-
-  function iconoPorTipo(tipo) {
-    return ICONOS[tipo] || '📍';
-  }
-
   // --- Caché en memoria (sesión) ---
 
   let cachePueblosCercanos = null;  // { centroLat, centroLon, pueblos }
   const cachePOIs = new Map();       // nombre → [{nombre, tipo, lat, lon}]
-  const cacheEnriq = new Map();      // key → {foto, texto, icono, fuente}
+  const cacheEnriq = new Map();      // key → {foto, texto, fuente}
   const cacheMunicipio = new Map();  // nombre → {nombre, poblacion, altitud, superficie}
 
   let ultimoResultado = null;
@@ -162,6 +150,7 @@
     }
 
     let pois = [];
+    let falloRed = false;
     try {
       const { datos, dt } = await Overpass.query(POIFuentes.construirQueryPOIs(lat, lon), `POI-${nombre}`);
       pois = POIFuentes.parsearPOIs(datos, lat, lon, PRIORIDAD);
@@ -170,6 +159,7 @@
         debug.log(`POI [${nombre}]: ${pois.length} POIs reales en ${dt}ms${pois.length ? ' · ' + top : ' (ninguno en OSM)'}`);
       }
     } catch (e) {
+      falloRed = true;
       if (typeof debug !== 'undefined') {
         debug.warn(`POI [${nombre}]: Overpass falló (${e.message})`);
       }
@@ -181,6 +171,7 @@
       try {
         pois = await POIFuentes.obtenerPOIsWikipedia(nombre, lat, lon);
       } catch (e) {
+        falloRed = true;
         if (typeof debug !== 'undefined') {
           debug.warn(`POI [${nombre}]: Wikipedia falló (${e.message})`);
         }
@@ -190,18 +181,34 @@
       try {
         pois = await POIFuentes.obtenerPOIsPhoton(nombre, lat, lon);
       } catch (e) {
+        falloRed = true;
         if (typeof debug !== 'undefined') {
           debug.warn(`POI [${nombre}]: Photon falló (${e.message})`);
         }
       }
     }
 
-    cachePOIs.set(nombre, pois);
-    POIIdb.guardar(idbKey, pois);
+    // BPC-08 (RA-04): solo persistir si hay POIs o si el [] es legítimo
+    // (ninguna fuente falló por red). Un [] causado por fallo de red NO se
+    // persiste — antes quedaba 14 días en IDB como "pueblo sin POIs".
+    if (pois.length > 0 || !falloRed) {
+      cachePOIs.set(nombre, pois);
+      POIIdb.guardar(idbKey, pois);
+    }
     return pois;
   }
 
   // --- Paso 3: enriquecimiento ---
+
+  // RA-04: clasifica el error de una fuente de enriquecimiento.
+  // 'disambiguation', 'sin-texto' y 'HTTP 404' son no-match legítimo
+  // cacheable; el resto — timeout, HTTP 5xx/429, TypeError de fetch —
+  // es fallo de red y no debe persistirse como resultado definitivo.
+  function esFalloRed(e) {
+    const msg = (e && e.message) || '';
+    if (msg === 'disambiguation' || msg === 'sin-texto' || msg === 'HTTP 404') return false;
+    return true;
+  }
 
   async function enriquecerPOI(poi) {
     const key = `${poi.nombre}|${poi.lat != null ? poi.lat.toFixed(4) : ''}|${poi.lon != null ? poi.lon.toFixed(4) : ''}`;
@@ -216,7 +223,8 @@
       return { ...poi, ...idbDatos };
     }
 
-    const base = { foto: null, texto: null, icono: iconoPorTipo(poi.tipo), fuente: 'icono' };
+    const base = { foto: null, texto: null, fuente: 'icono' };
+    let falloRed = false;
 
     // Intento 0: si el POI trae pageid (fallback Wikipedia, RA-02), pedir
     // extracto+foto directamente por pageid. Más fiable que por título.
@@ -238,7 +246,6 @@
           const enriq = {
             foto: page.thumbnail ? page.thumbnail.source : null,
             texto: page.extract || null,
-            icono: iconoPorTipo(poi.tipo),
             fuente: 'wikipedia-pageid',
           };
           cacheEnriq.set(key, enriq);
@@ -249,6 +256,7 @@
           return { ...poi, ...enriq };
         }
       } catch (e) {
+        falloRed = true;
         if (typeof debug !== 'undefined') {
           debug.log(`POI enriq [${poi.nombre}]: pageid fallo (${e.message})`);
         }
@@ -258,7 +266,7 @@
     // Intento 1: Wikipedia REST por título
     try {
       const wiki = await POIFuentes.consultarWikipedia(poi.nombre);
-      const enriq = { foto: wiki.foto, texto: wiki.texto, icono: iconoPorTipo(poi.tipo), fuente: 'wikipedia' };
+      const enriq = { foto: wiki.foto, texto: wiki.texto, fuente: 'wikipedia' };
       cacheEnriq.set(key, enriq);
       POIIdb.guardar(idbKey, enriq);
       if (typeof debug !== 'undefined') {
@@ -266,6 +274,7 @@
       }
       return { ...poi, ...enriq };
     } catch (e) {
+      if (esFalloRed(e)) falloRed = true;
       if (typeof debug !== 'undefined') {
         debug.log(`POI enriq [${poi.nombre}]: Wikipedia fallo (${e.message})`);
       }
@@ -276,7 +285,7 @@
       try {
         const wd = await POIFuentes.consultarWikidataProximidad(poi);
         if (wd) {
-          const enriq = { foto: wd.foto, texto: null, icono: iconoPorTipo(poi.tipo), fuente: 'wikidata' };
+          const enriq = { foto: wd.foto, texto: null, fuente: 'wikidata' };
           cacheEnriq.set(key, enriq);
           POIIdb.guardar(idbKey, enriq);
           if (typeof debug !== 'undefined') {
@@ -288,15 +297,20 @@
           debug.log(`POI enriq [${poi.nombre}]: Wikidata sin match (Jaccard < ${POIMatch.JACCARD_MIN_POI}) → icono`);
         }
       } catch (e) {
+        falloRed = true;
         if (typeof debug !== 'undefined') {
           debug.log(`POI enriq [${poi.nombre}]: Wikidata fallo (${e.message}) → icono`);
         }
       }
     }
 
-    // Fallback final: solo icono
-    cacheEnriq.set(key, base);
-    POIIdb.guardar(idbKey, base);
+    // Fallback final: solo icono. RA-04: si alguna fuente falló por red,
+    // NO persistimos el resultado vacío (podría enriquecerse al reintentar);
+    // solo el no-match confirmado se cachea.
+    if (!falloRed) {
+      cacheEnriq.set(key, base);
+      POIIdb.guardar(idbKey, base);
+    }
     return { ...poi, ...base };
   }
 
@@ -313,11 +327,16 @@
     const idbKey = `muni:${nombre}`;
     const idbDatos = await POIIdb.leer(idbKey);
     if (idbDatos !== null) {
-      cacheMunicipio.set(nombre, idbDatos);
+      // RA-04: la sentinela __negativo distingue "no-match confirmado"
+      // (persistido como { __negativo: true }) de un miss de IDB. Antes el
+      // null persistido se releía como miss → SPARQL repetidas cada sesión.
+      // Compatible con entradas viejas sin sentinela.
+      const valor = idbDatos.__negativo ? null : idbDatos;
+      cacheMunicipio.set(nombre, valor);
       if (typeof debug !== 'undefined') {
         debug.log(`POI municipio [${nombre}] [IDB]: OK`);
       }
-      return idbDatos;
+      return valor;
     }
 
     let resultado = null;
@@ -360,9 +379,11 @@
     }
 
     // BPC-08: solo cachear si hay resultado O ninguna capa falló por red.
+    // RA-04: el no-match (null) se persiste como sentinela { __negativo: true }
+    // para que en la relectura no se confunda con un miss de IDB.
     if (resultado !== null || !falloRed) {
       cacheMunicipio.set(nombre, resultado);
-      POIIdb.guardar(idbKey, resultado);
+      POIIdb.guardar(idbKey, resultado === null ? { __negativo: true } : resultado);
     }
     return resultado;
   }
@@ -407,7 +428,6 @@
               poisEnriquecidos.push({
                 ...poi,
                 foto: null, texto: null,
-                icono: iconoPorTipo(poi.tipo),
                 fuente: 'icono',
               });
             }
@@ -444,26 +464,26 @@
       return resultado;
     })();
 
+    // RA-05: liberar el candado cuando el flujo REALMENTE termina. Antes,
+    // al ganar el timeout, el finally del race liberaba el candado con el
+    // flujo aún vivo y el siguiente tick lanzaba un segundo flujo en paralelo.
+    flujo.finally(() => { enActualizacion = false; }).catch(() => {});
+
     const TIMEOUT_SENTINEL = { _timeout: true };
     const timeout = new Promise(resolve =>
       setTimeout(() => resolve(TIMEOUT_SENTINEL), TIMEOUT_GLOBAL_ACTUALIZAR_MS)
     );
 
-    try {
-      const ganador = await Promise.race([flujo, timeout]);
-      if (ganador === TIMEOUT_SENTINEL) {
-        if (typeof debug !== 'undefined') {
-          debug.warn(`POI: timeout global ${TIMEOUT_GLOBAL_ACTUALIZAR_MS}ms, devolviendo parcial (${parcial.pueblosCercanos.length} pueblos)`);
-        }
-        ultimoResultado = { ...parcial };
-        flujo.catch(() => {});
-        return ultimoResultado;
+    const ganador = await Promise.race([flujo, timeout]);
+    if (ganador === TIMEOUT_SENTINEL) {
+      if (typeof debug !== 'undefined') {
+        debug.warn(`POI: timeout global ${TIMEOUT_GLOBAL_ACTUALIZAR_MS}ms, devolviendo parcial (${parcial.pueblosCercanos.length} pueblos)`);
       }
-      ultimoResultado = ganador;
-      return ganador;
-    } finally {
-      enActualizacion = false;
+      ultimoResultado = { ...parcial };
+      return ultimoResultado;
     }
+    ultimoResultado = ganador;
+    return ganador;
   }
 
   function reset() {
@@ -483,7 +503,6 @@
     obtenerResultado: () => ultimoResultado,
     reset,
     // Expuestos para tests / debugging
-    _iconoPorTipo: iconoPorTipo,
     _PRIORIDAD: PRIORIDAD,
   };
 })();

@@ -142,6 +142,13 @@
   //   5) .via   out body geom  → tags (oneway), nodes[] y geometry[] paralelos.
   //      `nodes` y `geometry` son arrays paralelos: nodes[i] es el id del
   //      i-ésimo nodo del way, geometry[i] su {lat, lon}.
+  //
+  // DT-20 (2026-08-20): medido el payload real de esta query en la A-6
+  // (radio 50 km, overpass-api.de): 62.951 B de JSON, ~9,8 KB comprimido,
+  // 32 junctions, 61 ways, 428 puntos de geometría — los ways de autovía
+  // están partidos en las junctions, así que `out body geom` no descarga
+  // la autovía entera. Muy por debajo del umbral de 100 KB: la query se
+  // queda como está.
   function construirQuery(lat, lon, refVia) {
     const radioMetros = RADIO_CONSULTA_KM * 1000;
     const refEscapada = String(refVia).replace(/"/g, '');
@@ -353,6 +360,7 @@
         cache.cargando = false;
         cache.refrescando = false;
         cache.error = false;
+        cache.tsErrorRefresco = null;  // RA-05: refresco OK, limpiar el error
         cache.ts = Date.now();  // DT-05: marca de tiempo para el TTL
       }
     }).catch(() => {
@@ -367,6 +375,9 @@
           cache.junctions = [];
         } else {
           cache.refrescando = false;
+          // RA-05: anotar el fallo para no relanzar la cascada de mirrors
+          // en cada tick (el trigger de refresco respeta REINTENTO_ERROR_MS).
+          cache.tsErrorRefresco = Date.now();
           if (typeof debug !== 'undefined') {
             debug.log('MotorwayExit: refresco falló, se mantienen los junctions anteriores');
           }
@@ -483,9 +494,12 @@
     }
 
     // Caché presente y cargada. ¿Toca refrescar por distancia?
-    // No disparamos un refresco si ya hay uno en vuelo.
+    // No disparamos un refresco si ya hay uno en vuelo. RA-05: tras un
+    // refresco fallido, reutilizamos REINTENTO_ERROR_MS (2 min) para no
+    // relanzar la cascada de mirrors en cada tick.
     const distCentroKm = Overpass.distanciaMetros(lat, lon, cache.centroLat, cache.centroLon) / 1000;
-    if (distCentroKm >= UMBRAL_REFRESCO_KM && !cache.refrescando) {
+    if (distCentroKm >= UMBRAL_REFRESCO_KM && !cache.refrescando &&
+        (!cache.tsErrorRefresco || ahoraMs - cache.tsErrorRefresco >= REINTENTO_ERROR_MS)) {
       if (typeof debug !== 'undefined') {
         debug.log(`MotorwayExit: refresco por distancia (centro a ${distCentroKm.toFixed(1)}km)`);
       }
