@@ -210,9 +210,6 @@
     // IU-33: meta gris en cabecera global (comarca · HAB · M). Sustituye al
     // antiguo #datosMunicipio que vivía en .p1-place dentro de V1.
     const $globalPlaceMeta  = document.getElementById('globalPlaceMeta');
-    const $municipioInfo    = document.getElementById('municipioInfo');
-    const $municipioFoto    = document.getElementById('municipioFoto');
-    const $municipioDesc    = document.getElementById('municipioDesc');
     const $poiBloque        = document.getElementById('poiBloque');
     const $poiScroll        = document.getElementById('poiScroll');
     const $poiV1Lista       = document.getElementById('poiV1Lista');
@@ -222,7 +219,6 @@
     const $meteoTemp        = document.getElementById('meteoTemp');
     const $meteoDescripcion = document.getElementById('meteoDescripcion');
     const $meteoViento      = document.getElementById('meteoViento');
-    const $meteoHumedad     = document.getElementById('meteoHumedad');
     const $meteoLluvia      = document.getElementById('meteoLluvia');
     const $meteoVisib       = document.getElementById('meteoVisib');
     const $meteoPrevision   = document.getElementById('meteoPrevision');
@@ -237,30 +233,30 @@
     // Vista 2 elements
     const $vista1           = document.getElementById('vista1');
     const $vista2           = document.getElementById('vista2');
-    const $v2Municipio      = document.getElementById('v2Municipio');
-    const $v2Admin          = document.getElementById('v2Admin');
-    const $v2MeteoIcono     = document.getElementById('v2MeteoIcono');
     const $v2MeteoTemp      = document.getElementById('v2MeteoTemp');
     const $v2MeteoDesc      = document.getElementById('v2MeteoDesc');
-    const $v2MeteoViento    = document.getElementById('v2MeteoViento');
-    const $v2MeteoHumedad   = document.getElementById('v2MeteoHumedad');
-    const $v2MeteoPrevision = document.getElementById('v2MeteoPrevision');
     const $v2MeteoStory     = document.getElementById('v2MeteoStory');
     const $v2MeteoMetrics   = document.getElementById('v2MeteoMetrics');
     const $v2MeteoTimeline  = document.getElementById('v2MeteoTimeline');
-    const $v2Velocidad      = document.getElementById('v2Velocidad');
 
     const $v1Velocidad      = document.getElementById('v1Velocidad');
 
     // Vista 3 elements
-    const $v3Carretera      = document.getElementById('v3Carretera');
-    const $v3Ubicacion      = document.getElementById('v3Ubicacion');
     const $v3Grid           = document.getElementById('v3Grid');
     const $v3PoiCounter     = document.getElementById('v3PoiCounter');
     // IU-22: V4 Entorno (cartografía)
     const $v4Coords         = document.getElementById('v4Coords');
     const $v4Placename      = document.getElementById('v4Placename');
     const $v4Pins           = document.getElementById('v4Pins');
+
+    // DT-22: el radio de búsqueda de pueblos que ve el conductor sale de la
+    // constante real del módulo, para que no vuelvan a divergir (el literal
+    // decía "25 KM" cuando la búsqueda real es de 15 km).
+    const RADIO_PUEBLOS_KM_TXT = (window.POIFuentes && POIFuentes.RADIO_PUEBLOS_M)
+      ? Math.round(POIFuentes.RADIO_PUEBLOS_M / 1000)
+      : 15;
+    const $v4RadioTag = document.getElementById('v4RadioTag');
+    if ($v4RadioTag) $v4RadioTag.textContent = `ENTORNO · RADIO ${RADIO_PUEBLOS_KM_TXT} KM`;
 
     // IU-33: la cabecera global puede crecer si los crumbs envuelven (pueblo
     // largo + comarca + HAB + M no caben en una línea). Sincroniza el alto
@@ -447,12 +443,9 @@
     // IU-22 V4: pinta chinchetas de pueblos posicionadas geográficamente
     // respecto al usuario centrado. El radio visible cubre 25 km (radio fijo
     // 130px); los pueblos más lejanos quedan atenuados con .p4-pin-far.
-    function pintarV4Mapa(pueblos, userLat, userLon) {
-      if (!$v4Pins) return;
-      if (!pueblos || pueblos.length === 0 || userLat == null || userLon == null) {
-        $v4Pins.innerHTML = '';
-        return;
-      }
+    // DT-18: el cálculo de las chinchetas se separa del pintado para poder
+    // reposicionarlas por estilo en cada tick sin reconstruir el DOM.
+    function calcularPinsV4(pueblos, userLat, userLon) {
       // Elipse: más ancho horizontal que vertical, aprovecha el viewport
       // apaisado 640×360. AQUÍ queda centrado en (0,0).
       const RADIO_X = 270;
@@ -482,29 +475,62 @@
       ordenados.forEach((item, i) => {
         anguloVisual.set(item.p, (offset + i * stride) % 360);
       });
-      $v4Pins.innerHTML = lista.map(p => {
+      return lista.map(p => {
         const distKm = p.distKm != null ? p.distKm : 0;
         const anguloDeg = anguloVisual.has(p) ? anguloVisual.get(p) : 0;
         const rad = anguloDeg * Math.PI / 180;
         const rNorm = Math.max(MIN_R, Math.min(distKm / escalaKm, 1.0));
         const dx = Math.sin(rad) * rNorm * RADIO_X;
         const dy = -Math.cos(rad) * rNorm * RADIO_Y;
-        const far = distKm > 25 ? ' p4-pin-far' : '';
         // Label al lado opuesto del centro: a la derecha si el pin está al
         // este del usuario, a la izquierda si al oeste. Así los nombres
         // "apuntan hacia afuera" y se pisan menos entre sí.
-        const side = (dx >= 0) ? 'right' : 'left';
-        const distTxt = distKm < 1
-          ? Math.round(distKm * 1000) + ' m'
-          : distKm.toFixed(1) + ' km';
-        return `<div class="p4-pin${far}" data-side="${side}" style="left:calc(50% + ${dx.toFixed(0)}px); top:calc(50% + ${dy.toFixed(0)}px)">
+        return {
+          nombre: p.nombre || '',
+          dx, dy,
+          side: (dx >= 0) ? 'right' : 'left',
+          far: distKm > 25,
+          distTxt: distKm < 1
+            ? Math.round(distKm * 1000) + ' m'
+            : distKm.toFixed(1) + ' km',
+        };
+      });
+    }
+
+    function pintarV4Mapa(pueblos, userLat, userLon) {
+      if (!$v4Pins) return;
+      if (!pueblos || pueblos.length === 0 || userLat == null || userLon == null) {
+        $v4Pins.innerHTML = '';
+        return;
+      }
+      $v4Pins.innerHTML = calcularPinsV4(pueblos, userLat, userLon).map(pin =>
+        `<div class="p4-pin${pin.far ? ' p4-pin-far' : ''}" data-side="${pin.side}" style="left:calc(50% + ${pin.dx.toFixed(0)}px); top:calc(50% + ${pin.dy.toFixed(0)}px)">
           <div class="p4-pin-dot"></div>
           <div class="p4-pin-label">
-            <div class="p4-pin-name">${escapar(p.nombre || '')}</div>
-            <div class="p4-pin-dist">${escapar(distTxt)}</div>
+            <div class="p4-pin-name">${escapar(pin.nombre)}</div>
+            <div class="p4-pin-dist">${escapar(pin.distTxt)}</div>
           </div>
-        </div>`;
-      }).join('');
+        </div>`
+      ).join('');
+    }
+
+    // DT-18: mismo set de pueblos → los pins existen y en el mismo orden;
+    // basta actualizar posición, lado, lejanía y texto de distancia.
+    function reposicionarPinsV4(pueblos, userLat, userLon) {
+      if (!$v4Pins || !$v4Pins.children.length) return;
+      if (!pueblos || pueblos.length === 0 || userLat == null || userLon == null) return;
+      const pins = calcularPinsV4(pueblos, userLat, userLon);
+      const nodos = $v4Pins.children;
+      for (let i = 0; i < nodos.length && i < pins.length; i++) {
+        const nodo = nodos[i];
+        const pin = pins[i];
+        nodo.style.left = `calc(50% + ${pin.dx.toFixed(0)}px)`;
+        nodo.style.top = `calc(50% + ${pin.dy.toFixed(0)}px)`;
+        nodo.dataset.side = pin.side;
+        nodo.classList.toggle('p4-pin-far', pin.far);
+        const nodoDist = nodo.querySelector('.p4-pin-dist');
+        if (nodoDist) nodoDist.textContent = pin.distTxt;
+      }
     }
 
     // IU-22 V4: formatea coordenadas GPS a formato grados-minutos con
@@ -615,6 +641,15 @@
     const RADIO_HISTERESIS_PASTILLA_M = 1500;
     // FN-06: velocidad límite de la vía actual (km/h) o null si no se conoce.
     let maxspeedActual          = null;
+    // DT-16: re-consulta del límite DENTRO de la misma vía (120→100→80 en la
+    // misma autovía). Criterio: 2 km desde la última consulta O 5 min, lo que
+    // llegue antes. Coste acotado: cada re-consulta es una query de RoadRef
+    // (<1 KB) que además amortigua con su radio de caché de 300 m y sus TTL
+    // propios; a 120 km/h supone ~1 query por minuto.
+    const MAXSPEED_RECONSULTA_M  = 2000;
+    const MAXSPEED_RECONSULTA_MS = 5 * 60 * 1000;
+    let maxspeedConsultaPos     = null; // { lat, lon } de la última consulta
+    let maxspeedConsultaTs      = 0;
     let municipioActual         = null;
     // Si el último pintado del bloque meteo fue un estado de error, lo
     // guardamos aquí para forzar el repintado en cuanto llegue cualquier
@@ -636,6 +671,11 @@
     let poiChequeado = false;
     // BPC-04: placeholder de POIs antes del primer resultado
     let poiPrimerResultadoPintado = false;
+    // DT-18: claves estructurales de la última UI pintada. Si la composición
+    // (nombres+fotos, en orden) no cambia entre ticks, se conserva el DOM y
+    // solo se actualizan las distancias por textContent.
+    let clavePOIsUI = null;
+    let claveGasUI = null;
 
     // --- Pintado ---
 
@@ -643,13 +683,11 @@
       // V1 HUD (IU-19): etiqueta "VÍA" + escudo fósforo + textoCrudo como label.
       // Nombre oficial, destino y PK no están disponibles hoy — se añadirán si
       // se consulta tags Overpass en una tarjeta futura.
-      // V3 mantiene el patrón clásico (pastilla + chip) hasta IU-21.
+      // DT-14: la pastilla de V3 y el chip de maxspeed se eliminaron — vivían en
+      // #v3Carretera, oculto con display:none desde IU-21. El límite visible es
+      // #v1VelocidadLimite en la cabecera (se escribe en cada tick GPS).
       if (info && info.codigo) {
         const claseShield = info.tipo === 'autonomica' ? ' p1-road-shield--autonomica' : '';
-        const claseExtra  = info.tipo === 'autonomica' ? ' autonomica' : '';
-        const chipMax = (maxspeedActual != null)
-          ? `<span class="maxspeed-chip" title="Velocidad límite">${maxspeedActual}</span>`
-          : '';
         const label = info.textoCrudo && info.textoCrudo !== info.codigo
           ? `<span class="p1-road-label">${escapar(info.textoCrudo)}</span>`
           : '';
@@ -659,9 +697,6 @@
              <span class="p1-road-shield${claseShield}">${escapar(info.codigo)}</span>
              ${label}
            </div>`;
-        // V3 cabecera
-        $v3Carretera.innerHTML =
-          `<span class="pastilla${claseExtra}">${escapar(info.codigo)}</span>${chipMax}`;
       } else if (info && info.textoCrudo) {
         $carreteraBloque.innerHTML =
           `<div class="p1-road-tag u-caps u-dim">VÍA</div>
@@ -669,7 +704,6 @@
              <span class="p1-road-shield p1-road-shield--empty">—</span>
              <span class="p1-road-label">${escapar(info.textoCrudo)}</span>
            </div>`;
-        $v3Carretera.textContent = info.textoCrudo;
       } else {
         $carreteraBloque.innerHTML =
           `<div class="p1-road-tag u-caps u-dim">VÍA</div>
@@ -677,37 +711,7 @@
              <span class="p1-road-shield p1-road-shield--empty">—</span>
              <span class="p1-road-label">Sin vía identificada</span>
            </div>`;
-        $v3Carretera.textContent = '';
       }
-    }
-
-    // Construye el resumen de previsión horaria con icono de la categoría
-    // más severa del tramo y texto de min→max de temperatura + lluvia.
-    function construirResumenPrevision(horas) {
-      if (!horas || horas.length === 0) {
-        return { icono: 'meteo-desconocido', texto: 'Sin previsión' };
-      }
-      const n = horas.length;
-      const tempInicio = Math.round(horas[0].temperatura);
-      const tempFin = Math.round(horas[n - 1].temperatura);
-      const unidad = horas[0].temperaturaUnidad || '°C';
-
-      let maxLluvia = 0;
-      for (let i = 0; i < n; i++) {
-        const p = horas[i].precipProbabilidad;
-        if (typeof p === 'number' && p > maxLluvia) maxLluvia = p;
-      }
-
-      const categoria = MeteoCodigos.categoriaMasSevera(horas);
-      const icono = MeteoCodigos.iconoDeCategoria(categoria);
-
-      const partes = [`Próx. ${n}h: ${tempInicio}${unidad} → ${tempFin}${unidad}`];
-      if (maxLluvia > 0) {
-        partes.push(`lluvia máx ${maxLluvia}%`);
-      } else {
-        partes.push('sin lluvia prevista');
-      }
-      return { icono: icono, texto: partes.join(' · ') };
     }
 
     function pintarPlaceholderPOI() {
@@ -731,29 +735,42 @@
         if ($globalPlaceMeta) {
           $globalPlaceMeta.textContent = partes.length ? ' · ' + partes.join(' · ') : '';
         }
-        if (dm.descripcion || dm.foto) {
-          if (dm.foto) {
-            $municipioFoto.src = POIFuentes.normalizarFotoCommons(dm.foto, 400);
-            $municipioFoto.style.display = '';
-          } else {
-            $municipioFoto.style.display = 'none';
-          }
-          $municipioDesc.textContent = dm.descripcion || '';
-          $municipioInfo.style.display = '';
-        } else {
-          $municipioInfo.style.display = 'none';
+        // DT-14: el bloque #municipioInfo (foto + descripción) se eliminó — era
+        // invisible en todas las vistas (.p1-off !important desde IU-33) pero el
+        // src de la foto seguía descargando un thumbnail de Commons por municipio.
+        // dm.foto y dm.descripcion siguen disponibles por si una vista futura los usa.
+        // DT-22: la comarca real viene de Wikidata (datosMunicipio); la
+        // preferencia de V4 por comarca nunca aplicaba porque LocationModule no
+        // devuelve ese campo. Cuando llega aquí, pisa el placename provisional
+        // (provincia) que escribió actualizarUbicacionAdministrativa — carrera
+        // asumida: dentro del mismo municipio no hay re-escrituras por dedupe.
+        if (dm.comarca && $v4Placename) {
+          $v4Placename.textContent = String(dm.comarca).toUpperCase();
         }
       } else {
         if ($globalPlaceMeta) $globalPlaceMeta.textContent = '';
-        $municipioInfo.style.display = 'none';
       }
 
       const pueblos = resultado.pueblosCercanos || [];
+      // DT-18: clave estructural. POIModule devuelve SIEMPRE un objeto nuevo
+      // (recalcula distKm incluso desde caché), así que antes cada tick con
+      // desplazamiento ≥50 m reconstruía por innerHTML el strip de V1, el grid
+      // de V3 (6 <img> + listeners) y los pins de V4 aunque nada hubiera
+      // cambiado. Un cambio de composición U ORDEN fuerza el repintado
+      // completo; si la clave coincide, el camino rápido nunca desalinea.
+      const claveUI = pueblos.map(p =>
+        p.nombre + ':' + (p.pois || []).map(q => (q.nombre || '') + '|' + (q.foto || '')).join(',')
+      ).join(';');
+      if (claveUI === clavePOIsUI) {
+        actualizarDistanciasPOIs(pueblos);
+        return;
+      }
+      clavePOIsUI = claveUI;
       if (pueblos.length === 0) {
         $poiScroll.innerHTML = '';
         $poiBloque.style.display = 'none';
         $v3Grid.innerHTML = '<div class="poi-cargando">Sin puntos de interés cerca</div>';
-        if ($v3PoiCounter) $v3PoiCounter.innerHTML = '<span class="u-phos">0</span> · RADIO 25 KM';
+        if ($v3PoiCounter) $v3PoiCounter.innerHTML = `<span class="u-phos">0</span> · RADIO ${RADIO_PUEBLOS_KM_TXT} KM`;
       } else {
         // V1 HUD: lista plana "distancia + nombre", 3 pueblos máximo (IU-19).
         $poiScroll.innerHTML = pueblos.slice(0, 3).map(pueblo => {
@@ -838,12 +855,16 @@
           // Wikidata P18 devuelve URLs gigantes en HTTP; normalizamos a HTTPS+thumbnail.
           // También cubrimos POIs cacheados en IDB antes del fix.
           const fotoSrc = POIFuentes.normalizarFotoCommons(poi.foto, 400);
-          // Sin loading="lazy": son 6 thumbs y queremos que estén listos cuando
-          // el usuario deslice a V3, no que empiecen a bajar en ese momento.
+          // DT-18: loading="lazy" (revierte la decisión anterior de precargar).
+          // Sin lazy, cada refresco del set de pueblos descargaba 6 thumbs
+          // (~100-300 KB) aunque V3 no se visitara nunca. Con lazy, Chrome
+          // empieza a precargar ~1250 px antes de entrar en viewport: al estar
+          // V3 a un deslizamiento, en la práctica llegan listas igualmente.
+          // Regla dura "minimiza peticiones" > instantaneidad de vista secundaria.
           // El data-tipo permite al onerror swap a icono temático si la foto falla.
           const tipoAttr = `data-tipo="${escapar(poi.tipo || '')}"`;
           const thumb = fotoSrc
-            ? `<div class="p3-v3-thumb" ${tipoAttr}><img src="${escapar(fotoSrc)}" alt=""></div>`
+            ? `<div class="p3-v3-thumb" ${tipoAttr}><img src="${escapar(fotoSrc)}" alt="" loading="lazy"></div>`
             : `<div class="p3-v3-thumb p3-v3-icon" ${tipoAttr}>${iconoSvgPoi(poi.tipo)}</div>`;
           return `<div class="p3-v3-card">
             ${thumb}
@@ -866,14 +887,50 @@
           }, { once: true });
         });
       }
-      // Contador del head: "6 · RADIO 25 KM"
+      // Contador del head: "6 · RADIO 15 KM" (el radio sale de POIFuentes)
       if ($v3PoiCounter) {
         $v3PoiCounter.innerHTML =
-          `<span class="u-phos">${top6.length}</span> · RADIO 25 KM`;
+          `<span class="u-phos">${top6.length}</span> · RADIO ${RADIO_PUEBLOS_KM_TXT} KM`;
       }
       // IU-22 V4: chinchetas de pueblos en cartografía
       if (ultimoFixVelocidad) {
         pintarV4Mapa(pueblos, ultimoFixVelocidad.lat, ultimoFixVelocidad.lon);
+      }
+    }
+
+    // DT-18: camino rápido de pintarPOIs — la estructura no cambió, solo las
+    // distancias. El re-aplanado de V3 replica el dedupe del pintado, así que
+    // el orden de las cards coincide por construcción.
+    function actualizarDistanciasPOIs(pueblos) {
+      const fmtKm = km => km < 1
+        ? Math.round(km * 1000) + ' m'
+        : km.toFixed(1) + ' km';
+      const nodosNear = $poiScroll.querySelectorAll('.p1-near-dist');
+      pueblos.slice(0, 3).forEach((p, i) => {
+        if (nodosNear[i] && p.distKm != null) nodosNear[i].textContent = fmtKm(p.distKm);
+      });
+      const nodosCard = $v3Grid.querySelectorAll('.p3-v3-meta-dist');
+      if (nodosCard.length) {
+        const vistos = new Set();
+        const dists = [];
+        for (const p of pueblos) {
+          for (const poi of (p.pois || [])) {
+            const key = (poi.nombre || '').toLowerCase() + '|' +
+                        (poi.lat != null ? poi.lat.toFixed(4) : '') + ',' +
+                        (poi.lon != null ? poi.lon.toFixed(4) : '');
+            if (vistos.has(key)) continue;
+            vistos.add(key);
+            dists.push(p.distKm);
+            if (dists.length >= 6) break;
+          }
+          if (dists.length >= 6) break;
+        }
+        dists.forEach((d, i) => {
+          if (nodosCard[i] && d != null) nodosCard[i].textContent = fmtKm(d);
+        });
+      }
+      if (ultimoFixVelocidad) {
+        reposicionarPinsV4(pueblos, ultimoFixVelocidad.lat, ultimoFixVelocidad.lon);
       }
     }
 
@@ -882,6 +939,7 @@
     function pintarGasolineras(lista) {
       const $v1FuelList = $v1Gasolineras.querySelector('.p1-fuel-list');
       if (!lista || lista.length === 0) {
+        claveGasUI = null;
         $v3Gasolineras.style.display = 'none';
         $v3GasolinerasL.innerHTML = '';
         $v1Gasolineras.style.display = 'none';
@@ -889,6 +947,18 @@
         return;
       }
       const fmtDist = d => d < 1000 ? Math.round(d) + ' m' : (d / 1000).toFixed(1) + ' km';
+      // DT-18: mismas gasolineras en el mismo orden → solo distancias.
+      const claveGas = lista.map(g => g.id).join(',');
+      if (claveGas === claveGasUI) {
+        const nodosV3 = $v3GasolinerasL.querySelectorAll('.p3-v3-fuel-dist');
+        const nodosV1 = $v1FuelList ? $v1FuelList.querySelectorAll('.p1-fuel-dist') : [];
+        lista.forEach((g, i) => {
+          if (nodosV3[i]) nodosV3[i].textContent = fmtDist(g.distM);
+          if (i < 3 && nodosV1[i]) nodosV1[i].textContent = fmtDist(g.distM);
+        });
+        return;
+      }
+      claveGasUI = claveGas;
       $v3Gasolineras.style.display = '';
       $v3GasolinerasL.innerHTML = lista.map(g => {
         const marca = escapar(g.marca || g.nombre || 'Gasolinera');
@@ -911,9 +981,18 @@
 
     // --- Actualización por datos ---
 
-    async function actualizarUbicacionAdministrativa(lat, lon) {
+    // DT-13: tokens de secuencia. Con 3G lento, la respuesta del tick N puede
+    // llegar DESPUÉS que la del tick N+1 y pisar municipio/vía más recientes.
+    // Cada llamada toma un número; al volver del await, si ya no es el último,
+    // descarta su respuesta.
+    let seqUbicacion = 0;
+    let seqCarretera = 0;
+
+    async function actualizarUbicacionAdministrativa(lat, lon, velKmh) {
+      const miSeq = ++seqUbicacion;
       try {
-        const info = await LocationModule.obtenerUbicacion(lat, lon);
+        const info = await LocationModule.obtenerUbicacion(lat, lon, velKmh);
+        if (miSeq !== seqUbicacion) return; // DT-13: hay una respuesta más nueva
         const clave = `${info.municipio}|${info.provincia}|${info.ccaa}`;
         if (clave === ultimaUbicacionMostrada) return;
         ultimaUbicacionMostrada = clave;
@@ -925,19 +1004,13 @@
         // IU-31: header global con el municipio actual como tercer crumb.
         const $globalPlace = document.getElementById('globalPlace');
         if ($globalPlace) $globalPlace.textContent = info.municipio || '';
-        // V2 (compatibilidad — los spans están ocultos pero main.js los sigue
-        // alimentando por si alguna ruta auxiliar los lee).
-        $v2Municipio.textContent = info.municipio || '(municipio desconocido)';
-        $v2Admin.textContent = formatearAdmin(info);
-        // V3 cabecera
-        const adminCorto = info.provincia || info.ccaa || '';
-        $v3Ubicacion.textContent = adminCorto
-          ? `${info.municipio || '—'} · ${adminCorto}`
-          : info.municipio || '—';
-        // V4 placename (IU-22): prefiere comarca (nombre geográfico) sobre
-        // provincia/ccaa. Cae a municipio si no hay nada mejor.
+        // DT-14: los spans de compatibilidad #v2Municipio/#v2Admin/#v3Ubicacion
+        // se eliminaron — llevaban ocultos desde IU-20/IU-31 y nadie los leía.
+        // V4 placename (IU-22): provincia/ccaa como valor provisional. La
+        // comarca (si existe) llega después vía datosMunicipio en pintarPOIs
+        // (DT-22 — info.comarca no existe en LocationModule y la rama era muerta).
         if ($v4Placename) {
-          const entorno = info.comarca || info.provincia || info.ccaa || info.municipio || '—';
+          const entorno = info.provincia || info.ccaa || info.municipio || '—';
           $v4Placename.textContent = String(entorno).toUpperCase();
         }
         debug.log(`Ubicación [${info.fuente}]: ${info.municipio} · ${formatearAdmin(info)}`);
@@ -946,30 +1019,69 @@
       }
     }
 
-    async function actualizarCarretera(lat, lon) {
+    // DT-16: refresco inmediato del "/ límite" de la cabecera. El tick GPS lo
+    // repinta igualmente cada segundo, pero sin esto el número de la vía
+    // anterior sobrevivía en pantalla hasta un tick tras el cambio de vía.
+    function pintarLimiteVelocidad() {
+      $v1VelocidadLimite.textContent = maxspeedActual != null ? String(maxspeedActual) : '';
+    }
+
+    // DT-16: decide si toca re-consultar el límite dentro de la misma vía.
+    function deboReconsultarMaxspeed(lat, lon) {
+      if (!maxspeedConsultaPos) return true;
+      if (Date.now() - maxspeedConsultaTs >= MAXSPEED_RECONSULTA_MS) return true;
+      const d = distanciaMetros(lat, lon, maxspeedConsultaPos.lat, maxspeedConsultaPos.lon);
+      return d >= MAXSPEED_RECONSULTA_M;
+    }
+
+    // DT-16: lanza RoadRef y aplica el maxspeed SOLO si la vía pintada sigue
+    // siendo la misma cuando llega la respuesta (la cascada de mirrors puede
+    // tardar ~54 s en el peor caso y antes resucitaba el límite — y la
+    // pastilla — de la vía anterior).
+    function consultarMaxspeed(lat, lon, clave) {
+      if (!window.RoadRef) return;
+      maxspeedConsultaPos = { lat, lon };
+      maxspeedConsultaTs = Date.now();
+      RoadRef.consultar(lat, lon).then((rr) => {
+        if (ultimaCarreteraMostrada !== clave) return;
+        if (rr && rr.maxspeedKmh != null) {
+          maxspeedActual = rr.maxspeedKmh;
+        } else if (rr && rr.ref) {
+          // Respuesta confirmada sin límite: la vía no lo informa.
+          maxspeedActual = null;
+        }
+        // Con fallo de red (rr.ref null) conservamos el último límite
+        // conocido de ESTA vía en vez de parpadear a vacío.
+        pintarLimiteVelocidad();
+      }).catch(() => {});
+    }
+
+    async function actualizarCarretera(lat, lon, velKmh) {
+      const miSeq = ++seqCarretera;
       try {
-        const info = await LocationModule.obtenerCarretera(lat, lon);
+        const info = await LocationModule.obtenerCarretera(lat, lon, velKmh);
+        if (miSeq !== seqCarretera) return; // DT-13: hay una respuesta más nueva
 
         // Caso A: Nominatim ya dio código. FN-06: lanzamos RoadRef en paralelo
         // para conseguir maxspeed.
         if (info.codigo) {
           const clave = `${info.codigo}|${info.tipo}|${info.textoCrudo}`;
-          if (clave === ultimaCarreteraMostrada) return;
+          if (clave === ultimaCarreteraMostrada) {
+            // DT-16: misma vía — re-consulta periódica del límite.
+            if (deboReconsultarMaxspeed(lat, lon)) consultarMaxspeed(lat, lon, clave);
+            return;
+          }
           ultimaCarreteraMostrada = clave;
           roadRefActual = info.codigo;
           roadRefActualPos = { lat, lon };
+          // DT-16: el límite de la vía anterior deja de aplicar YA. Mejor unos
+          // segundos sin límite que un aviso de exceso falso (o su ausencia)
+          // calculado contra la vía de la que venimos.
+          maxspeedActual = null;
+          pintarLimiteVelocidad();
           pintarCarretera(info);
           debug.log(`Carretera [${info.fuente}]: ${info.codigo} (${info.tipo}, crudo: "${info.textoCrudo}")`);
-          if (window.RoadRef) {
-            RoadRef.consultar(lat, lon).then((rr) => {
-              if (rr && rr.maxspeedKmh !== maxspeedActual) {
-                maxspeedActual = rr.maxspeedKmh;
-                ultimaCarreteraMostrada = null;
-                pintarCarretera(info);
-                ultimaCarreteraMostrada = clave;
-              }
-            }).catch(() => {});
-          }
+          consultarMaxspeed(lat, lon, clave);
           return;
         }
 
@@ -977,6 +1089,7 @@
         // Decisión 22, sesión 9.8.
         if (info.textoCrudo && window.RoadRef) {
           const rr = await RoadRef.consultar(lat, lon);
+          if (miSeq !== seqCarretera) return; // DT-13: respuesta obsoleta
           const refOverpass = rr && rr.ref;
           if (refOverpass) {
             const rescatado = Carreteras.extraerCodigo(refOverpass);
@@ -988,11 +1101,22 @@
                 fuente: 'overpass',
               };
               const clave = `${infoRescatada.codigo}|${infoRescatada.tipo}|${infoRescatada.textoCrudo}`;
-              if (clave === ultimaCarreteraMostrada) return;
+              // DT-16: el await de arriba ya pagó la consulta — anotamos pos/ts
+              // para que la re-consulta periódica cuente desde aquí.
+              maxspeedConsultaPos = { lat, lon };
+              maxspeedConsultaTs = Date.now();
+              if (clave === ultimaCarreteraMostrada) {
+                // Misma vía: refresca el límite desde la respuesta ya pagada.
+                if (rr.maxspeedKmh != null) maxspeedActual = rr.maxspeedKmh;
+                return;
+              }
               ultimaCarreteraMostrada = clave;
               roadRefActual = infoRescatada.codigo;
               roadRefActualPos = { lat, lon };
-              maxspeedActual = (rr && rr.maxspeedKmh != null) ? rr.maxspeedKmh : maxspeedActual;
+              // DT-16: sin conservar el límite de la vía anterior — si esta vía
+              // no lo informa, mejor vacío que un aviso calculado contra otra.
+              maxspeedActual = (rr.maxspeedKmh != null) ? rr.maxspeedKmh : null;
+              pintarLimiteVelocidad();
               pintarCarretera(infoRescatada);
               debug.log(`Carretera [overpass]: ${infoRescatada.codigo} (${infoRescatada.tipo}, rescatada · crudo Nominatim: "${info.textoCrudo}"${maxspeedActual != null ? ' · max ' + maxspeedActual + 'km/h' : ''})`);
               return;
@@ -1030,7 +1154,11 @@
     async function actualizarMeteo(lat, lon) {
       try {
         const meteo = await Weather.obtenerTiempoActual(lat, lon);
-        const clave = `${meteo.hora}|${meteo.weatherCode}`;
+        // DT-12: la clave incluye la temperatura redondeada — sin ella, una
+        // respuesta fresca ya pagada con el mismo bloque de 15 min y el mismo
+        // código WMO se descartaba aunque la temperatura hubiera cambiado
+        // (subir un puerto despejado: de 28° a 18° sin repintar).
+        const clave = `${meteo.hora}|${meteo.weatherCode}|${Math.round(meteo.temperatura)}`;
         // Dedupe normal: si la clave coincide y NO venimos de error, salimos.
         if (clave === ultimaMeteoMostrada && !meteoEnError) return;
         ultimaMeteoMostrada = clave;
@@ -1056,29 +1184,17 @@
           $meteoVisib.textContent = '—';
         }
 
-        // V2 sigue usando $meteoHumedad (oculto en V1 por .p1-off).
-        $meteoHumedad.textContent = `${meteo.humedad}${meteo.humedadUnidad}`;
-
         $meteoPrevision.innerHTML = renderMiniForecast4h(meteo.previsionHoraria || []);
 
-        // Resumen textual se sigue generando para V2.
-        const resumen = construirResumenPrevision(meteo.previsionHoraria);
-
         // V2 HUD expresivo (IU-20): palabra gigante + temperatura + story + timeline.
-        // Los elementos clásicos (icono, viento, humedad, previsión) siguen
-        // recibiendo datos pero están ocultos con .p2-off — así no se pierde
-        // la retrocompatibilidad con otros consumidores (debug, tests).
+        // DT-14: los spans de retrocompatibilidad (#meteoHumedad, #v2MeteoIcono,
+        // #v2MeteoViento, #v2MeteoHumedad, #v2MeteoPrevision) se eliminaron junto
+        // con construirResumenPrevision, que solo existía para alimentarlos.
         $v2MeteoDesc.innerHTML = renderPalabraGigante(meteo.etiqueta || meteo.descripcion);
         $v2MeteoTemp.textContent = `${Math.round(meteo.temperatura)}°`;
         $v2MeteoStory.innerHTML = renderStoryV2(meteo, meteo.previsionHoraria || []);
         $v2MeteoMetrics.innerHTML = renderMetricsV2(meteo);
         $v2MeteoTimeline.innerHTML = renderTimelineV2(meteo.previsionHoraria || []);
-        // Retrocompatibilidad — ocultos por CSS:
-        $v2MeteoIcono.innerHTML = MeteoCodigos.iconoSVG(meteo.icono);
-        $v2MeteoViento.textContent = `Viento ${Math.round(meteo.vientoVelocidad)} ${meteo.vientoUnidad}`;
-        $v2MeteoHumedad.textContent = `Humedad ${meteo.humedad}${meteo.humedadUnidad}`;
-        $v2MeteoPrevision.innerHTML =
-          `${MeteoCodigos.iconoSVG(resumen.icono)} ${escapar(resumen.texto)}`;
         $vista2.setAttribute('data-meteo-cat', meteo.categoria || 'despejado');
 
         const momentoV2 = calcularMomentoDia(meteo.sunrise, meteo.sunset, Date.now());
@@ -1107,10 +1223,24 @@
         $meteoTemp.textContent = '—';
         $meteoDescripcion.innerHTML = '';
         $meteoViento.textContent = '—';
-        $meteoHumedad.textContent = '—';
         $meteoLluvia.textContent = '—';
         $meteoVisib.textContent = '—';
         $meteoPrevision.innerHTML = '';
+        // DT-22: V2 también se resetea. Antes, con error sostenido, V1 pasaba
+        // a rayas pero V2 seguía mostrando temperatura/story/timeline de hace
+        // horas como actuales, con los efectos de la categoría vieja activos.
+        // Mejor V2 neutra que datos viejos presentados como frescos.
+        $v2MeteoTemp.textContent = '—';
+        $v2MeteoDesc.innerHTML = '';
+        $v2MeteoStory.innerHTML = '';
+        $v2MeteoMetrics.innerHTML = '';
+        $v2MeteoTimeline.innerHTML = '';
+        $vista2.setAttribute('data-meteo-cat', 'despejado');
+        // Con DT-15, si solo cambiáramos el atributo el rAF seguiría vivo con
+        // la meteo vieja: setMeteo(null) lo para de verdad.
+        if (window.RainFX) RainFX.setMeteo(null);
+        if (window.SnowFX) SnowFX.setMeteo(null);
+        if (window.LightningFX) LightningFX.setCategoria(null);
         meteoEnError = true;
         debug.error(`Weather: ${err.message}`);
       }
@@ -1273,15 +1403,8 @@
       const velNum = velEfectivaKmh != null
         ? `${fuenteVelocidad === 'fallback' ? '~' : ''}${Math.round(velEfectivaKmh)}`
         : '—';
-      const velTexto = velEfectivaKmh != null
-        ? `${fuenteVelocidad === 'fallback' ? '~' : ''}${Math.round(velEfectivaKmh)} km/h`
-        : '';
       $v1Velocidad.textContent = velNum;
       $v1VelocidadLimite.textContent = maxspeedActual != null ? String(maxspeedActual) : '';
-      // V2 HUD (IU-20): la V2 ya no muestra velocidad (dedicada a meteo).
-      // Mantenemos el textContent por retrocompatibilidad (debug/tests)
-      // pero la className no se actualiza: el elemento sigue con .p2-off.
-      $v2Velocidad.textContent = velTexto;
       // FN-06: color de velocidad según exceso sobre maxspeedActual.
       let claseExceso = '';
       if (maxspeedActual != null && velEfectivaKmh != null) {
@@ -1302,10 +1425,9 @@
       } else {
         $vista1.removeAttribute('data-speeding');
       }
-      // FN-08: invertir los chips .maxspeed-chip cuando hay exceso.
-      document.querySelectorAll('.maxspeed-chip').forEach(chip => {
-        chip.classList.toggle('exceso', !!claseExceso);
-      });
+      // DT-14: el bucle FN-08 sobre .maxspeed-chip se eliminó — el chip vivía en
+      // #v3Carretera (invisible desde IU-21). La señal de exceso visible es la
+      // className de $v1Velocidad y el halo data-speeding de arriba.
 
       ultimoTickGPS = ahora;
       mostrarEstado('GPS activo', 'ok');
@@ -1327,8 +1449,10 @@
       if (hayQueActualizar) {
         debug.log(`Posición: ${c.latitude.toFixed(5)}, ${c.longitude.toFixed(5)} (±${c.accuracy?.toFixed(0)}m)`);
         ultimaPosicionUbicacion = { lat: c.latitude, lon: c.longitude };
-        actualizarUbicacionAdministrativa(c.latitude, c.longitude);
-        actualizarCarretera(c.latitude, c.longitude);
+        // DT-13: la velocidad efectiva viaja hasta LocationModule para escalar
+        // los radios de caché con ella.
+        actualizarUbicacionAdministrativa(c.latitude, c.longitude, velEfectivaKmh);
+        actualizarCarretera(c.latitude, c.longitude, velEfectivaKmh);
         actualizarMeteo(c.latitude, c.longitude);
         actualizarPOIs(c.latitude, c.longitude);
         actualizarGasolineras(c.latitude, c.longitude);

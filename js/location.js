@@ -5,12 +5,17 @@
 //   - obtenerCarretera(lat, lon): código de carretera si estás en una (zoom 17)
 //
 // Respeta las reglas de Nominatim:
-//   - Máximo 1 petición por segundo (usamos 1100 ms por seguridad), global
-//     para todas las llamadas (las dos funciones comparten el mismo reloj).
+//   - Máximo 1 petición por segundo (1100 ms por seguridad). DT-13: el reloj
+//     es una COLA serializada global — dos llamadas concurrentes ya no pueden
+//     dormir sobre la misma foto del reloj y disparar a la vez.
 //   - Parámetro email como identificación del cliente.
-//   - Caché por proximidad independiente para cada función:
-//       · Ubicación: 200 m (un municipio cubre un área grande)
-//       · Carretera: 80 m (un tramo cambia rápido, radio menor)
+//   - Una sola petición en vuelo por función (dedupe, patrón weather.js).
+//   - Caché por proximidad independiente para cada función, con radio
+//     DINÁMICO según velocidad (DT-13): en marcha el radio crece hasta
+//     velocidad × segundos-objetivo (ubicación ~30 s, carretera ~12 s), con
+//     el radio base como suelo para el caso urbano lento o a pie.
+//       · Ubicación: base 200 m (un municipio cubre un área grande)
+//       · Carretera: base 80 m (un tramo cambia rápido, radio menor)
 //
 // API pública:
 //   LocationModule.obtenerUbicacion(lat, lon)
@@ -39,23 +44,40 @@ const LocationModule = (() => {
   let ultimaPeticionTs = 0;
   let cacheUbicacion = null;
   let cacheCarretera = null;
+  // DT-13: dedupe de petición en vuelo por función (patrón weather.js).
+  let peticionUbicacion = null;
+  let peticionCarretera = null;
 
   // --- Utilidades ---
   //
   // DT-02 (sesión 33): distanciaMetros vive en js/geo.js.
   const distanciaMetros = Geo.distanciaMetros;
 
-  async function respetarLimite() {
-    const ahora = Date.now();
-    const transcurrido = ahora - ultimaPeticionTs;
-    if (transcurrido < INTERVALO_MIN_MS) {
-      const esperaMs = INTERVALO_MIN_MS - transcurrido;
-      await new Promise(r => setTimeout(r, esperaMs));
-    }
-    ultimaPeticionTs = Date.now();
+  // DT-13: cola serializada. Antes, dos llamadas concurrentes leían la misma
+  // foto de ultimaPeticionTs, dormían lo mismo y disparaban A LA VEZ,
+  // violando el máximo de 1 req/s de Nominatim. Ahora cada turno espera a
+  // que el anterior haya fijado el reloj.
+  let colaNominatim = Promise.resolve();
+  function respetarLimite() {
+    const turno = colaNominatim.then(async () => {
+      const espera = INTERVALO_MIN_MS - (Date.now() - ultimaPeticionTs);
+      if (espera > 0) await new Promise(r => setTimeout(r, espera));
+      ultimaPeticionTs = Date.now();
+    });
+    colaNominatim = turno.catch(() => {});
+    return turno;
   }
 
-  async function llamarNominatim(lat, lon, zoom) {
+  // DT-13: radio de caché escalado con la velocidad. Objetivo de cadencia:
+  // ubicación ~1 req/30 s y carretera ~1 req/12 s a velocidad sostenida
+  // (a 120 km/h → radios de ~1000 m y ~400 m). Con velocidad baja o
+  // desconocida manda el radio base, que preserva la precisión urbana.
+  function radioDinamico(baseM, velKmh, segundosObjetivo) {
+    if (typeof velKmh !== 'number' || !(velKmh > 0)) return baseM;
+    return Math.max(baseM, (velKmh / 3.6) * segundosObjetivo);
+  }
+
+  async function llamarNominatim(lat, lon, zoom, conExtratags) {
     const url = new URL(ENDPOINT);
     url.searchParams.set('lat', lat);
     url.searchParams.set('lon', lon);
@@ -63,8 +85,10 @@ const LocationModule = (() => {
     url.searchParams.set('accept-language', 'es');
     url.searchParams.set('zoom', String(zoom));
     url.searchParams.set('addressdetails', '1');
-    url.searchParams.set('extratags', '1');
-    url.searchParams.set('namedetails', '1');
+    // DT-13: extratags solo lo consume normalizarCarretera (extratags.ref,
+    // zoom 17); namedetails no lo consume nadie. Pedirlos engordaba cada
+    // respuesta unas centenas de bytes con el volumen sostenido del panel.
+    if (conExtratags) url.searchParams.set('extratags', '1');
     url.searchParams.set('email', EMAIL);
 
     const controller = new AbortController();
@@ -131,32 +155,50 @@ const LocationModule = (() => {
     return false;
   }
 
-  async function obtenerUbicacion(lat, lon) {
+  async function obtenerUbicacion(lat, lon, velKmh) {
     if (cacheUbicacion && !cacheExpiradoPorTTL(cacheUbicacion, 'ubicación')) {
       const dist = distanciaMetros(lat, lon, cacheUbicacion.lat, cacheUbicacion.lon);
-      if (dist < RADIO_CACHE_UBICACION_M) {
+      if (dist < radioDinamico(RADIO_CACHE_UBICACION_M, velKmh, 30)) {
         return { ...cacheUbicacion.resultado, fuente: 'cache' };
       }
     }
-    await respetarLimite();
-    const datos = await llamarNominatim(lat, lon, 14);
-    const resultado = normalizarUbicacion(datos);
-    cacheUbicacion = { lat, lon, resultado, ts: Date.now() };
-    return { ...resultado, fuente: 'nominatim' };
+    // DT-13: si ya hay una petición en vuelo, la reutilizamos. Con red lenta
+    // los ticks se acumulaban y cada uno lanzaba su propia petición idéntica.
+    if (peticionUbicacion) return peticionUbicacion;
+    peticionUbicacion = (async () => {
+      try {
+        await respetarLimite();
+        const datos = await llamarNominatim(lat, lon, 14, false);
+        const resultado = normalizarUbicacion(datos);
+        cacheUbicacion = { lat, lon, resultado, ts: Date.now() };
+        return { ...resultado, fuente: 'nominatim' };
+      } finally {
+        peticionUbicacion = null;
+      }
+    })();
+    return peticionUbicacion;
   }
 
-  async function obtenerCarretera(lat, lon) {
+  async function obtenerCarretera(lat, lon, velKmh) {
     if (cacheCarretera && !cacheExpiradoPorTTL(cacheCarretera, 'carretera')) {
       const dist = distanciaMetros(lat, lon, cacheCarretera.lat, cacheCarretera.lon);
-      if (dist < RADIO_CACHE_CARRETERA_M) {
+      if (dist < radioDinamico(RADIO_CACHE_CARRETERA_M, velKmh, 12)) {
         return { ...cacheCarretera.resultado, fuente: 'cache' };
       }
     }
-    await respetarLimite();
-    const datos = await llamarNominatim(lat, lon, 17);
-    const resultado = normalizarCarretera(datos);
-    cacheCarretera = { lat, lon, resultado, ts: Date.now() };
-    return { ...resultado, fuente: 'nominatim' };
+    if (peticionCarretera) return peticionCarretera;
+    peticionCarretera = (async () => {
+      try {
+        await respetarLimite();
+        const datos = await llamarNominatim(lat, lon, 17, true);
+        const resultado = normalizarCarretera(datos);
+        cacheCarretera = { lat, lon, resultado, ts: Date.now() };
+        return { ...resultado, fuente: 'nominatim' };
+      } finally {
+        peticionCarretera = null;
+      }
+    })();
+    return peticionCarretera;
   }
 
   return { obtenerUbicacion, obtenerCarretera };

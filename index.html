@@ -118,9 +118,11 @@
         calc(40px + var(--safe-right) + var(--safe-extra))
         6px
         calc(14px + var(--safe-left));
-      background: rgba(8, 12, 14, 0.78);
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
+      /* DT-19: fuera backdrop-filter — desenfocar la franja en cada repintado
+         inferior (ticks de V1, canvas de V2, scroll entre vistas) era el mayor
+         coste de composición del panel en la GPU del móvil viejo. Con el fondo
+         a 0.92 de opacidad el aspecto es casi idéntico a coste cero. */
+      background: rgba(8, 12, 14, 0.92);
       border-bottom: 1px solid var(--grid-line-strong);
       z-index: 40;
       font-family: 'JetBrains Mono', ui-monospace, monospace;
@@ -131,7 +133,10 @@
       padding-right: calc(14px + var(--safe-right) + var(--safe-extra));
     }
     .app-header-place:empty { display: none; }
-    .app-header-place:empty + .app-header-sep { display: none; }
+    /* DT-22: el separador va ANTES del place en el DOM, así que el combinador
+       `+` de la regla anterior no casaba nunca y quedaba un «·» colgando en el
+       arranque. :has() mira al hermano siguiente (Chrome 146 lo soporta). */
+    .app-header-sep:has(+ .app-header-place:empty) { display: none; }
     /* IU-33: meta gris (comarca · población · altitud) tras el municipio.
        Vacío por defecto; main.js lo rellena con prefijo " · " incluido. */
     .app-header-meta {
@@ -190,6 +195,7 @@
     .p1-speed-num.exceso-grave { color: var(--danger); }
 
     #vista1 {
+      position: relative;
       transition: box-shadow 0.35s ease;
     }
     #vista1[data-speeding="leve"] {
@@ -197,26 +203,34 @@
         inset 0 0 0 1px rgba(255, 181, 71, 0.55),
         inset 0 0 26px 2px rgba(255, 181, 71, 0.12);
     }
-    #vista1[data-speeding="grave"] {
+    /* DT-19: el halo grave vive en un ::after con el box-shadow ESTÁTICO y
+       solo se anima su opacity (composited, coste ~cero). Antes se animaba
+       el box-shadow de la vista completa a 60 fps mientras durase el exceso
+       — repintado continuo de toda la pantalla en el móvil viejo. */
+    #vista1::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 5;
+      opacity: 0;
+      transition: opacity 0.35s ease;
       box-shadow:
-        inset 0 0 0 2px rgba(255, 59, 59, 0.7),
-        inset 0 0 40px 6px var(--danger-halo);
+        inset 0 0 0 2px rgba(255, 59, 59, 0.85),
+        inset 0 0 50px 8px rgba(255, 59, 59, 0.40);
+    }
+    #vista1[data-speeding="grave"]::after {
+      opacity: 1;
       animation: p1-speeding-pulse 1.1s ease-in-out infinite;
     }
     @keyframes p1-speeding-pulse {
-      0%, 100% { box-shadow:
-        inset 0 0 0 2px rgba(255, 59, 59, 0.55),
-        inset 0 0 30px 4px rgba(255, 59, 59, 0.20);
-      }
-      50% { box-shadow:
-        inset 0 0 0 2px rgba(255, 59, 59, 0.85),
-        inset 0 0 50px 8px rgba(255, 59, 59, 0.40);
-      }
+      0%, 100% { opacity: 0.55; }
+      50%      { opacity: 1; }
     }
 
     /* Respeto a usuarios que prefieren sin animación */
     @media (prefers-reduced-motion: reduce) {
-      #vista1[data-speeding="grave"] { animation: none; }
+      #vista1[data-speeding="grave"]::after { animation: none; }
     }
 
     /* -------- Grid principal 2 columnas + fila de pueblos --------
@@ -528,24 +542,9 @@
     .p1-off { display: none !important; }
 
     /* IU-24: bloques antiguos .estado / .carretera (class) eliminados.
-       Main.js ahora escribe class="p1-estado" y estructura .p1-road-*. */
-
-    .carretera .pastilla {
-      display: inline-block;
-      background: #1e5fb8;
-      color: #fff;
-      font-weight: 700;
-      font-size: 20px;
-      padding: 6px 14px;
-      border-radius: 6px;
-      letter-spacing: 0.5px;
-    }
-
-    /* Variante granate para carreteras autonómicas y locales (M-505, CL-601,
-       CV-50, GI-632, A-92 andaluza, etc.). Decisión 19, sesión 9.6. */
-    .carretera .pastilla.autonomica {
-      background: #7a1f2b;
-    }
+       Main.js ahora escribe class="p1-estado" y estructura .p1-road-*.
+       DT-14: las reglas .carretera .pastilla que quedaban aquí eran restos
+       sin consumidor y se eliminaron. */
 
     /* IU-09: botón de pantalla completa en la esquina superior derecha de V1.
        Discreto, visible solo cuando no estamos ya en fullscreen. Al tocarlo
@@ -574,40 +573,11 @@
     body.fullscreen-activo #btnFullscreen { display: none; }
     #btnFullscreen svg { width: 14px; height: 14px; }
 
-    /* FN-06: chip con velocidad límite junto a la pastilla. Estilo
-       reminiscente de señal redonda blanca con borde rojo. */
-    .maxspeed-chip {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 28px; height: 28px;
-      border-radius: 50%;
-      background: #fff;
-      color: #000;
-      font-weight: 800;
-      font-size: 13px;
-      border: 2.5px solid #c0392b;
-      margin-left: 8px;
-      vertical-align: middle;
-      line-height: 1;
-    }
-    .v3-carretera .maxspeed-chip {
-      width: 22px; height: 22px;
-      font-size: 11px;
-      border-width: 2px;
-      margin-left: 6px;
-    }
     /* IU-24: reglas .v1-velocidad / .v2-velocidad eliminadas. El color de
-       exceso vive ahora en .p1-speed-num.exceso[-grave] (IU-19). */
-
-    /* FN-08: cuando se supera el límite, el chip de velocidad se invierte
-       (fondo rojo sólido, texto blanco) para alertar sin distraer. Sin barra
-       diagonal: es una alerta del panel, no una señal real. */
-    .maxspeed-chip.exceso {
-      background: #c0392b;
-      color: #fff;
-      border-color: #fff;
-    }
+       exceso vive ahora en .p1-speed-num.exceso[-grave] (IU-19).
+       DT-14: el chip .maxspeed-chip (FN-06/FN-08) se eliminó — vivía dentro
+       de #v3Carretera, invisible desde IU-21. El límite visible es
+       #v1VelocidadLimite en la cabecera. */
 
     /* IU-24: bloques .carretera .calle/.sin-carretera, .ubicacion* y .meteo*
        eliminados. Reemplazados por .p1-road-*, .p1-place-* y .p1-wx-*. */
@@ -631,23 +601,9 @@
 
     /* IU-24: bloque .salida* eliminado. Reemplazado por .p1-exit-*. */
 
-    /* ---- Bloque POI: Qué ver por la zona ---- */
-    .poi-seccion {
-      margin-bottom: 20px;
-      padding: 12px 0;
-      border-bottom: 1px solid rgba(255,255,255,0.1);
-    }
-
-    /* Fila de tarjetas deslizable horizontalmente */
-    .poi-scroll {
-      display: flex;
-      overflow-x: auto;
-      gap: 10px;
-      padding-bottom: 4px;
-      -webkit-overflow-scrolling: touch;
-    }
-    .poi-scroll::-webkit-scrollbar { display: none; }
-
+    /* ---- Bloque POI ----
+       DT-14: .poi-seccion y .poi-scroll eliminados — #poiScroll usa
+       .p1-near-list desde IU-19 y nada creaba ya esas clases. */
     .poi-cargando {
       padding: 8px 12px;
       font-size: 13px;
@@ -658,9 +614,10 @@
     /* IU-24: bloques antiguos .poi-pueblo/-cab/-nombre/-dist, .poi-item,
        .poi-foto, .poi-icono-box, .poi-nombre/-sec, .datos-municipio y
        .municipio-info eliminados. Sus funciones viven ahora en .p1-near-*,
-       .p1-poi-item, .p3-v3-card y .p1-place-*. .poi-cargando y .poi-ph
-       sí se mantienen: la primera la usa pintarPlaceholderPOI(), la segunda
-       es placeholder compartido del sistema (css/style.css). */
+       .p1-poi-item, .p3-v3-card y .p1-place-*. .poi-cargando sí se mantiene:
+       la usan pintarPlaceholderPOI() y pintarPOIs(). (DT-14: .poi-ph, que este
+       comentario daba por vivo, resultó no tener consumidor y se eliminó de
+       css/style.css.) */
 
     /* ---- Vista 2: Ubicación + Meteo glanceable ---- */
     #vista2 {
@@ -863,18 +820,8 @@
     #vista2[data-meteo-cat="nublado"]   .v2-anim-nublado   { display: block; }
     #vista2[data-meteo-cat="niebla"].v2-fog-fallback .v2-anim-niebla { display: block; }
 
-    /* Sol (despejado): gira lento, rayos pulsan. */
-    .v2-sol {
-      position: absolute;
-      top: 12%;
-      right: 10%;
-      width: 120px;
-      height: 120px;
-      opacity: 0.12;
-      color: #ffd37a;
-      animation: v2-sol-rotar 60s linear infinite;
-    }
-    @keyframes v2-sol-rotar { to { transform: rotate(360deg); } }
+    /* DT-14: .v2-sol y @keyframes v2-sol-rotar eliminados — el SVG del sol
+       desapareció al llegar los god-rays de IU-12 y nada usaba ya la regla. */
 
     /* Nubes (nublado): 2 nubes con desplazamiento horizontal lento. */
     .v2-nube {
@@ -983,7 +930,7 @@
     #vista2[data-meteo-cat="tormenta"] .v2-lightning-eco { display: block; }
 
     @media (prefers-reduced-motion: reduce) {
-      .v2-sol, .v2-nube,
+      .v2-nube,
       .v2-niebla-capa, .v2-fog-capa-1, .v2-fog-capa-2,
       .v2-lightning, .v2-lightning-eco { animation: none !important; display: none !important; }
     }
@@ -1248,24 +1195,8 @@
       padding-bottom: 6px;
     }
     .p3-v3-head-title { font-size: 11px; }
-    /* Selectores legacy (IU-21) — mantenidos por si algún flujo escribe aquí. */
-    .p3-v3-head-left {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-      min-width: 0;
-      overflow: hidden;
-    }
-    .p3-v3-head-left .u-caps { font-size: 10px; }
-    .p3-v3-place {
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--phos-300);
-      letter-spacing: 0.1em;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
+    /* DT-14: los selectores legacy .p3-v3-head-left/.p3-v3-place (IU-21) se
+       eliminaron — ningún flujo escribía ahí. */
     .p3-v3-counter {
       font-size: 11px;
       letter-spacing: 0.12em;
@@ -1274,9 +1205,8 @@
     }
     .p3-v3-counter .u-phos { color: var(--phos-300); }
 
-    /* Pastilla de carretera: oculta en V3 por IU-21 (el foco son los POIs).
-       Se preserva el span con el id para no romper el contrato de pintarCarretera. */
-    .p3-v3-road { display: none !important; }
+    /* DT-14: la regla .p3-v3-road y el span #v3Carretera se eliminaron —
+       pintarCarretera ya no escribe en V3. */
 
     /* Grid 3x2 */
     .p3-v3-grid {
@@ -1620,18 +1550,8 @@
 
     /* ======================= */
     /* IU-24: V3 clásica eliminada. Reemplazada por .p3-v3-* (IU-21).
-       Se conserva .v3-carretera .pastilla porque main.js todavía inyecta
-       la pastilla en #v3Carretera (aunque V3 la oculta con display:none). */
-    .v3-carretera .pastilla {
-      display: inline-block;
-      font-size: 12px;
-      padding: 2px 8px;
-      border-radius: 4px;
-      background: #1e5fb8;
-      color: #fff;
-      font-weight: 700;
-    }
-    .v3-carretera .pastilla.autonomica { background: #7a1f2b; }
+       DT-14: .v3-carretera .pastilla también fuera — pintarCarretera ya no
+       inyecta la pastilla en V3. */
 
     /* Datos GPS: ocultos por defecto, overlay fijo con ?debug=1 */
     #v1-gps { display: none; }
@@ -1823,15 +1743,9 @@
     </div>
   </div>
 
-  <!-- Humedad: oculta en V1 pero el ID sigue existiendo para que main.js
-       pueda escribir sin guardas adicionales. Se muestra en V2. -->
-  <span id="meteoHumedad" class="p1-off"></span>
-
-  <!-- Descripción del municipio: oculta en V1, visible en V2. Misma razón. -->
-  <span id="municipioInfo" class="p1-off">
-    <img id="municipioFoto" src="" alt="" onerror="this.style.display='none'">
-    <span id="municipioDesc"></span>
-  </span>
+  <!-- DT-14: los spans ocultos #meteoHumedad y #municipioInfo (foto+descripción)
+       se eliminaron — eran invisibles en todas las vistas y la foto seguía
+       descargándose por datos móviles. -->
 
   <!-- Datos GPS: ocultos aquí, visibles con ?debug=1 (IU-07) -->
   <div id="v1-gps">
@@ -1899,10 +1813,8 @@
       <div id="v2MeteoDesc" class="p2-word" aria-live="polite"></div>
       <div id="v2MeteoTemp" class="p2-temp u-tab">—</div>
 
-      <!-- IU-31: spans ocultos para mantener compatibilidad con main.js
-           (sigue escribiendo aquí; los datos también van al header global). -->
-      <span id="v2Municipio" class="p2-off"></span>
-      <span id="v2Admin" class="p2-off"></span>
+      <!-- DT-14: los spans de compatibilidad #v2Municipio/#v2Admin se
+           eliminaron — los datos viven en el header global desde IU-31. -->
 
       <!-- Métricas + story en la misma línea: viento · humedad · visib · SIN LLUVIA -->
       <div class="p2-weatherline">
@@ -1921,13 +1833,8 @@
       <div id="v2MeteoTimeline" class="p2-timeline"></div>
     </div>
 
-    <!-- Elementos alimentados por main.js pero no visibles en V2 (el JS sigue
-         escribiendo texto plano sin romper el contrato previo). -->
-    <span id="v2MeteoIcono" class="p2-off"></span>
-    <span id="v2MeteoViento" class="p2-off"></span>
-    <span id="v2MeteoHumedad" class="p2-off"></span>
-    <span id="v2MeteoPrevision" class="p2-off"></span>
-    <span id="v2Velocidad" class="p2-off"></span>
+    <!-- DT-14: los cinco spans de retrocompatibilidad (#v2MeteoIcono/Viento/
+         Humedad/Prevision y #v2Velocidad) se eliminaron — nadie los leía. -->
   </section>
 
   <section class="vista" id="vista3">
@@ -1937,11 +1844,8 @@
       <div class="u-caps u-dim p3-v3-head-title">PUNTOS DE INTERÉS</div>
       <div id="v3PoiCounter" class="p3-v3-counter u-caps">—</div>
     </div>
-    <!-- IU-31: span oculto para mantener compatibilidad con main.js. -->
-    <span id="v3Ubicacion" class="p1-off"></span>
-
-    <!-- Carretera como pastilla pequeña alineada a la derecha (si hay) -->
-    <span id="v3Carretera" class="v3-carretera p3-v3-road"></span>
+    <!-- DT-14: #v3Ubicacion (compat) y #v3Carretera (pastilla invisible)
+         eliminados. -->
 
     <!-- Grid 3x2 con 6 POIs max; cada card = foto + nombre + meta -->
     <div id="v3Grid" class="p3-v3-grid"></div>
@@ -1982,7 +1886,9 @@
 
     <!-- Título + nombre del entorno gigante abajo-izquierda -->
     <div class="p4-title">
-      <div class="u-caps u-dim">ENTORNO · RADIO 25 KM</div>
+      <!-- DT-22: el radio real lo escribe main.js desde POIFuentes.RADIO_PUEBLOS_M
+           (antes decía 25 KM fijo cuando la búsqueda real es de 15 km). -->
+      <div id="v4RadioTag" class="u-caps u-dim">ENTORNO</div>
       <div id="v4Placename" class="p4-placename">—</div>
     </div>
 
@@ -2007,32 +1913,53 @@
   <span class="page-dot page-dot--new"></span>
 </div>
 
+  <script>
+    /* DT-17: red de seguridad de arranque. debug.js declara `const debug` a
+       nivel top de script clásico — eso crea un binding léxico global, NO
+       window.debug. Si debug.js no llega a cargar (primera visita con 3G a
+       cortes, aún sin service worker), las decenas de llamadas desnudas a
+       debug.* lanzarían ReferenceError y matarían el panel entero (la primera
+       línea de arrancarPanel es un debug.log). Este stub crea window.debug
+       como propiedad del objeto global: si debug.js carga, su `const` la
+       eclipsa por cadena de ámbitos (una propiedad de datos no bloquea una
+       declaración léxica posterior — no hay SyntaxError); si no carga, las
+       llamadas resuelven aquí y no hacen nada. Coste asumido: sin debug.js
+       tampoco hay persistencia de logs en Trayectos. */
+    window.debug = {
+      log() {}, warn() {}, error() {},
+      activo() { return false; },
+      mensajes() { return []; },
+    };
+  </script>
+  <!-- DT-11: sin ?v= — la invalidación de caché la gobierna SW_VERSION
+       (service-worker.js): su bump borra APP_CACHE entera y el install
+       re-precachea todo. Los ?v= creaban URLs que el precache (sin query)
+       jamás servía: doble descarga de todo el JS en cada bump y ventana de
+       arranque offline roto tras actualizar. -->
   <script src="js/geo.js"></script>
   <script src="js/trayectos.js"></script>
-  <script src="js/debug.js?v=bpc18"></script>
+  <script src="js/debug.js"></script>
   <script src="js/wakelock.js"></script>
   <script src="js/carreteras.js"></script>
   <script src="js/overpass.js"></script>
   <script src="js/roadref.js"></script>
   <script src="js/location.js"></script>
-  <script src="js/meteo_codigos.js?v=iu20"></script>
-  <!-- ?v=iuXX: cache-buster por cambios de contrato DOM/datos.
-       Bumpear cuando se modifique el módulo de forma incompatible. -->
-  <script src="js/weather.js?v=iu20"></script>
+  <script src="js/meteo_codigos.js"></script>
+  <script src="js/weather.js"></script>
   <script src="js/motorwayexit.js"></script>
   <script src="js/gasolineras.js"></script>
   <!-- POIModule (DT-10): dividido en 4 submódulos; el orden importa -->
-  <script src="js/pois/match.js?v=bpc18"></script>
-  <script src="js/pois/idb.js?v=bpc18"></script>
-  <script src="js/pois/fuentes.js?v=bpc18"></script>
-  <script src="js/pois/core.js?v=bpc18"></script>
+  <script src="js/pois/match.js"></script>
+  <script src="js/pois/idb.js"></script>
+  <script src="js/pois/fuentes.js"></script>
+  <script src="js/pois/core.js"></script>
   <script src="js/rutas.js"></script>
-  <script src="js/simulator.js?v=iu19"></script>
+  <script src="js/simulator.js"></script>
   <script src="js/v2_rainfx.js"></script>
   <script src="js/v2_lightningfx.js"></script>
   <script src="js/v2_snowfx.js"></script>
   <script src="js/v2_fogfx.js"></script>
-  <script src="js/main.js?v=iu36"></script>
+  <script src="js/main.js"></script>
 
 </body>
 </html>

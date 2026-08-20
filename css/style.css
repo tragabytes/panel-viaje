@@ -72,39 +72,13 @@
 /* --- Utilidades tipográficas reutilizables entre vistas --- */
 
 .u-mono  { font-family: 'JetBrains Mono', ui-monospace, monospace; }
-.u-sans  { font-family: 'Space Grotesk', system-ui, sans-serif; }
-.u-black { font-family: 'Archivo Black', 'Space Grotesk', sans-serif; }
 
 .u-caps  { text-transform: uppercase; letter-spacing: 0.1em; }
 .u-tab   { font-variant-numeric: tabular-nums; font-feature-settings: 'tnum' 1, 'zero' 1; }
 
 .u-dim   { color: var(--hud-white-dim); }
-.u-mute  { color: var(--hud-white-mute); }
 .u-phos  { color: var(--phos-300); }
-.u-amber { color: var(--amber); }
-.u-danger{ color: var(--danger); }
 
-/* --- Placeholder para miniaturas POI mientras cargan --- */
-
-.poi-ph {
-  background:
-    repeating-linear-gradient(
-      135deg,
-      rgba(125, 255, 160, 0.12) 0 4px,
-      rgba(125, 255, 160, 0.02) 4px 8px
-    ),
-    var(--ink-3);
-  position: relative;
-}
-.poi-ph::after {
-  content: attr(data-label);
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 9px;
-  color: var(--hud-white-dim);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
+/* DT-14: utilidades sin consumidor (.u-sans, .u-black, .u-mute, .u-amber,
+   .u-danger) y el placeholder .poi-ph eliminados — grep sin referencias en
+   HTML ni JS. Las cards V3 sin foto usan su icono SVG, no .poi-ph. */

@@ -20,9 +20,12 @@
   // --- Configuración de API ---
   var URL_BASE = 'https://api.open-meteo.com/v1/forecast';
 
+  // DT-12: apparent_temperature (current y hourly), humedad horaria y viento
+  // horario se dejaron de pedir — ningún consumidor los leía (los
+  // renderizadores de previsión usan temperatura, código y probabilidad de
+  // lluvia; RainFX/SnowFX leen el viento del current).
   var CAMPOS_CURRENT = [
     'temperature_2m',
-    'apparent_temperature',
     'relative_humidity_2m',
     'weather_code',
     'is_day',
@@ -34,11 +37,7 @@
 
   var CAMPOS_HOURLY = [
     'temperature_2m',
-    'apparent_temperature',
-    'relative_humidity_2m',
     'weather_code',
-    'wind_speed_10m',
-    'wind_direction_10m',
     'precipitation_probability'
   ].join(',');
 
@@ -47,7 +46,12 @@
   var MAX_INTENTOS = 2;
 
   // --- Configuración del caché ---
-  var RADIO_CACHE_M = 1000;
+  // DT-12: con radio 1 km el TTL de 15 min no mandaba nunca en movimiento
+  // (a 120 km/h, una petición cada ~30 s ≈ 120/hora). Con 8 km, en marcha
+  // toca ~1 petición cada 4-5 min y parado sigue mandando el TTL. La meteo
+  // no cambia de forma significativa en 8 km (el modelo de Open-Meteo
+  // trabaja con celdas de varios km).
+  var RADIO_CACHE_M = 8000;
   var TTL_CACHE_MS = 15 * 60 * 1000;
   var RATE_LIMIT_MS = 2000;
 
@@ -141,18 +145,13 @@
       var traduccion = (wc != null && window.MeteoCodigos)
         ? MeteoCodigos.traducir(wc, esDiaRef)
         : { texto: '—', categoria: 'desconocido', icono: '❓' };
+      // DT-12: sensación, humedad y viento horarios eliminados — nadie los
+      // consumía en previsionHoraria (ver comentario de CAMPOS_HOURLY).
       horas.push({
         hora: hourly.time[i],
         temperatura: hourly.temperature_2m ? hourly.temperature_2m[i] : null,
         temperaturaUnidad: unidades.temperature_2m || '°C',
-        sensacion: hourly.apparent_temperature ? hourly.apparent_temperature[i] : null,
-        sensacionUnidad: unidades.apparent_temperature || '°C',
-        humedad: hourly.relative_humidity_2m ? hourly.relative_humidity_2m[i] : null,
-        humedadUnidad: unidades.relative_humidity_2m || '%',
         weatherCode: wc,
-        vientoVelocidad: hourly.wind_speed_10m ? hourly.wind_speed_10m[i] : null,
-        vientoUnidad: unidades.wind_speed_10m || 'km/h',
-        vientoDireccion: hourly.wind_direction_10m ? hourly.wind_direction_10m[i] : null,
         precipProbabilidad: hourly.precipitation_probability ? hourly.precipitation_probability[i] : null,
         // Campos traducidos
         descripcion: traduccion.texto,
@@ -191,8 +190,6 @@
     return {
       temperatura: c.temperature_2m,
       temperaturaUnidad: u.temperature_2m || '°C',
-      sensacion: c.apparent_temperature,
-      sensacionUnidad: u.apparent_temperature || '°C',
       humedad: c.relative_humidity_2m,
       humedadUnidad: u.relative_humidity_2m || '%',
       weatherCode: c.weather_code,
@@ -235,7 +232,9 @@
       return null;
     }
 
-    debug.warn('Weather caché reusada (dist ' + Math.round(dist) + 'm, edad ' + Math.round(edadMs / 60000) + 'min)');
+    // DT-12: era debug.warn y cada hit de caché inflaba el contador de
+    // avisos del exportador de trayectos. Es información, no un aviso.
+    debug.log('Weather caché reusada (dist ' + Math.round(dist) + 'm, edad ' + Math.round(edadMs / 60000) + 'min)');
     var copia = {};
     for (var k in cacheActual.datos) {
       if (Object.prototype.hasOwnProperty.call(cacheActual.datos, k)) {

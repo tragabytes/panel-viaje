@@ -9,7 +9,7 @@
 //
 // Para forzar actualización, subir SW_VERSION.
 
-const SW_VERSION = 'v13-2026-05-05-iu36';
+const SW_VERSION = 'v14-2026-08-20-s49';
 const APP_CACHE = `panel-viaje-app-${SW_VERSION}`;
 const API_CACHE = `panel-viaje-api-${SW_VERSION}`;
 
@@ -62,6 +62,41 @@ const API_HOSTS = [
   'photon.komoot.io',
 ];
 
+// DT-11: hosts cuyas URLs llevan coordenadas casi únicas (Nominatim en float
+// completo, Open-Meteo/Photon a 5 decimales, SPARQL de Wikidata con
+// Point(lon lat)). Cachear sus respuestas llenaba API_CACHE sin que el
+// fallback offline acertara nunca: cada petición era una clave nueva.
+// Wikipedia REST (por título) y las queries por pageids sí se cachean; su
+// geosearch (por coordenada) no.
+const API_NO_CACHEAR_HOSTS = [
+  'nominatim.openstreetmap.org',
+  'api.open-meteo.com',
+  'photon.komoot.io',
+  'query.wikidata.org',
+];
+
+function esApiCacheable(url) {
+  try {
+    const u = new URL(url);
+    if (API_NO_CACHEAR_HOSTS.some((h) => u.hostname === h)) return false;
+    if (u.hostname === 'es.wikipedia.org' && u.search.includes('list=geosearch')) return false;
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+// DT-11: tope de entradas de API_CACHE. Cache API devuelve keys() en orden
+// de inserción → borrar por delante ≈ FIFO. 100 entradas cubren de sobra
+// los summaries/pageids de Wikipedia de un viaje largo.
+const MAX_API_ENTRIES = 100;
+async function recortarApiCache(cache) {
+  const claves = await cache.keys();
+  for (let i = 0; i < claves.length - MAX_API_ENTRIES; i++) {
+    await cache.delete(claves[i]);
+  }
+}
+
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(APP_CACHE)
@@ -94,9 +129,12 @@ async function networkFirst(request) {
   try {
     const resp = await fetch(request);
     // Solo cacheamos respuestas OK y GET. POSTs de Overpass no se cachean.
-    if (resp && resp.ok && request.method === 'GET') {
+    // DT-11: y solo endpoints cacheables (sin coordenadas únicas en la URL).
+    if (resp && resp.ok && request.method === 'GET' && esApiCacheable(request.url)) {
       const cache = await caches.open(API_CACHE);
-      cache.put(request, resp.clone()).catch(() => {});
+      cache.put(request, resp.clone())
+        .then(() => recortarApiCache(cache))
+        .catch(() => {});
     }
     return resp;
   } catch (err) {
@@ -113,7 +151,9 @@ async function networkFirst(request) {
 
 async function cacheFirst(request) {
   const cache = await caches.open(APP_CACHE);
-  const cached = await cache.match(request);
+  // DT-11: ignoreSearch como cinturón — si alguna URL propia vuelve a llevar
+  // query (?v=...), seguirá casando con el precache (que lista URLs limpias).
+  const cached = await cache.match(request, { ignoreSearch: true });
   if (cached) return cached;
   try {
     const resp = await fetch(request);
