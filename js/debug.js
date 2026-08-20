@@ -258,6 +258,7 @@ const debug = (() => {
       Trayectos.log(nivel, texto);
     }
     if (!activo) return;
+    const panelYaExistia = !!panel;
     if (!panel) {
       // Crear el panel cuando el body ya exista. Si llamamos a debug antes
       // de que el DOM esté listo, diferimos la creación.
@@ -272,10 +273,20 @@ const debug = (() => {
       }
     }
     const hora = new Date().toTimeString().slice(0, 8);
-    mensajes.push({ hora, texto, color });
+    const mensaje = { hora, texto, color };
+    mensajes.push(mensaje);
     if (mensajes.length > maxMensajes) mensajes.shift();
     if (panel && cuerpo) {
-      repintar();
+      // DT-21: con el panel ya en pantalla basta con añadir el div del
+      // mensaje nuevo; antes cada mensaje reconstruía los 50 divs visibles
+      // y forzaba reflow (lectura de scrollHeight) con 2-4 msg/s en marcha.
+      // Si el panel se acaba de crear en esta misma llamada, repintar()
+      // pinta de una vez todos los acumulados.
+      if (panelYaExistia) {
+        appendMensaje(mensaje);
+      } else {
+        repintar();
+      }
     }
   }
 
@@ -300,6 +311,25 @@ const debug = (() => {
       frag.appendChild(div);
     }
     cuerpo.appendChild(frag);
+    // scroll automático al final solo si no está colapsado
+    if (!colapsado) {
+      cuerpo.scrollTop = cuerpo.scrollHeight;
+    }
+  }
+
+  // DT-21: pintado incremental para el camino caliente. Añade solo el div
+  // del mensaje nuevo al final y poda por arriba los que sobren de
+  // `maxVisibles`. Mismo formato de div que repintar(). El orden visual no
+  // cambia: append siempre al final, poda por el principio.
+  function appendMensaje(m) {
+    if (!cuerpo) return;
+    const div = document.createElement('div');
+    div.style.color = m.color;
+    div.textContent = `[${m.hora}] ${m.texto}`;
+    cuerpo.appendChild(div);
+    while (cuerpo.childElementCount > maxVisibles) {
+      cuerpo.removeChild(cuerpo.firstChild);
+    }
     // scroll automático al final solo si no está colapsado
     if (!colapsado) {
       cuerpo.scrollTop = cuerpo.scrollHeight;

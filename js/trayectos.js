@@ -43,9 +43,16 @@
   const FLUSH_MS = 3000;
   const FLUSH_MIN_MSG = 20;
   const FLUSH_MIN_TRACK = 5;
+  // DT-21: ~2-4 msg/s en viaje real ⇒ 8000 cubre >1 h con margen; evita
+  // decenas de miles de filas IDB en viajes largos. El track NO tiene tope
+  // (1 punto/30 s o 500 m, barato).
+  const MAX_MENSAJES_TRAYECTO = 8000;
 
   let dbPromise = null;
   let trayectoActualId = null;
+  // DT-21: cuenta mensajes ENCOLADOS, no filas confirmadas en IDB (si un
+  // flush falla se pierden huecos del cupo) — aproximación asumida.
+  let nMensajesPersistidos = 0;
 
   const bufferMsg = [];
   const bufferTrack = [];
@@ -113,6 +120,7 @@
     // Si la apertura de IDB falla después, el flush descartará silenciosamente.
     const id = Date.now();
     trayectoActualId = id;
+    nMensajesPersistidos = 0;
     try {
       const db = await abrirDb();
       const t = tx(db, ['trayectos'], 'readwrite');
@@ -153,6 +161,20 @@
 
   function log(nivel, texto) {
     if (!trayectoActualId) return;
+    // DT-21: tope de mensajes por trayecto. Al alcanzarlo se persiste un
+    // último warn de aviso y se dejan de encolar logs (el track sigue).
+    if (nMensajesPersistidos >= MAX_MENSAJES_TRAYECTO) return;
+    nMensajesPersistidos++;
+    if (nMensajesPersistidos === MAX_MENSAJES_TRAYECTO) {
+      bufferMsg.push({
+        trayectoId: trayectoActualId,
+        ts: Date.now(),
+        nivel: 'warn',
+        texto: 'Tope de ' + MAX_MENSAJES_TRAYECTO + ' mensajes alcanzado; se dejan de persistir logs de este trayecto (track no afectado)',
+      });
+      programarFlush();
+      return;
+    }
     bufferMsg.push({
       trayectoId: trayectoActualId,
       ts: Date.now(),
