@@ -1403,165 +1403,239 @@
     body.fullscreen-activo .page-dots { bottom: 4px; }
 
     /* =========================================================
-       V4 HUD (IU-22): cartografía abstracta con chinchetas.
-       Topografía decorativa de fondo + usuario pulsante al centro
-       + POIs posicionados según proyección cartesiana simple.
+       V4 (spec 002): radar con relieve. Columna de datos a la
+       izquierda y el disco a la derecha, tan alto como cabe.
+       --rumbo (giro acumulado), --rx/--ry (desplazamiento del
+       relieve) los escribe js/v4_radar.js en #v4Radar.
        ========================================================= */
     #vista4 {
       position: relative;
-      background: radial-gradient(ellipse at 50% 50%, #050a08 0%, #000 80%);
+      background: radial-gradient(ellipse at 66% 55%, #04100a 0%, #000 72%);
       color: var(--hud-white);
       font-family: 'JetBrains Mono', ui-monospace, monospace;
       font-feature-settings: 'tnum' 1, 'zero' 1;
       overflow: hidden;
     }
-    .p4-topo {
+    .p4-title {
+      position: absolute;
+      left: calc(16px + var(--safe-left));
+      top: calc(10px + var(--safe-top) + var(--app-header-h));
+      bottom: calc(16px + var(--safe-bottom));
+      width: 36%;
+      z-index: 3;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .p4-title .u-caps { font-size: 10px; letter-spacing: 0.1em; }
+    /* Partir solo entre palabras: «COMUNIDAD DE MADRID» en tres líneas, nunca
+       «COMUNIDA / D». El tamaño deja caber ~10 letras en la columna. */
+    .p4-placename {
+      font-family: 'Archivo Black', 'Space Grotesk', sans-serif;
+      font-size: clamp(16px, min(3.6vw, 7vh), 30px);
+      letter-spacing: 0.06em;
+      color: var(--hud-white);
+      line-height: 1.08;
+      overflow-wrap: break-word;
+    }
+    .p4-datos {
+      margin-top: auto;
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 4px 12px;
+      align-items: baseline;
+      font-size: 12px;
+    }
+    .p4-datos dd { color: var(--phos-200); white-space: nowrap; }
+    .p4-datos dt { font-size: 10px; }
+
+    .p4-radar {
+      position: absolute;
+      top: calc(8px + var(--safe-top) + var(--app-header-h));
+      bottom: calc(12px + var(--safe-bottom));
+      right: calc(24px + var(--safe-right) + var(--safe-extra));
+      aspect-ratio: 1 / 1;
+      max-width: 58%;
+      z-index: 1;
+      --rumbo: 0deg;
+      --rx: 0px;
+      --ry: 0px;
+    }
+    .p4-disco {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      overflow: hidden;
+      background: #020805;
+      box-shadow:
+        0 0 0 1px rgba(61, 255, 110, 0.28),
+        0 0 24px rgba(61, 255, 110, 0.07),
+        inset 0 0 40px rgba(0, 0, 0, 0.85);
+    }
+    /* Solo gira el relieve (con el barrido). La propiedad rotate interpola el
+       ángulo como un número: con el ángulo acumulado de js/v4_radar.js el
+       giro va siempre por el camino corto. Los ecos NO giran con él: se
+       recolocan en cada tick ya girados (con transform, en un giro de ~180°
+       el disco y las etiquetas que lo compensaban se desincronizaban). */
+    .p4-giro {
+      position: absolute;
+      inset: 0;
+      rotate: calc(var(--rumbo) * -1);
+      transition: rotate 1s linear;
+      will-change: transform;
+    }
+    .p4-ecos { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
+    .p4-relieve {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%) translate(var(--rx), var(--ry));
+      transition: transform 1s linear, opacity 1.2s ease;
+      opacity: 0;
+    }
+    .p4-relieve--listo { opacity: 0.95; }
+    .p4-sin-transicion .p4-relieve { transition: none; }
+    /* Barrido: la estela va detrás del borde brillante (sentido horario). */
+    .p4-barrido {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background: conic-gradient(from 0deg,
+        rgba(61, 255, 110, 0) 0deg,
+        rgba(61, 255, 110, 0) 280deg,
+        rgba(61, 255, 110, 0.05) 320deg,
+        rgba(61, 255, 110, 0.13) 352deg,
+        rgba(61, 255, 110, 0.26) 360deg);
+      animation: p4-barrido 8s linear infinite;
+    }
+    @keyframes p4-barrido { to { transform: rotate(360deg); } }
+    .p4-anillos {
       position: absolute;
       inset: 0;
       width: 100%;
       height: 100%;
+      fill: none;
+      stroke: rgba(61, 255, 110, 0.22);
+      stroke-width: 0.5;
+      vector-effect: non-scaling-stroke;
       pointer-events: none;
-      z-index: 0;
     }
-    /* IU-31: V4 head como segunda línea bajo el header global. */
-    .p4-coords {
+    .p4-anillos line { stroke: rgba(61, 255, 110, 0.10); stroke-dasharray: 1 3; }
+    .p4-anillo-borde { stroke: rgba(61, 255, 110, 0.38); }
+    .p4-anillo-txt {
       position: absolute;
-      top: calc(8px + var(--safe-top) + var(--app-header-h));
-      right: calc(14px + var(--safe-right) + var(--safe-extra));
-      font-size: 10px;
-      color: var(--hud-white-dim);
-      letter-spacing: 0.14em;
-      z-index: 2;
-    }
-    .p4-title {
-      position: absolute;
-      left: calc(16px + var(--safe-left));
-      top: calc(8px + var(--safe-top) + var(--app-header-h));
-      z-index: 2;
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-    .p4-title .u-caps { font-size: 10px; letter-spacing: 0.1em; }
-    .p4-placename {
-      font-family: 'Archivo Black', 'Space Grotesk', sans-serif;
-      font-size: clamp(28px, min(6.5vw, 11vh), 44px);
-      letter-spacing: 0.14em;
-      color: var(--hud-white);
-      line-height: 1;
-    }
-
-    /* Mapa: contenedor centrado. El usuario es el punto (0,0) local. */
-    .p4-map {
-      position: absolute;
-      inset: 0;
-      z-index: 1;
-      overflow: hidden;
-    }
-    .p4-user {
-      position: absolute;
-      left: 50%;
+      left: calc(50% + 50% * var(--r));
       top: 50%;
-      width: 0;
-      height: 0;
-      transform: translate(-50%, -50%);
-      z-index: 3;
-    }
-    .p4-user-ring {
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      width: 28px;
-      height: 28px;
-      margin-left: -14px;
-      margin-top: -14px;
-      border: 1px solid var(--phos-300);
-      border-radius: 50%;
-      animation: p4-pulse 2s ease-in-out infinite;
-    }
-    @keyframes p4-pulse {
-      0%, 100% { opacity: 0.85; transform: scale(0.75); }
-      50%      { opacity: 0.15; transform: scale(1.4); }
-    }
-    .p4-user-core {
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      width: 9px;
-      height: 9px;
-      margin-left: -4.5px;
-      margin-top: -4.5px;
-      background: var(--phos-300);
-      border-radius: 50%;
-      box-shadow: 0 0 10px var(--phos-300);
-    }
-    .p4-user-label {
-      position: absolute;
-      left: 50%;
-      top: 16px;
-      transform: translateX(-50%);
+      transform: translate(-115%, 2px);
       font-size: 9px;
-      color: var(--phos-300);
-      letter-spacing: 0.14em;
-      white-space: nowrap;
-    }
-    @media (prefers-reduced-motion: reduce) {
-      .p4-user-ring { animation: none; opacity: 0.5; }
-    }
-
-    /* Chinchetas de pueblos/POIs. Posición calculada por JS desde el centro. */
-    .p4-pins {
-      position: absolute;
-      inset: 0;
-    }
-    /* Pin = contenedor puntual (0x0). El dot se centra en (0,0) y el label
-       se offsetea a la izquierda o a la derecha según data-side, lo que
-       reduce mucho el solapamiento cuando los pueblos están agrupados. */
-    .p4-pin {
-      position: absolute;
-      width: 0;
-      height: 0;
+      color: var(--hud-white-dim);
+      letter-spacing: 0.06em;
+      text-shadow: 0 0 4px #000;
+      z-index: 3;
       pointer-events: none;
     }
-    .p4-pin-far { opacity: 0.55; }
-    .p4-pin-dot {
+    .p4-coche {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 0;
+      height: 0;
+      border-left: 6px solid transparent;
+      border-right: 6px solid transparent;
+      border-bottom: 15px solid var(--phos-200);
+      transform: translate(-50%, -62%);
+      filter: drop-shadow(0 0 5px rgba(61, 255, 110, 0.7));
+      z-index: 4;
+    }
+
+    /* Ecos: punto 0x0 en su sitio; la etiqueta gira al revés que el disco
+       para quedarse siempre derecha. */
+    .p4-pins { position: absolute; left: 50%; top: 50%; width: 0; height: 0; }
+    .p4-blip {
       position: absolute;
       left: 0;
       top: 0;
-      width: 8px;
-      height: 8px;
-      margin-left: -4px;
-      margin-top: -4px;
+      width: 0;
+      height: 0;
+      transition: transform 1s linear;
+    }
+    .p4-blip-dot {
+      position: absolute;
+      left: -3.5px;
+      top: -3.5px;
+      width: 7px;
+      height: 7px;
       border-radius: 50%;
       background: var(--phos-300);
-      box-shadow: 0 0 0 2px rgba(125, 255, 160, 0.15);
+      box-shadow: 0 0 6px rgba(61, 255, 110, 0.75);
+      animation: p4-eco 8s linear infinite;
     }
-    .p4-pin-far .p4-pin-dot { background: var(--hud-white-mute); box-shadow: none; }
-    .p4-pin-label {
+    @keyframes p4-eco {
+      0%   { opacity: 1;    transform: scale(1.5); }
+      15%  { opacity: 0.85; transform: scale(1); }
+      100% { opacity: 0.4;  transform: scale(1); }
+    }
+    .p4-blip-label {
       position: absolute;
+      left: 8px;
       top: -8px;
-      display: flex;
-      flex-direction: column;
-      gap: 1px;
-      line-height: 1.1;
-    }
-    .p4-pin[data-side="right"] .p4-pin-label { left: 10px;  text-align: left; }
-    .p4-pin[data-side="left"]  .p4-pin-label { right: 10px; text-align: right; }
-    .p4-pin-name {
-      font-size: 10px;
-      color: var(--hud-white);
-      font-family: 'Space Grotesk', system-ui, sans-serif;
-      letter-spacing: 0.02em;
-      text-shadow: 0 0 6px rgba(0, 0, 0, 0.85);
       white-space: nowrap;
+      line-height: 1.1;
+      text-shadow: 0 0 4px #000, 0 0 8px #000, 0 0 2px #000;
     }
-    .p4-pin-dist {
+    .p4-blip-name {
+      font-family: 'Space Grotesk', system-ui, sans-serif;
+      font-size: 11px;
+      color: var(--hud-white);
+      letter-spacing: 0.02em;
+    }
+    .p4-blip-dist { font-size: 9px; color: var(--phos-200); }
+    .p4-blip--izq .p4-blip-label { left: auto; right: 8px; text-align: right; }
+    .p4-blip--sin-nombre .p4-blip-label { display: none; }
+    .p4-blip--lejos .p4-blip-dot { background: var(--hud-white-mute); box-shadow: none; animation: none; opacity: 0.6; }
+    .p4-blip--lejos .p4-blip-name { color: var(--hud-white-dim); }
+    /* Marca del cuaderno: rombo ámbar, sin nombre. */
+    .p4-blip--marca .p4-blip-dot {
+      border-radius: 1px;
+      transform: rotate(45deg);
+      background: var(--amber);
+      box-shadow: 0 0 6px rgba(255, 181, 71, 0.6);
+      animation: none;
+    }
+    .p4-norte {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 0;
+      height: 0;
+      transition: transform 1s linear;
+    }
+    .p4-norte-letra {
+      position: absolute;
+      left: -7px;
+      top: -7px;
+      width: 14px;
+      height: 14px;
+      line-height: 14px;
+      text-align: center;
       font-size: 9px;
-      color: var(--phos-300);
-      font-variant-numeric: tabular-nums;
-      text-shadow: 0 0 6px rgba(0, 0, 0, 0.85);
+      font-weight: 700;
+      color: #000;
+      background: var(--phos-200);
+      border-radius: 50%;
     }
-    .p4-pin-far .p4-pin-dist { color: var(--hud-white-dim); }
+
+    #vista4.p4-inactiva * { animation-play-state: paused !important; }
+    @media (prefers-reduced-motion: reduce) {
+      .p4-barrido { display: none; }
+      .p4-blip-dot { animation: none; }
+      .p4-giro, .p4-blip, .p4-relieve, .p4-norte { transition: none; }
+    }
+    @media (orientation: portrait) {
+      .p4-title { width: auto; right: calc(16px + var(--safe-right)); bottom: auto; }
+      .p4-datos { margin-top: 8px; }
+      .p4-radar { top: auto; left: 50%; right: auto; bottom: calc(40px + var(--safe-bottom)); width: min(90vw, 70vh); max-width: none; transform: translateX(-50%); }
+    }
 
     /* ======================= */
     /* IU-24: V3 clásica eliminada. Reemplazada por .p3-v3-* (IU-21).
@@ -1881,41 +1955,41 @@
     </div>
   </section>
 
-  <!-- V4 (IU-22): cartografía abstracta del entorno con chinchetas de
-       pueblos/POIs reales. El fondo es una retícula topográfica decorativa;
-       el usuario es el centro del mapa (radio 25 km). -->
+  <!-- V4 (spec 002): radar con relieve. js/v4_radar.js gira el disco con el
+       rumbo (lo de delante, arriba), coloca los ecos y compone el relieve. -->
   <section class="vista" id="vista4">
-    <svg class="p4-topo" viewBox="0 0 640 360" preserveAspectRatio="none" aria-hidden="true">
-      <defs>
-        <pattern id="p4-grid" width="40" height="40" patternUnits="userSpaceOnUse">
-          <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(125, 255, 160, 0.05)" stroke-width="1"/>
-        </pattern>
-      </defs>
-      <rect width="640" height="360" fill="url(#p4-grid)"/>
-      <path d="M 0 120 Q 160 80 320 140 T 640 110" fill="none" stroke="rgba(125, 255, 160, 0.08)" stroke-width="1"/>
-      <path d="M 0 200 Q 200 180 380 220 T 640 200" fill="none" stroke="rgba(125, 255, 160, 0.08)" stroke-width="1"/>
-      <path d="M 0 280 Q 220 250 420 290 T 640 270" fill="none" stroke="rgba(125, 255, 160, 0.05)" stroke-width="1"/>
-    </svg>
-
-    <!-- Coordenadas lat/lon en formato grados-minutos arriba a la derecha -->
-    <div id="v4Coords" class="p4-coords u-caps">—</div>
-
-    <!-- Título + nombre del entorno gigante abajo-izquierda -->
     <div class="p4-title">
-      <!-- DT-22: el radio real lo escribe main.js desde POIFuentes.RADIO_PUEBLOS_M
-           (antes decía 25 KM fijo cuando la búsqueda real es de 15 km). -->
+      <!-- DT-22: el radio real lo escribe main.js desde POIFuentes.RADIO_PUEBLOS_M -->
       <div id="v4RadioTag" class="u-caps u-dim">ENTORNO</div>
       <div id="v4Placename" class="p4-placename">—</div>
+      <dl class="p4-datos">
+        <dt class="u-caps u-dim">Rumbo</dt><dd id="v4Rumbo" class="u-tab">—</dd>
+        <dt class="u-caps u-dim">Altitud</dt><dd id="v4Altitud" class="u-tab">—</dd>
+        <dt class="u-caps u-dim">Coord.</dt><dd id="v4Coords" class="u-tab">—</dd>
+      </dl>
     </div>
 
-    <!-- Mapa: capa de pins + usuario centrado -->
-    <div class="p4-map">
-      <div id="v4Pins" class="p4-pins"></div>
-      <div class="p4-user">
-        <div class="p4-user-ring"></div>
-        <div class="p4-user-core"></div>
-        <div class="p4-user-label u-caps">AQUÍ</div>
+    <div class="p4-radar" id="v4Radar">
+      <div class="p4-disco">
+        <div class="p4-giro">
+          <canvas id="v4Relieve" class="p4-relieve" width="1" height="1"></canvas>
+          <div class="p4-barrido"></div>
+        </div>
+        <svg class="p4-anillos" viewBox="-100 -100 200 200" aria-hidden="true">
+          <circle r="33.33"/><circle r="66.67"/><circle r="99.4" class="p4-anillo-borde"/>
+          <line x1="-100" y1="0" x2="100" y2="0"/><line x1="0" y1="-100" x2="0" y2="100"/>
+        </svg>
       </div>
+      <!-- Ecos y norte: no giran; js/v4_radar.js los coloca ya girados en
+           cada tick, sin recorte para que los nombres del borde no se corten. -->
+      <div class="p4-ecos">
+        <div id="v4Pins" class="p4-pins"></div>
+        <div class="p4-norte"><span class="p4-norte-letra">N</span></div>
+      </div>
+      <div class="p4-anillo-txt" style="--r: 0.3333">5</div>
+      <div class="p4-anillo-txt" style="--r: 0.6667">10</div>
+      <div class="p4-anillo-txt" style="--r: 1">15 km</div>
+      <div class="p4-coche" aria-hidden="true"></div>
     </div>
   </section>
 </div><!-- /visor -->
@@ -1955,6 +2029,8 @@
   <script src="js/geo.js"></script>
   <script src="js/frescura.js"></script>
   <script src="js/cuaderno.js"></script>
+  <script src="js/relieve.js"></script>
+  <script src="js/v4_radar.js"></script>
   <script src="js/trayectos.js"></script>
   <script src="js/debug.js"></script>
   <script src="js/wakelock.js"></script>

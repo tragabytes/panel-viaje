@@ -247,7 +247,6 @@
     // IU-22: V4 Entorno (cartografía)
     const $v4Coords         = document.getElementById('v4Coords');
     const $v4Placename      = document.getElementById('v4Placename');
-    const $v4Pins           = document.getElementById('v4Pins');
 
     // DT-22: el radio de búsqueda de pueblos que ve el conductor sale de la
     // constante real del módulo, para que no vuelvan a divergir (el literal
@@ -440,99 +439,6 @@
       return partes.join('');
     }
 
-    // IU-22 V4: pinta chinchetas de pueblos posicionadas geográficamente
-    // respecto al usuario centrado. El radio visible cubre 25 km (radio fijo
-    // 130px); los pueblos más lejanos quedan atenuados con .p4-pin-far.
-    // DT-18: el cálculo de las chinchetas se separa del pintado para poder
-    // reposicionarlas por estilo en cada tick sin reconstruir el DOM.
-    function calcularPinsV4(pueblos, userLat, userLon) {
-      // Elipse: más ancho horizontal que vertical, aprovecha el viewport
-      // apaisado 640×360. AQUÍ queda centrado en (0,0).
-      const RADIO_X = 270;
-      const RADIO_Y = 155;
-      const MIN_R  = 0.35;  // fracción mínima para no caer sobre AQUÍ
-      const lista = pueblos.slice(0, 6);
-      const distancias = lista.map(p => p.distKm != null ? p.distKm : 0);
-      const maxDist = Math.max.apply(null, distancias);
-      const escalaKm = Math.min(25, Math.max(5, maxDist * 1.05));
-
-      // Distribución angular uniforme: los pueblos cercanos tienden a estar
-      // en el mismo sector geográfico (ej. todos al norte), lo que amontona
-      // las chinchetas. Cartografía abstracta: ordenamos por rumbo real y
-      // los repartimos uniformemente en 360° partiendo del rumbo del primero.
-      // Así cada pueblo ocupa su propio sector y el orden visual (horario)
-      // sigue el orden geográfico real.
-      const conRumbo = lista.map(p => {
-        const rumbo = (p.lat != null && p.lon != null && window.Geo && Geo.rumboHacia)
-          ? Geo.rumboHacia(userLat, userLon, p.lat, p.lon)
-          : 0;
-        return { p, rumbo };
-      });
-      const ordenados = conRumbo.slice().sort((a, b) => a.rumbo - b.rumbo);
-      const stride = 360 / ordenados.length;
-      const offset = ordenados[0] ? ordenados[0].rumbo : 0;
-      const anguloVisual = new Map();
-      ordenados.forEach((item, i) => {
-        anguloVisual.set(item.p, (offset + i * stride) % 360);
-      });
-      return lista.map(p => {
-        const distKm = p.distKm != null ? p.distKm : 0;
-        const anguloDeg = anguloVisual.has(p) ? anguloVisual.get(p) : 0;
-        const rad = anguloDeg * Math.PI / 180;
-        const rNorm = Math.max(MIN_R, Math.min(distKm / escalaKm, 1.0));
-        const dx = Math.sin(rad) * rNorm * RADIO_X;
-        const dy = -Math.cos(rad) * rNorm * RADIO_Y;
-        // Label al lado opuesto del centro: a la derecha si el pin está al
-        // este del usuario, a la izquierda si al oeste. Así los nombres
-        // "apuntan hacia afuera" y se pisan menos entre sí.
-        return {
-          nombre: p.nombre || '',
-          dx, dy,
-          side: (dx >= 0) ? 'right' : 'left',
-          far: distKm > 25,
-          distTxt: distKm < 1
-            ? Math.round(distKm * 1000) + ' m'
-            : distKm.toFixed(1) + ' km',
-        };
-      });
-    }
-
-    function pintarV4Mapa(pueblos, userLat, userLon) {
-      if (!$v4Pins) return;
-      if (!pueblos || pueblos.length === 0 || userLat == null || userLon == null) {
-        $v4Pins.innerHTML = '';
-        return;
-      }
-      $v4Pins.innerHTML = calcularPinsV4(pueblos, userLat, userLon).map(pin =>
-        `<div class="p4-pin${pin.far ? ' p4-pin-far' : ''}" data-side="${pin.side}" style="left:calc(50% + ${pin.dx.toFixed(0)}px); top:calc(50% + ${pin.dy.toFixed(0)}px)">
-          <div class="p4-pin-dot"></div>
-          <div class="p4-pin-label">
-            <div class="p4-pin-name">${escapar(pin.nombre)}</div>
-            <div class="p4-pin-dist">${escapar(pin.distTxt)}</div>
-          </div>
-        </div>`
-      ).join('');
-    }
-
-    // DT-18: mismo set de pueblos → los pins existen y en el mismo orden;
-    // basta actualizar posición, lado, lejanía y texto de distancia.
-    function reposicionarPinsV4(pueblos, userLat, userLon) {
-      if (!$v4Pins || !$v4Pins.children.length) return;
-      if (!pueblos || pueblos.length === 0 || userLat == null || userLon == null) return;
-      const pins = calcularPinsV4(pueblos, userLat, userLon);
-      const nodos = $v4Pins.children;
-      for (let i = 0; i < nodos.length && i < pins.length; i++) {
-        const nodo = nodos[i];
-        const pin = pins[i];
-        nodo.style.left = `calc(50% + ${pin.dx.toFixed(0)}px)`;
-        nodo.style.top = `calc(50% + ${pin.dy.toFixed(0)}px)`;
-        nodo.dataset.side = pin.side;
-        nodo.classList.toggle('p4-pin-far', pin.far);
-        const nodoDist = nodo.querySelector('.p4-pin-dist');
-        if (nodoDist) nodoDist.textContent = pin.distTxt;
-      }
-    }
-
     // IU-22 V4: formatea coordenadas GPS a formato grados-minutos con
     // hemisferio (ej. "40°34′N · 3°54′O"). Se muestra en la esquina superior
     // derecha del mapa como cartografía.
@@ -585,6 +491,13 @@
     // IU-15: nieve Canvas 2D + niebla volumétrica SVG (con fallback CSS).
     if (window.SnowFX) SnowFX.init();
     if (window.FogFX)  FogFX.init();
+
+    // V4 (spec 002): radar con relieve. Las marcas del cuaderno que caigan
+    // cerca salen en el radar como rombos.
+    if (window.RadarV4) {
+      RadarV4.init();
+      Cuaderno.listar().then((lista) => RadarV4.marcas(lista)).catch(() => {});
+    }
 
     // IU-12: estrellas para noche despejada. Generadas una vez con posición
     // aleatoria y delay de twinkle desfasado. La visibilidad se controla
@@ -674,6 +587,12 @@
     // Fallback de velocidad para móviles cuyo GPS reporta coords.speed=null
     // (común en Android antiguos).
     let ultimoFixVelocidad = null; // { lat, lon, ts }
+    // Igual con el rumbo: los Android viejos suelen dar heading=null. Se
+    // calcula entre fixes separados al menos RUMBO_MIN_M (por debajo, el
+    // ruido del GPS da rumbos al azar). Lo usan el radar y las marcas.
+    let ultimoFixRumbo = null;     // { lat, lon }
+    let rumboCalculado = null;
+    const RUMBO_MIN_M = 25;
     let logueadoPrimerFixSpeed = false;
     let logueadoFallbackVelocidad = false;
 
@@ -907,10 +826,9 @@
         $v3PoiCounter.innerHTML =
           `<span class="u-phos">${top6.length}</span> · RADIO ${RADIO_PUEBLOS_KM_TXT} KM`;
       }
-      // IU-22 V4: chinchetas de pueblos en cartografía
-      if (ultimoFixVelocidad) {
-        pintarV4Mapa(pueblos, ultimoFixVelocidad.lat, ultimoFixVelocidad.lon);
-      }
+      // V4 (spec 002): ecos del radar. Las distancias las recalcula el radar
+      // en cada tick desde la posición actual.
+      if (window.RadarV4) RadarV4.pueblos(pueblos);
     }
 
     // DT-18: camino rápido de pintarPOIs — la estructura no cambió, solo las
@@ -943,9 +861,6 @@
         dists.forEach((d, i) => {
           if (nodosCard[i] && d != null) nodosCard[i].textContent = fmtKm(d);
         });
-      }
-      if (ultimoFixVelocidad) {
-        reposicionarPinsV4(pueblos, ultimoFixVelocidad.lat, ultimoFixVelocidad.lon);
       }
     }
 
@@ -1423,6 +1338,14 @@
       }
       ultimoFixVelocidad = { lat: c.latitude, lon: c.longitude, ts: ahora };
 
+      if (!ultimoFixRumbo) {
+        ultimoFixRumbo = { lat: c.latitude, lon: c.longitude };
+      } else if (distanciaMetros(ultimoFixRumbo.lat, ultimoFixRumbo.lon, c.latitude, c.longitude) >= RUMBO_MIN_M) {
+        rumboCalculado = Geo.rumboHacia(ultimoFixRumbo.lat, ultimoFixRumbo.lon, c.latitude, c.longitude);
+        ultimoFixRumbo = { lat: c.latitude, lon: c.longitude };
+      }
+      const rumboEfectivo = (c.heading != null && !isNaN(c.heading)) ? c.heading : rumboCalculado;
+
       // FN-02a: registrar punto en el track del trayecto.
       if (window.Trayectos) {
         Trayectos.agregarTrack(c.latitude, c.longitude, velEfectivaKmh);
@@ -1481,10 +1404,13 @@
         lat: c.latitude,
         lon: c.longitude,
         precision: c.accuracy,
-        rumbo: (c.heading != null && !isNaN(c.heading)) ? c.heading : null,
+        rumbo: rumboEfectivo,
         velocidadKmh: velEfectivaKmh,
         ts: ahora,
       };
+      if (window.RadarV4) {
+        RadarV4.posicion({ lat: c.latitude, lon: c.longitude, rumbo: rumboEfectivo, velocidadKmh: velEfectivaKmh });
+      }
 
       let hayQueActualizar = false;
       if (!ultimaPosicionUbicacion) {
@@ -1634,6 +1560,7 @@
           const m = r.marca;
           const c = m.contexto || {};
           debug.log(`Cuaderno: marca guardada · ${m.lat != null ? m.lat.toFixed(5) + ', ' + m.lon.toFixed(5) : 'sin posición'}${m.aproximada ? ' (aproximada)' : ''} · ${c.municipio || 'sin municipio'}${c.via ? ' · ' + (c.via.codigo || c.via.texto) : ''} · ${(c.pueblos || []).length} pueblos${c.pendiente ? ' · pendiente de completar' : ''}`);
+          if (window.RadarV4) Cuaderno.listar().then((lista) => RadarV4.marcas(lista)).catch(() => {});
         }
       });
     });

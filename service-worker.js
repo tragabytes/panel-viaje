@@ -28,6 +28,8 @@ const PRECACHE = [
   './js/geo.js',
   './js/frescura.js',
   './js/cuaderno.js',
+  './js/relieve.js',
+  './js/v4_radar.js',
   './js/trayectos.js',
   './js/debug.js',
   './js/wakelock.js',
@@ -169,10 +171,23 @@ async function cacheFirst(request) {
   }
 }
 
+// Teselas de relieve del radar (js/relieve.js): las guarda el propio módulo en
+// IndexedDB, con su tope. Si pasaran por cacheFirst acabarían en APP_CACHE, que
+// no tiene tope y se borra entera en cada versión.
+function esTeselaRelieve(url) {
+  try {
+    const u = new URL(url);
+    return u.hostname === 's3.amazonaws.com' && u.pathname.startsWith('/elevation-tiles-prod/');
+  } catch (e) {
+    return false;
+  }
+}
+
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   // Solo interceptamos GET (Overpass usa POST, lo dejamos pasar directo a red).
   if (req.method !== 'GET') return;
+  if (esTeselaRelieve(req.url)) return;
 
   if (esApiExterna(req.url)) {
     event.respondWith(networkFirst(req));
