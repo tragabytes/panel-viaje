@@ -21,8 +21,10 @@ Lee, por este orden:
   `SW_VERSION` `v19-2026-10-18-cuaderno-radar-paisaje`: cuaderno H1, H2 y H3, radar con relieve
   (spec 002), meteo chillout (spec 003), los arreglos de la revisión (D22) y los de antes (Overpass,
   datos viejos en gris, precarga del service worker).
-- **v20** (`v20-2026-10-18-actualizacion-sola`): las versiones nuevas entran solas con el coche
-  parado (D24). Mira `git status` / `git log origin/main..` para saber si está subida.
+- **v20** (`v20-2026-10-18-actualizacion-sola`, publicada): las versiones nuevas entran solas con
+  el coche parado (D24).
+- **v21** (`v21-2026-10-18-ayuda-ubicacion`): sin ubicación, el panel explica qué falla y dónde se
+  arregla (D25). Mira `git log origin/main..` para saber si está subida.
 - El 18/10 hice una prueba en carretera con la v18. Su log (`?logs=1`) dirá si Overpass responde con
   los datos del móvil, si Chrome concedió el almacenamiento persistente y cómo fue marcar.
 - El 18/10, desde casa, Overpass seguía sin funcionar (`overpass-api.de` colgado, `private.coffee`

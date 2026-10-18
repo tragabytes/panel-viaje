@@ -9,7 +9,7 @@
 //
 // Para forzar actualización, subir SW_VERSION.
 
-const SW_VERSION = 'v20-2026-10-18-actualizacion-sola';
+const SW_VERSION = 'v21-2026-10-18-ayuda-ubicacion';
 const APP_CACHE = `panel-viaje-app-${SW_VERSION}`;
 const API_CACHE = `panel-viaje-api-${SW_VERSION}`;
 
@@ -34,6 +34,7 @@ const PRECACHE = [
   './js/trayectos.js',
   './js/debug.js',
   './js/actualizacion.js',
+  './js/ayuda_gps.js',
   './js/wakelock.js',
   './js/carreteras.js',
   './js/overpass.js',

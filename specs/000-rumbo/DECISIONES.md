@@ -296,3 +296,18 @@ Overpass directamente. Siguen abiertas la 4, la 5 y la 6.
   (cerrar desde recientes, abrir, esperar, volver a abrir). A partir de la v20, solas.
 - **Cómo se deshace**: el commit "actualizaciones solas"; quitar `js/actualizacion.js` vuelve al
   registro de siempre.
+
+### D25 · Sin ubicación, el panel explica qué falla y dónde se arregla
+- **Por qué**: en tu móvil del trabajo el panel se quedaba vacío con un "Error de GPS: Permiso
+  denegado" en letra pequeña. No era un problema de HTTPS (DuckDNS no lo arreglaría: el HTTPS de
+  GitHub Pages es válido en cualquier móvil), sino de permisos del teléfono.
+- **Qué**: sin permiso, una tarjeta con los cinco sitios donde se arregla, por orden: ubicación del
+  móvil, permiso de Chrome, permiso de esta web, abrirla en Chrome si venía de otra app, y móvil de
+  empresa (`chrome://policy`). Si la web está dentro del navegador de otra app, lo dice primero.
+  Sin señal desde el principio, otra tarjeta. Un corte con el GPS ya funcionando (túnel) o un GPS
+  que tarda: solo el aviso de la cabecera. **En cuanto se da el permiso, el panel arranca solo** (al
+  volver de los ajustes), sin recargar. "Seguir sin ubicación" la cierra hasta "Volver a intentarlo".
+- **Comprobado**: tests (6) y en el navegador integrado, que tiene la ubicación denegada: sale la
+  tarjeta entera a 640×360, se cierra, reaparece al reintentar; con GPS (simulador) no sale.
+- **Sin comprobar**: que arranque solo al dar el permiso (el navegador de pruebas no deja cambiarlo).
+- **Cómo se deshace**: el commit "ayuda de ubicación"; quitar `js/ayuda_gps.js` vuelve al aviso pequeño.

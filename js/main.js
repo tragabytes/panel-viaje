@@ -1415,6 +1415,7 @@
 
       ultimoTickGPS = ahora;
       mostrarEstado('GPS activo', 'ok');
+      if (window.AyudaGPS) AyudaGPS.ocultar();
       marcarDatosViejos(c.latitude, c.longitude);
       ultimaPosicionMarca = {
         lat: c.latitude,
@@ -1467,15 +1468,36 @@
       actualizarProximasSalidas(c.latitude, c.longitude, rumboGrados, velEfectivaKmh);
     }
 
+    // D25: qué falla y dónde se arregla (js/ayuda_gps.js). Sin permiso o sin
+    // señal desde el principio, una tarjeta; un corte con el GPS ya andando
+    // (túnel) o un GPS que tarda, solo el aviso de la cabecera.
     function alFallarPosicion(err) {
-      const motivos = {
-        1: 'Permiso denegado',
-        2: 'Posición no disponible',
-        3: 'Tiempo de espera agotado',
-      };
-      const motivo = motivos[err.code] || 'Error desconocido';
-      mostrarEstado(`Error de GPS: ${motivo}`, 'error');
       debug.error(`GPS error ${err.code}: ${err.message}`);
+      const huboFix = ultimoTickGPS != null;
+      if (!window.AyudaGPS) {
+        mostrarEstado(`Error de GPS (${err.code})`, 'error');
+        return;
+      }
+      mostrarEstado(AyudaGPS.estado(err.code, huboFix), err.code === 1 ? 'error' : 'aviso');
+      const ayuda = AyudaGPS.decidir({ codigo: err.code, huboFix, enWebView: AyudaGPS.esWebView(navigator.userAgent) });
+      if (ayuda) AyudaGPS.mostrar(ayuda, empezarGps);
+    }
+
+    // Pide la ubicación (y la vuelve a pedir al reintentar).
+    let idVigilanciaGps = null;
+    function empezarGps() {
+      if (!('geolocation' in navigator)) return;
+      if (idVigilanciaGps != null) navigator.geolocation.clearWatch(idVigilanciaGps);
+      debug.log('Solicitando permiso de GPS…');
+      idVigilanciaGps = navigator.geolocation.watchPosition(
+        alRecibirPosicion,
+        alFallarPosicion,
+        {
+          enableHighAccuracy: true,
+          maximumAge: 0,
+          timeout: 30000,
+        }
+      );
     }
 
     // --- Viewport (BPC-12) ---
@@ -1612,19 +1634,23 @@
       debug.log(`Modo simulación activo: ${Simulator.nombreRuta()}`);
       Simulator.iniciar(alRecibirPosicion);
     } else if (!('geolocation' in navigator)) {
-      mostrarEstado('Este navegador no soporta GPS', 'error');
+      mostrarEstado('Este navegador no da la ubicación', 'error');
       debug.error('navigator.geolocation no disponible');
+      if (window.AyudaGPS) AyudaGPS.mostrar(AyudaGPS.decidir({ sinApi: true, enWebView: AyudaGPS.esWebView(navigator.userAgent) }), () => location.reload());
     } else {
-      debug.log('Solicitando permiso de GPS…');
-      navigator.geolocation.watchPosition(
-        alRecibirPosicion,
-        alFallarPosicion,
-        {
-          enableHighAccuracy: true,
-          maximumAge: 0,
-          timeout: 30000,
-        }
-      );
+      empezarGps();
+      // D25: al volver de los ajustes con el permiso dado, el panel arranca solo.
+      if (navigator.permissions && navigator.permissions.query) {
+        navigator.permissions.query({ name: 'geolocation' }).then((permiso) => {
+          permiso.onchange = () => {
+            debug.log(`Permiso de ubicación: ${permiso.state}`);
+            if (permiso.state === 'granted') empezarGps();
+          };
+        }).catch(() => {});
+      }
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden && window.AyudaGPS && AyudaGPS.visible()) empezarGps();
+      });
     }
   }
 
