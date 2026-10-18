@@ -427,31 +427,52 @@ const marcaA = (metrosNorte, haceMs, extra) => Object.assign({
   id: AHORA - haceMs, lat: ASTORGA.lat + metrosNorte * 0.000008993, lon: ASTORGA.lon,
 }, extra);
 
-test('aquí marcaste: una marca de otro día a menos de 150 m', () => {
+const todas = (...ms) => new Set(ms.map((m) => m.id)); // marcas de las que ya te alejaste
+
+test('aquí marcaste: una marca de la que te alejaste, a menos de 150 m', () => {
   const lejos = marcaA(400, 3 * DIA);
   const cerca = marcaA(100, 3 * DIA);
-  const r = Cuaderno.marcasAqui([lejos, cerca], ASTORGA, AHORA, {});
+  const r = Cuaderno.marcasAqui([lejos, cerca], ASTORGA, AHORA, {}, todas(lejos, cerca));
   assert.deepEqual(r.map((x) => x.marca.id), [cerca.id]);
   assert.ok(Math.abs(r[0].distM - 100) < 2);
 });
 
-// Impide: que el aviso salte con la marca que acabas de hacer.
-test('aquí marcaste: no la que acabas de hacer', () => {
-  assert.deepEqual(Cuaderno.marcasAqui([marcaA(10, 5 * 60 * 1000)], ASTORGA, AHORA, {}), []);
-  assert.equal(Cuaderno.marcasAqui([marcaA(10, 2 * HORA)], ASTORGA, AHORA, {}).length, 1, 'a la vuelta del mismo viaje, sí');
+// Impide: que salte con la marca que acabas de hacer, o tras media hora parado
+// donde marcaste (comida, mirador): solo cuenta si te has ido y vuelves.
+test('aquí marcaste: no mientras no te hayas alejado de ella', () => {
+  const m = marcaA(10, 2 * HORA);
+  assert.deepEqual(Cuaderno.marcasAqui([m], ASTORGA, AHORA, {}, new Set()), []);
+  assert.equal(Cuaderno.marcasAqui([m], ASTORGA, AHORA, {}, todas(m)).length, 1, 'a la vuelta, sí');
+});
+
+test('alejarse: más de 1 km de una marca la deja lista para recordarla al volver', () => {
+  const cerca = marcaA(300, 0);
+  const lejos = marcaA(1500, 0);
+  const sinPos = { id: AHORA, lat: null, lon: null };
+  const alejadas = Cuaderno.actualizarAlejadas([cerca, lejos, sinPos], ASTORGA, new Set());
+  assert.deepEqual([...alejadas], [lejos.id]);
+  assert.equal(Cuaderno.actualizarAlejadas([cerca], null, alejadas).size, 1, 'sin posición, nada cambia');
 });
 
 // Impide: un aviso cada día en un trayecto de todos los días.
 test('aquí marcaste: una que ya te recordó hace poco, no; pasado un mes, otra vez', () => {
   const m = marcaA(50, 60 * DIA);
-  assert.deepEqual(Cuaderno.marcasAqui([m], ASTORGA, AHORA, { [m.id]: AHORA - 2 * DIA }), []);
-  assert.equal(Cuaderno.marcasAqui([m], ASTORGA, AHORA, { [m.id]: AHORA - 31 * DIA }).length, 1);
+  assert.deepEqual(Cuaderno.marcasAqui([m], ASTORGA, AHORA, { [m.id]: AHORA - 2 * DIA }, todas(m)), []);
+  assert.equal(Cuaderno.marcasAqui([m], ASTORGA, AHORA, { [m.id]: AHORA - 31 * DIA }, todas(m)).length, 1);
+});
+
+// Impide: marcas silenciadas meses porque el reloj del móvil estuvo adelantado.
+test('aquí marcaste: un recuerdo con fecha futura (reloj corregido) no silencia la marca', () => {
+  const m = marcaA(50, 60 * DIA);
+  assert.equal(Cuaderno.marcasAqui([m], ASTORGA, AHORA, { [m.id]: AHORA + 40 * DIA }, todas(m)).length, 1);
 });
 
 test('aquí marcaste: sin posición no hay aviso, ni con marcas sin posición', () => {
-  assert.deepEqual(Cuaderno.marcasAqui([marcaA(10, DIA)], null, AHORA, {}), []);
-  assert.deepEqual(Cuaderno.marcasAqui([{ id: AHORA - DIA, lat: null, lon: null }], ASTORGA, AHORA, {}), []);
-  assert.deepEqual(Cuaderno.marcasAqui(null, ASTORGA, AHORA, {}), []);
+  const m = marcaA(10, DIA);
+  assert.deepEqual(Cuaderno.marcasAqui([m], null, AHORA, {}, todas(m)), []);
+  const sinPos = { id: AHORA - DIA, lat: null, lon: null };
+  assert.deepEqual(Cuaderno.marcasAqui([sinPos], ASTORGA, AHORA, {}, todas(sinPos)), []);
+  assert.deepEqual(Cuaderno.marcasAqui(null, ASTORGA, AHORA, {}, new Set()), []);
 });
 
 test('aquí marcaste: el texto dice cuándo y qué era', () => {
@@ -461,6 +482,12 @@ test('aquí marcaste: el texto dice cuándo y qué era', () => {
   assert.equal(Cuaderno.textoAquiMarcaste(conNota, AHORA), '◆ Aquí marcaste · hoy 10:23 · «castillo arriba a la izqu…»');
   const otroAno = marcaA(0, 0, { id: new Date(2025, 7, 3, 9, 0).getTime() });
   assert.equal(Cuaderno.textoAquiMarcaste(otroAno, AHORA), '◆ Aquí marcaste · 3 ago 2025');
+});
+
+// Impide: que de dos marcas en el mismo cruce la segunda no se vea nunca.
+test('aquí marcaste: con varias marcas juntas, la más cercana y cuántas más', () => {
+  const m = marcaA(0, 0, { id: new Date(2025, 7, 3, 9, 0).getTime() });
+  assert.equal(Cuaderno.textoAquiMarcaste(m, AHORA, 2), '◆ Aquí marcaste · 3 ago 2025 · y 2 más');
 });
 
 // ---------------------------------------------------------------- KML
@@ -509,4 +536,26 @@ test('KML: los nombres y notas raros no rompen el archivo', () => {
   const kml = Cuaderno.aKML([{ id: AHORA, lat: 40, lon: -4, revision: { elegido: null, nota: 'R&D <b>"ojo"</b> ]]> fin' } }]);
   assert.ok(xmlBienFormado(kml));
   assert.ok(kml.includes('R&amp;D &lt;b&gt;'));
+});
+
+// Impide: un KML que Google rechaza entero por un carácter de control en una
+// nota (un salto de línea pegado desde Word, U+000B).
+test('KML: los caracteres de control de las notas se quitan', () => {
+  const kml = Cuaderno.aKML([{ id: AHORA, lat: 40, lon: -4, revision: { elegido: null, nota: 'una\u000Bnota\u0000 con\u001F control' } }]);
+  assert.ok(!/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/.test(kml));
+  assert.ok(kml.includes('unanota con control'));
+});
+
+// Impide: que la lista de Wikipedia (plan B cuando Overpass no contesta) quede
+// en la marca para siempre: queda como provisional y la de Overpass la sustituye.
+test('completar: los pueblos de Wikipedia quedan provisionales hasta que conteste Overpass', () => {
+  const m = { ...Cuaderno.construirMarca(AQUI, 3000, null), contexto: Cuaderno.construirContexto({ ...PANEL, pueblos: [] }, AQUI) };
+  const wiki = Cuaderno.completarContexto(m, { pueblos: [{ nombre: 'Pedredo', lat: 42.45, lon: -6.2 }], pueblosProvisionales: true }, 5000);
+  assert.equal(wiki.contexto.pueblos[0].nombre, 'Pedredo');
+  assert.equal(wiki.contexto.pueblosProvisionales, true);
+  const real = Cuaderno.completarContexto(wiki, { pueblos: [{ nombre: 'Rabanal del Camino', lat: 42.48, lon: -6.28 }] }, 6000);
+  assert.equal(real.contexto.pueblos[0].nombre, 'Rabanal del Camino');
+  assert.equal(real.contexto.pueblosProvisionales, false);
+  const otraVez = Cuaderno.completarContexto(real, { pueblos: [{ nombre: 'Otro', lat: 42.4, lon: -6.1 }], pueblosProvisionales: true }, 7000);
+  assert.equal(otraVez.contexto.pueblos[0].nombre, 'Rabanal del Camino', 'la de Overpass no se pisa con la de Wikipedia');
 });

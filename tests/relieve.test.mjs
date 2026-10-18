@@ -112,3 +112,14 @@ test('solo el relieve conoce su base de datos', () => {
     assert.equal(readFileSync(join(RAIZ, ruta), 'utf8').includes(Relieve.DB_NAME), false, ruta);
   }
 });
+
+// Impide: "ALTITUD —" en ciudad, donde el radar usa teselas z11 y puede no
+// tener la z10 en memoria.
+test('la altitud sale de la tesela más detallada que haya en memoria', () => {
+  const lat = 42.4587, lon = -6.0558; // Astorga
+  assert.equal(Relieve.altitud(lat, lon), null, 'sin teselas, sin altitud');
+  const g = Relieve.pixelGlobal(lat, lon, 11);
+  const alturas = new Float32Array(256 * 256).fill(868.4);
+  Relieve._recordar(`11/${Math.floor(g.x / 256)}/${Math.floor(g.y / 256)}`, { ancho: 256, alto: 256, alturas });
+  assert.equal(Relieve.altitud(lat, lon), 868);
+});

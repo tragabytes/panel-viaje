@@ -98,8 +98,8 @@ Cada cosa en su sitio, para que ninguna limpieza toque lo que no debe:
 | **Marcas del cuaderno** | base de datos `panel-viaje-cuaderno` | Nunca | Solo tú, una a una, desde el cuaderno |
 | Teselas de relieve | base de datos `panel-viaje-relieve` | Nunca (el relieve no cambia) | Ella misma, al pasar de 300 teselas: las menos usadas |
 | Logs de viaje | base de datos `panel-viaje-trayectos` | Al pasar de 10 viajes | Rotación automática, o tú desde `?logs=1` |
-| Pueblos y puntos de interés | base de datos `panel-viaje-cache` | A los 14 días | Limpieza automática |
-| Marcas ya recordadas («Aquí marcaste») | `localStorage`, clave `cuaderno-recordadas` | Al mes | Él mismo; si se pierde, como mucho se repite un aviso |
+| Pueblos y puntos de interés | base de datos `panel-viaje-cache` (solo lo de Overpass: lo de Wikipedia, plan B, solo en memoria) | A los 14 días | Limpieza automática |
+| Marcas ya recordadas («Aquí marcaste») | `localStorage`, clave `cuaderno-recordadas` (con el simulador no se escribe) | Al mes | Él mismo; si se pierde, como mucho se repite un aviso |
 | La app (HTML, JS, fuentes) | caché del service worker | Al cambiar `SW_VERSION` | El service worker |
 
 **Copia de seguridad del cuaderno**: en `?cuaderno=1`, menú "⋯" → "Descargar copia de seguridad".

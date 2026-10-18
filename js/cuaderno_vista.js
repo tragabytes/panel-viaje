@@ -116,7 +116,10 @@
 
   // Cada consulta por separado: si una falla, su dato queda en null y
   // completarContexto no toca lo que hubiera.
-  async function bajarDatos(m, conSitios) {
+  // `reintentar`: también los pueblos provisionales (de Wikipedia), por si
+  // Overpass ya contesta. Solo al pedirlo a mano: Overpass falla a menudo y,
+  // al abrir el cuaderno, repetirlo con cada marca lo haría lentísimo.
+  async function bajarDatos(m, conSitios, reintentar) {
     const c = m.contexto || {};
     const intento = async (fn) => { try { return await fn(); } catch (e) { return null; } };
     const datos = { ubicacion: null, via: null, pueblos: null, sitios: null };
@@ -126,11 +129,13 @@
     if (!c.via || c.viaVieja) {
       datos.via = await intento(() => LocationModule.obtenerCarretera(m.lat, m.lon, null));
     }
-    if (!c.pueblos || !c.pueblos.length || c.pueblosViejos) {
-      // Si Overpass no contesta, el mismo respaldo que usa el panel: Wikipedia.
+    if (!c.pueblos || !c.pueblos.length || c.pueblosViejos || (reintentar && c.pueblosProvisionales)) {
+      // Si Overpass no contesta, el mismo respaldo que usa el panel: Wikipedia,
+      // que queda como provisional (regla 4).
       datos.pueblos = await intento(() => pueblosOverpass(m.lat, m.lon));
       if (!datos.pueblos || !datos.pueblos.length) {
         datos.pueblos = await intento(() => POIFuentes.obtenerPueblosWikipedia(m.lat, m.lon));
+        datos.pueblosProvisionales = true;
       }
     }
     if (conSitios && !c.sitios) {
@@ -153,7 +158,8 @@
       if (manual) avisar('Sin conexión: las marcas se completarán cuando haya internet.', 4000);
       return;
     }
-    const pendientes = marcas.filter((m) => Cuaderno.necesitaCompletar(m));
+    const pendientes = marcas.filter((m) => Cuaderno.necesitaCompletar(m) ||
+      (manual && m.lat != null && m.contexto && m.contexto.pueblosProvisionales));
     if (!pendientes.length) {
       if (manual) avisar('No hay marcas pendientes de completar.', 3000);
       return;
@@ -163,7 +169,7 @@
     try {
       for (const [i, m] of pendientes.entries()) {
         avisar(`Completando marcas con internet… ${i + 1} de ${pendientes.length}`);
-        const actualizada = await guardarCompletado(m, await bajarDatos(m, false));
+        const actualizada = await guardarCompletado(m, await bajarDatos(m, false, manual));
         if (actualizada && !Cuaderno.necesitaCompletar(actualizada)) hechas++;
         pintarLista();
         if (actualizada && actualizada.id === seleccion) pintarDetalle();

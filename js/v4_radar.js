@@ -6,9 +6,10 @@
 // Las marcas del cuaderno que caen dentro aparecen como rombos.
 //
 // La escala va con la velocidad: 15 km de radio en carretera y 6 km en ciudad
-// (despacio un minuto seguido), donde los pueblos de alrededor se apiñaban en
-// el centro. No pasa de 15 km: los pueblos se buscan a 15 km y más allá el
-// disco saldría vacío. El cambio se ve como un zum de un segundo.
+// (un minuto a menos de 40 km/h de media, sin contar las paradas), donde los
+// pueblos de alrededor se apiñaban en el centro. No pasa de 15 km: los pueblos
+// se buscan a 15 km y más allá el disco saldría vacío. El cambio se ve como un
+// zum de un segundo.
 //
 // Coste (CLAUDE.md, regla 1): casi todo lo mueve el compositor (giro del
 // relieve con la propiedad rotate, barrido, latido de los ecos, desplazamiento).
@@ -31,13 +32,18 @@
 
   const RADIO_KM = 15;          // en carretera
   const RADIO_CERCA_KM = 6;     // en ciudad (anillos de 2, 4 y 6 km)
-  // Histéresis de la escala: más cerca solo tras un minuto seguido por debajo
-  // de 45 km/h (un semáforo en carretera no cambia nada); más lejos a los 20 s
-  // por encima de 55 (al salir a la carretera hace falta ver lejos pronto).
-  const VEL_CERCA_KMH = 45;
+  // Histéresis de la escala, con medias (un salto del GPS entre edificios, que
+  // con la velocidad calculada del móvil viejo da 47 km/h en un semáforo, no
+  // puede deshacer un minuto): más cerca con la media del último minuto por
+  // debajo de 40 km/h; más lejos con la de los últimos 20 s por encima de 55
+  // (al salir a la carretera hace falta ver lejos pronto). El tiempo parado no
+  // cuenta: en una gasolinera o un atasco, acercarse no aporta nada y bajaría
+  // teselas que no hacen falta (regla 2).
+  const VEL_CERCA_KMH = 40;
   const VEL_LEJOS_KMH = 55;
-  const SOSTENIDO_CERCA_MS = 60000;
-  const SOSTENIDO_LEJOS_MS = 20000;
+  const VEL_PARADO_KMH = 5;
+  const VENTANA_CERCA_MS = 60000;
+  const VENTANA_LEJOS_MS = 20000;
   // En ciudad, el relieve con un nivel más de detalle (z11): con el de
   // carretera (z10) a 6 km se veía borroso. Su círculo pide las mismas teselas
   // que el de 15 km: casi siempre 4, nunca más de 6 (regla 2; hay test).
@@ -151,24 +157,23 @@
   }
 
   // Qué radio toca con esta velocidad (km/h) en este momento (ms). Sin
-  // velocidad, se queda como está.
+  // velocidad, o parado, se queda como está.
   function crearEscala() {
-    let radio = RADIO_KM, lentoDesde = null, rapidoDesde = null;
+    let radio = RADIO_KM;
+    let muestras = []; // { t, v } en marcha, del último minuto
+    const media = (lista) => lista.reduce((s, m) => s + m.v, 0) / lista.length;
     return {
       actualizar(velKmh, ahora) {
-        if (velKmh == null || isNaN(velKmh)) return radio;
-        if (velKmh < VEL_CERCA_KMH) {
-          rapidoDesde = null;
-          if (lentoDesde == null) lentoDesde = ahora;
-        } else if (velKmh > VEL_LEJOS_KMH) {
-          lentoDesde = null;
-          if (rapidoDesde == null) rapidoDesde = ahora;
+        if (velKmh == null || isNaN(velKmh) || velKmh < VEL_PARADO_KMH) return radio;
+        muestras.push({ t: ahora, v: velKmh });
+        muestras = muestras.filter((m) => ahora - m.t <= VENTANA_CERCA_MS);
+        if (radio === RADIO_KM) {
+          // Casi un minuto de marcha visto (las paradas de en medio no cuentan).
+          if (ahora - muestras[0].t >= VENTANA_CERCA_MS * 0.8 && media(muestras) < VEL_CERCA_KMH) radio = RADIO_CERCA_KM;
         } else {
-          lentoDesde = null;
-          rapidoDesde = null;
+          const recientes = muestras.filter((m) => ahora - m.t <= VENTANA_LEJOS_MS);
+          if (ahora - recientes[0].t >= VENTANA_LEJOS_MS * 0.75 && media(recientes) > VEL_LEJOS_KMH) radio = RADIO_KM;
         }
-        if (lentoDesde != null && ahora - lentoDesde >= SOSTENIDO_CERCA_MS) radio = RADIO_CERCA_KM;
-        if (rapidoDesde != null && ahora - rapidoDesde >= SOSTENIDO_LEJOS_MS) radio = RADIO_KM;
         return radio;
       },
     };
@@ -191,6 +196,8 @@
   let $rumbo = null, $altitud = null;
   const escala = crearEscala();
   let radioKm = RADIO_KM;
+  // Hasta cuándo dura el zum de un cambio de escala: el relieve nuevo espera.
+  let zumHasta = 0;
   let visible = false;
   let pos = null;
   let pxPorKm = 0, radioPx = 0;
@@ -259,6 +266,7 @@
     medir();
     ajustarZoom();
     rotularEscala();
+    zumHasta = Date.now() + 1000;
   }
 
   function colocarRelieve() {
@@ -275,9 +283,20 @@
     componiendo = true;
     const centro = { lat: pos.lat, lon: pos.lon };
     const escala = pxPorKm;
-    const zoom = radioKm === RADIO_CERCA_KM ? ZOOM_CERCA : undefined; // undefined: el de siempre (z10)
-    Relieve.componer({ lat: centro.lat, lon: centro.lon, radioKm: radioKm + MARGEN_KM, pxPorKm: escala, zoom, red: visible, circulo: true })
-      .then((r) => {
+    const op = { lat: centro.lat, lon: centro.lon, radioKm: radioKm + MARGEN_KM, pxPorKm: escala, red: visible, circulo: true };
+    const cerca = radioKm === RADIO_CERCA_KM;
+    Relieve.componer(cerca ? Object.assign({ zoom: ZOOM_CERCA }, op) : op)
+      // En ciudad sin cobertura, las teselas de más detalle no suelen estar en
+      // el móvil: mejor el relieve de carretera ampliado (más borroso) que un
+      // disco rayado. El detalle se reintenta pasado un rato, como cualquier hueco.
+      .then((r) => (cerca && r.faltan
+        ? Relieve.componer(op).then((r10) => ({ r: r10.faltan < r.faltan ? r10 : r, faltan: r.faltan }))
+        : { r, faltan: r.faltan }))
+      // Tras un cambio de escala, el relieve nuevo espera a que acabe el zum: con
+      // las teselas en memoria llegaba antes, el relieve saltaba de golpe y los
+      // ecos tardaban un segundo en llegar a su sitio.
+      .then((x) => new Promise((resolver) => setTimeout(() => resolver(x), Math.max(0, zumHasta - Date.now()))))
+      .then(({ r, faltan }) => {
         const lado = r.canvas.width;
         lienzo.width = lado;
         lienzo.height = lado;
@@ -289,7 +308,7 @@
         raiz.classList.add('p4-recomponiendo');
         // Si faltaron teselas (sin cobertura), se reintenta pasado un rato,
         // no en cada tick: relieve.js tampoco vuelve a pedirlas antes de 60 s.
-        comp = { lat: centro.lat, lon: centro.lon, pxPorKm: escala, faltan: r.faltan, reintentarEn: Date.now() + 30000 };
+        comp = { lat: centro.lat, lon: centro.lon, pxPorKm: escala, faltan, reintentarEn: Date.now() + 30000 };
         ajustarZoom(); // 1, salvo que la escala cambiara mientras se componía
         colocarRelieve();
         void lienzo.offsetWidth;

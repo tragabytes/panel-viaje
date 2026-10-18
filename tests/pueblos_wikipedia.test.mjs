@@ -85,9 +85,41 @@ test('los POIs de Wikipedia no son pueblos ni cosas que no se visitan', () => {
   }
 });
 
-test('los POIs salen en el orden de la búsqueda, como mucho dos por pueblo', () => {
-  const r = POIFuentes.parsearPOIsWikipedia(datos('astorga'), 'Astorga');
+// Impide: elegir los dos artículos más antiguos en vez de los dos más cercanos
+// (el `index` de Wikipedia sigue el orden de pageid, no la distancia).
+test('los POIs salen del más cercano al pueblo al más lejano, como mucho dos', () => {
+  const r = POIFuentes.parsearPOIsWikipedia(datos('astorga'), 'Astorga', 42.4575, -6.05694444);
   assert.equal(r.length, POIFuentes.MAX_POIS_POR_PUEBLO);
-  assert.deepEqual(r.map((p) => p.nombre), ['Palacio Episcopal de Astorga', 'Catedral de Astorga']);
+  assert.deepEqual(r.map((p) => p.nombre), ['Catedral de Astorga', 'Palacio Episcopal de Astorga']);
   assert.ok(r.every((p) => typeof p.pageid === 'number' && typeof p.lat === 'number'));
+});
+
+// Impide: edificios y parques sin descripción como pueblos (M-30 en Méndez
+// Álvaro, 18/10: la sede de la EMT, el parque Tierno Galván...).
+test('sin descripción, un título de edificio, parque o castillo no es un pueblo', () => {
+  for (const t of ['Sede de la EMT', 'Parque Tierno Galván', 'Polideportivo Daoíz y Velarde', 'Cementerio de San Nicolás',
+    'Nave de motores de Pacífico', 'Castillo de Maya', 'Iglesia de San Pedro', 'Palacio de Liria', 'Basílica de Atocha']) {
+    assert.equal(POIFuentes.esPuebloWikipedia(t, undefined), false, t);
+  }
+  assert.equal(POIFuentes.esPuebloWikipedia('Fontoria de Cepeda', undefined), true);
+});
+
+test('las entidades colectivas, las comunas francesas y las freguesias son pueblos (y no monumentos)', () => {
+  const casos = [['Los Médicos (Cartagena)', 'entidad colectiva de población del municipio de Cartagena'],
+    ['Alduides', 'comuna francesa del departamento de Pirineos Atlánticos'], ['Valença', 'freguesia de Portugal']];
+  for (const [t, d] of casos) {
+    assert.equal(POIFuentes.esPuebloWikipedia(t, d), true, t);
+    assert.equal(POIFuentes.esPoiWikipedia(t, d, 'Otro'), false, t);
+  }
+});
+
+// Impide: "La Carrera (León)" o "Fontoria de Cepeda" (pueblos sin descripción)
+// como monumentos de un pueblo vecino, y "Partido judicial de…" como sitio.
+test('sin descripción, un POI tiene que parecerlo por el título', () => {
+  for (const t of ['La Carrera (León)', 'Fontoria de Cepeda', 'Partido judicial de Collado Villalba']) {
+    assert.equal(POIFuentes.esPoiWikipedia(t, undefined, 'Otero de Escarpizo'), false, t);
+  }
+  for (const t of ['Iglesia de San Juan Bautista (Azcoaga)', 'Castillo de Maya', 'Ermita del Ecce Homo', 'Puente de Órbigo']) {
+    assert.equal(POIFuentes.esPoiWikipedia(t, undefined, 'Otro'), true, t);
+  }
 });

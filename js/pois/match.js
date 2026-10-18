@@ -75,7 +75,7 @@
   // parroquias gallegas y asturianas, anteiglesias vascas y entidades de población.
   const DESCRIPCION_PUEBLO = new RegExp(
     '^(municipio|localidad|pedan[ií]a|aldea|pueblo|concejo|despoblado|anteiglesia|barrio y anteiglesia' +
-    '|n[uú]cleo de poblaci[oó]n|poblaci[oó]n|entidad (singular de|de|local)\\b' +
+    '|n[uú]cleo de poblaci[oó]n|poblaci[oó]n|entidad (singular de|colectiva de|de|local)\\b|comuna|freguesia' +
     '|parroquia(?! cat[oó]lica)|lugar (de la parroquia|del (municipio|concejo|concello))' +
     '|villa (de|del|y|espa[ñn]ola)\\b|ciudad (de|del|y|espa[ñn]ola|aut[oó]noma)\\b|capital (de|del)\\b)',
     'i'
@@ -89,7 +89,9 @@
     '^(Sitios?|Asedio|Batalla|Combate|Bombardeo|Toma|Estadio|Pabell[oó]n|Teatro|Partido judicial' +
     '|[ÁA]rea (urbana|metropolitana)|Comarca|Monumento|Edificio|Calle|Paseo|Avenida|Plaza|Mina|Muralla' +
     '|Sacrist[ií]a|Patio|[ÍI]dolo|Distrito|Barrio|Cofrad[ií]a|Archicofrad[ií]a|Hermandad|Real Cofrad[ií]a' +
-    '|Instituto|Colegio|Biblioteca|Hotel|Antigu[oa]|Casas?|Torre|Atalaya|Puerta|Puerto de|Pueblo|Sierra|Monte)\\b',
+    '|Instituto|Colegio|Biblioteca|Hotel|Antigu[oa]|Casas?|Torre|Atalaya|Puerta|Puerto de|Pueblo|Sierra|Monte' +
+    '|Parque|Polideportivo|Cementerio|Sede|Nave|Bas[ií]lica|Castillo|Iglesia|Ermita|Palacio|Convento|Monasterio' +
+    '|Museo|Catedral|Santuario|Puente|Estaci[oó]n)\\b',
     'i'
   );
 
@@ -102,6 +104,18 @@
     '|estaci[oó]n|apeadero|l[ií]nea|carretera|autov[ií]a|autopista|calle|avenida|ayuntamiento de' +
     '|curso de agua|r[ií]o|arroyo|centro (educativo|de salud|comercial)|colegio|instituto|universidad' +
     '|facultad|hospital|estadio|pabell[oó]n|polideportivo|complejo deportivo)',
+    'i'
+  );
+
+  // Un artículo SIN descripción solo pasa como punto de interés si el título lo
+  // dice: si no, suele ser un pueblo vecino sin describir ("La Carrera (León)")
+  // o algo que no se visita ("Partido judicial de…").
+  const SI_POI_TITULO = new RegExp(
+    '^(Iglesia|Ermita|Castillo|Palacio|Monasterio|Convento|Catedral|Bas[ií]lica|Santuario|Colegiata|Abad[ií]a|Cartuja' +
+    '|Capilla|Museo|Puente|Torre|Torre[oó]n|Atalaya|Muralla|Murallas|Alc[aá]zar|Fortaleza|Acueducto|Arco|Puerta' +
+    '|Casa|Fuente|Mirador|Pico|Cueva|Ruinas|Yacimiento|Villa romana|Termas|Teatro romano|Calzada|Dolmen|Castro' +
+    '|Necr[oó]polis|Monumento|Cruz|Rollo|Picota|Molino|Plaza Mayor|Jard[ií]n|Bosque|Cascada|Laguna|Lago|Desfiladero' +
+    '|Hoz|Garganta|Faro)\\b',
     'i'
   );
 
@@ -155,6 +169,7 @@
     DESCRIPCION_PUEBLO,
     NO_PUEBLO_TITULO,
     NO_POI_DESCRIPCION,
+    SI_POI_TITULO,
     JACCARD_MIN_POI,
     JACCARD_MIN_MUNICIPIO,
     JACCARD_MIN_PEDANIA,

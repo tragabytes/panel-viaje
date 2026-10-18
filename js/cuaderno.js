@@ -25,7 +25,7 @@
 //     construirMarca, construirContexto, necesitaCompletar, completarContexto,
 //     aplicarRevision, candidatos, agruparPorViaje, fusionarImportacion,
 //     leerCopia, sanearMarca, textoParaCompartir, urlMapa, urlWikipedia,
-//     crearDetectorToqueLargo, marcasAqui, textoAquiMarcaste, aKML
+//     crearDetectorToqueLargo, marcasAqui, actualizarAlejadas, textoAquiMarcaste, aKML
 
 (function () {
   const __global__ = (typeof window !== 'undefined') ? window : globalThis;
@@ -235,8 +235,13 @@
       c.via = { codigo: datos.via.codigo || null, texto: datos.via.textoCrudo || null };
       c.viaVieja = false;
     }
-    if (Array.isArray(datos.pueblos) && datos.pueblos.length && (!c.pueblos || !c.pueblos.length || c.pueblosViejos)) {
+    // Los pueblos de Wikipedia (plan B cuando Overpass no contesta) quedan como
+    // provisionales: los de Overpass los sustituyen más adelante, y al revés no.
+    const provisionales = !!datos.pueblosProvisionales;
+    if (Array.isArray(datos.pueblos) && datos.pueblos.length &&
+        (!c.pueblos || !c.pueblos.length || c.pueblosViejos || (c.pueblosProvisionales && !provisionales))) {
       c.pueblos = construirContexto({ pueblos: datos.pueblos }, pos).pueblos;
+      c.pueblosProvisionales = provisionales;
       // Los puntos de interés eran de aquellos pueblos viejos: fuera los lejanos.
       if (c.pueblosViejos && Array.isArray(c.pois)) {
         c.pois = c.pois.filter((q) => q.distKm !== null && q.distKm <= PUEBLO_LEJOS_KM);
@@ -473,30 +478,47 @@
   // --- «Aquí marcaste» (pura) ---
   //
   // Al volver a pasar a menos de AQUI_M de una marca, el panel lo recuerda con
-  // un aviso discreto. No con la que acabas de hacer (AQUI_ANTIGUEDAD_MS) ni con
-  // una que ya te recordó hace poco (AQUI_REPETIR_MS): en un trayecto de todos
-  // los días sería un aviso diario. `recordadas`: { idMarca: cuándo se recordó }.
+  // un aviso discreto. Solo si te habías ido (más de ALEJARSE_M desde que se
+  // hizo o desde que se abrió el panel: `alejadas`, un Set de ids que lleva
+  // actualizarAlejadas): ni con la que acabas de hacer ni tras media hora parado
+  // donde marcaste. Ni con una que ya te recordó hace poco (AQUI_REPETIR_MS): en
+  // un trayecto de todos los días sería un aviso diario. `recordadas`:
+  // { idMarca: cuándo se recordó }; con fecha futura (el reloj del móvil se
+  // corrigió hacia atrás) no cuenta.
   const AQUI_M = 150;
-  const AQUI_ANTIGUEDAD_MS = 30 * 60 * 1000;
+  const ALEJARSE_M = 1000;
   const AQUI_REPETIR_MS = 30 * 24 * 3600 * 1000;
 
-  function marcasAqui(marcas, pos, ahora, recordadas) {
+  function marcasAqui(marcas, pos, ahora, recordadas, alejadas) {
     if (!hayPosicion(pos)) return [];
     const r = recordadas || {};
+    const reciente = (id) => r[id] != null && ahora - r[id] >= 0 && ahora - r[id] < AQUI_REPETIR_MS;
     return (marcas || [])
       .filter((m) => m && typeof m.id === 'number' && hayPosicion(m))
-      .filter((m) => ahora - m.id >= AQUI_ANTIGUEDAD_MS)
-      .filter((m) => !(r[m.id] && ahora - r[m.id] < AQUI_REPETIR_MS))
+      .filter((m) => alejadas && alejadas.has(m.id) && !reciente(m.id))
       .map((m) => ({ marca: m, distM: _Geo.distanciaMetros(pos.lat, pos.lon, m.lat, m.lon) }))
       .filter((x) => x.distM <= AQUI_M)
       .sort((a, b) => a.distM - b.distM);
   }
 
+  // Apunta en `alejadas` las marcas de las que ya estás a más de ALEJARSE_M.
+  function actualizarAlejadas(marcas, pos, alejadas) {
+    if (!hayPosicion(pos)) return alejadas;
+    for (const m of marcas || []) {
+      if (m && typeof m.id === 'number' && hayPosicion(m) && !alejadas.has(m.id) &&
+          _Geo.distanciaMetros(pos.lat, pos.lon, m.lat, m.lon) > ALEJARSE_M) {
+        alejadas.add(m.id);
+      }
+    }
+    return alejadas;
+  }
+
   const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 
   // "◆ Aquí marcaste · 12 sep · Castillo de Turienzo": cuándo y qué era (lo
-  // elegido al revisarla o el principio de la nota), corto para leerlo de un vistazo.
-  function textoAquiMarcaste(m, ahora) {
+  // elegido al revisarla o el principio de la nota), corto para leerlo de un
+  // vistazo. Con varias marcas juntas, la más cercana y "y N más".
+  function textoAquiMarcaste(m, ahora, otras) {
     const d = new Date(m.id);
     const hoy = new Date(ahora);
     const fecha = d.toDateString() === hoy.toDateString()
@@ -506,7 +528,7 @@
     const e = m.revision && m.revision.elegido;
     const nota = m.revision && typeof m.revision.nota === 'string' ? m.revision.nota.replace(/\s+/g, ' ').trim() : '';
     const que = e && e.nombre ? corto(e.nombre, 28) : (nota ? '«' + corto(nota, 26) + '»' : '');
-    return ['◆ Aquí marcaste', fecha, que].filter(Boolean).join(' · ');
+    return ['◆ Aquí marcaste', fecha, que, otras > 0 ? `y ${otras} más` : ''].filter(Boolean).join(' · ');
   }
 
   // --- Para Google My Maps y Google Earth (pura) ---
@@ -515,8 +537,12 @@
   // estabas), una carpeta por viaje, y la fecha, el pueblo, la vía y la nota.
   // Las marcas sin posición no pueden ir en un mapa.
 
+  // Los caracteres de control (un salto de línea pegado desde Word, U+000B)
+  // no caben en un XML: Google rechazaría el archivo entero.
   function escaparXml(s) {
-    return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' }[c]));
+    return String(s)
+      .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\uFFFE\uFFFF]/g, '')
+      .replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' }[c]));
   }
 
   function fechaHora(ms) {
@@ -836,6 +862,7 @@
     fusionarImportacion,
     textoParaCompartir,
     marcasAqui,
+    actualizarAlejadas,
     textoAquiMarcaste,
     aKML,
     AQUI_M,

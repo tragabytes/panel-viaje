@@ -29,7 +29,11 @@
       html, body { color: color-mix(in srgb, #fff var(--brillo), #000); }
     }
     .panel-noche .p3-v3-thumb img { opacity: var(--brillo); }
-    .panel-noche .p4-disco { filter: brightness(var(--brillo)); }
+    /* El relieve y el barrido, con opacidad sobre el fondo casi negro: se ve
+       igual que un filtro de brillo y no obliga a redibujar el disco entero en
+       cada fotograma del barrido (un filter sí, en el móvil viejo). */
+    .panel-noche .p4-relieve--listo { opacity: calc(0.95 * var(--brillo)); }
+    .panel-noche .p4-barrido { opacity: var(--brillo); }
 
     /* Visor: contenedor de las tres vistas con swipe horizontal.
        --app-height lo setea JS con window.innerHeight en cada resize/

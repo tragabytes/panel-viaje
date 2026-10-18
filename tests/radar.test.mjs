@@ -105,25 +105,43 @@ test('en ciudad, también casi siempre 4 teselas y nunca más de 6', () => {
 
 // Impide: un radar que se acerca y se aleja en cada semáforo (y recompone el
 // relieve cada vez), o que se queda en la escala de ciudad al salir a la autovía.
+// Una velocidad cada segundo, de `desde` a `hasta` (s).
+function conducir(e, kmh, desde, hasta) {
+  let r;
+  for (let t = desde; t <= hasta; t++) r = e.actualizar(typeof kmh === 'function' ? kmh(t) : kmh, t * 1000);
+  return r;
+}
+
 test('la escala del radar: 6 km tras un minuto despacio, 15 km a los 20 s deprisa', () => {
   const e = Radar.crearEscala();
-  assert.equal(e.actualizar(30, 0), 15, 'empieza en 15 km');
-  assert.equal(e.actualizar(30, 59000), 15);
-  assert.equal(e.actualizar(30, 60000), 6);
-  assert.equal(e.actualizar(0, 120000), 6, 'parado en un semáforo, sigue en 6');
-  assert.equal(e.actualizar(null, 125000), 6, 'sin velocidad, se queda como está');
-  assert.equal(e.actualizar(80, 130000), 6);
-  assert.equal(e.actualizar(80, 149000), 6);
-  assert.equal(e.actualizar(80, 150000), 15);
+  assert.equal(conducir(e, 30, 0, 40), 15, 'empieza en 15 km y no cambia antes de tiempo');
+  assert.equal(conducir(e, 30, 41, 50), 6, 'casi un minuto a 30 km/h: ciudad');
+  assert.equal(conducir(e, 0, 51, 170), 6, 'parado en un semáforo, sigue en 6');
+  assert.equal(e.actualizar(null, 171000), 6, 'sin velocidad, se queda como está');
+  assert.equal(conducir(e, 80, 172, 180), 6, 'unos segundos deprisa todavía no');
+  assert.equal(conducir(e, 80, 181, 190), 15, 'a los ~15-20 s de ir deprisa, carretera');
 });
 
-test('una velocidad intermedia (45-55 km/h) no cambia la escala ni cuenta para cambiarla', () => {
+// Impide: que un salto del GPS entre edificios (con la velocidad calculada del
+// móvil viejo, 47 km/h en un semáforo) deshaga el minuto de ciudad.
+test('un salto suelto del GPS no cambia la escala', () => {
   const e = Radar.crearEscala();
-  e.actualizar(30, 0);
-  e.actualizar(50, 40000);   // corta la cuenta de "despacio"
-  assert.equal(e.actualizar(30, 70000), 15);
-  assert.equal(e.actualizar(30, 130000), 6);
-  assert.equal(e.actualizar(50, 500000), 6);
+  assert.equal(conducir(e, (t) => (t === 30 ? 47 : 30), 0, 50), 6, 'yendo a ciudad');
+  assert.equal(conducir(e, (t) => (t === 60 ? 95 : 30), 51, 80), 6, 'ya en ciudad');
+});
+
+// Impide: bajar teselas de ciudad parado en una gasolinera o en un atasco (regla 2).
+test('el tiempo parado no cuenta para acercarse', () => {
+  const e = Radar.crearEscala();
+  assert.equal(conducir(e, 0, 0, 600), 15, 'diez minutos parado');
+  assert.equal(conducir(e, 3, 601, 700), 15, 'casi parado, tampoco');
+});
+
+test('entre 40 y 55 km/h de media no cambia de escala', () => {
+  const e = Radar.crearEscala();
+  assert.equal(conducir(e, 50, 0, 300), 15);
+  conducir(e, 25, 301, 400);
+  assert.equal(conducir(e, 50, 401, 700), 6);
 });
 
 test('girar a pantalla: con rumbo 90° (hacia el este), lo del este queda arriba', () => {

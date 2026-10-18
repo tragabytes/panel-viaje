@@ -466,22 +466,27 @@
     return { canvas, lat, lon, radioKm, pxPorKm, faltan };
   }
 
+  // Con la tesela más detallada que haya en memoria: en ciudad el radar usa
+  // z11 y puede no tener la z10 (salía "—").
   function altitud(lat, lon) {
-    const z = ZOOM_RADAR;
-    const g = pixelGlobal(lat, lon, z);
-    const tx = Math.floor(g.x / TAM);
-    const ty = Math.floor(g.y / TAM);
-    const m = memoria.get(`${z}/${tx}/${ty}`);
-    if (!m) return null;
-    const px = Math.min(m.ancho - 1, Math.max(0, Math.floor(g.x - tx * TAM)));
-    const py = Math.min(m.alto - 1, Math.max(0, Math.floor(g.y - ty * TAM)));
-    const e = m.alturas[py * m.ancho + px];
-    return e > 0 ? Math.round(e) : null;
+    for (const z of [12, 11, ZOOM_RADAR]) {
+      const g = pixelGlobal(lat, lon, z);
+      const tx = Math.floor(g.x / TAM);
+      const ty = Math.floor(g.y / TAM);
+      const m = memoria.get(`${z}/${tx}/${ty}`);
+      if (!m) continue;
+      const px = Math.min(m.ancho - 1, Math.max(0, Math.floor(g.x - tx * TAM)));
+      const py = Math.min(m.alto - 1, Math.max(0, Math.floor(g.y - ty * TAM)));
+      const e = m.alturas[py * m.ancho + px];
+      return e > 0 ? Math.round(e) : null;
+    }
+    return null;
   }
 
   __global__.Relieve = {
     componer,
     altitud,
+    _recordar: recordar, // para los tests
     pixelGlobal,
     metrosPorPixel,
     zoomPara,

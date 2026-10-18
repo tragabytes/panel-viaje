@@ -75,3 +75,14 @@ test('si el GPS da la velocidad, manda la del GPS', () => {
   assert.equal(r.velKmh, 90);
   assert.equal(r.fuenteVel, 'gps');
 });
+
+// Para la próxima salida, que solo admite un rumbo reciente (decisión 14).
+test('el rumbo dice su edad: 0 el del GPS, lo que lleva el calculado', () => {
+  const m = Movimiento.crear();
+  assert.equal(m.actualizar(fix(alNorte(0), { heading: 90 }), 0).edadRumboMs, 0);
+  const c = Movimiento.crear();
+  c.actualizar(fix(alNorte(0)), 0);
+  c.actualizar(fix(alNorte(30)), 1000);
+  assert.equal(c.actualizar(fix(alNorte(35)), 4000).edadRumboMs, 3000);
+  assert.equal(c.actualizar(fix(alNorte(36)), 20000).edadRumboMs, null, 'caducado: sin rumbo ni edad');
+});

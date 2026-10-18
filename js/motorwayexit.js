@@ -36,7 +36,7 @@
 //       activo: bool — si false, ocultar cartel verde
 //       proxima: { ref, distanciaKm } | null
 //       siguiente: { ref, distanciaKm } | null
-//       estado: 'ok' | 'cargando' | 'sin_datos' | 'error' | 'inactivo'
+//       estado: 'ok' | 'cargando' | 'sin_datos' | 'sin_rumbo' | 'error' | 'inactivo'
 //
 //   MotorwayExitModule.reset()
 //     Vacía caché y estado. Útil para tests con el simulador.
@@ -514,23 +514,28 @@
       return { activo: false, proxima: null, siguiente: null, estado: 'sin_datos' };
     }
 
+    // Sin saber hacia dónde vas no hay "próxima": la más cercana puede ser la
+    // que acabas de dejar atrás (el móvil viejo no da rumbo y el calculado
+    // caduca con mala precisión). Mejor sin cartel que con uno equivocado.
+    if (typeof rumbo !== 'number') {
+      return { activo: false, proxima: null, siguiente: null, estado: 'sin_rumbo' };
+    }
+
     let descartadosSentido = 0;
     const candidatos = [];
     for (const j of junctions) {
       const distM = Overpass.distanciaMetros(lat, lon, j.lat, j.lon);
       if (distM < DISTANCIA_MIN_JUNCTION_M) continue;
-      if (typeof rumbo === 'number') {
-        const rumboJ = Overpass.rumboHacia(lat, lon, j.lat, j.lon);
-        const diff = Overpass.diferenciaAngular(rumbo, rumboJ);
-        if (diff > TOLERANCIA_ANGULAR_GRADOS) continue;
-        // MO-06: si el way del junction es oneway y va en sentido opuesto
-        // al rumbo del usuario, es la calzada contraria → descartar.
-        if (j.wayOneway && typeof j.wayBearing === 'number') {
-          const diffSentido = Overpass.diferenciaAngular(rumbo, j.wayBearing);
-          if (diffSentido > TOLERANCIA_SENTIDO_GRADOS) {
-            descartadosSentido++;
-            continue;
-          }
+      const rumboJ = Overpass.rumboHacia(lat, lon, j.lat, j.lon);
+      const diff = Overpass.diferenciaAngular(rumbo, rumboJ);
+      if (diff > TOLERANCIA_ANGULAR_GRADOS) continue;
+      // MO-06: si el way del junction es oneway y va en sentido opuesto
+      // al rumbo del usuario, es la calzada contraria → descartar.
+      if (j.wayOneway && typeof j.wayBearing === 'number') {
+        const diffSentido = Overpass.diferenciaAngular(rumbo, j.wayBearing);
+        if (diffSentido > TOLERANCIA_SENTIDO_GRADOS) {
+          descartadosSentido++;
+          continue;
         }
       }
       candidatos.push({ id: j.id, ref: j.ref, distanciaKm: distM / 1000 });

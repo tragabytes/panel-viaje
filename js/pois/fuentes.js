@@ -232,16 +232,19 @@
     if (titulo.toLowerCase() === String(nombrePueblo || '').toLowerCase()) return false;
     if (POIMatch.EXCLUIR_GEOSEARCH.test(titulo)) return false;
     const d = descripcion && descripcion.trim();
-    return !d || (!POIMatch.DESCRIPCION_PUEBLO.test(d) && !POIMatch.NO_POI_DESCRIPCION.test(d));
+    if (!d) return POIMatch.SI_POI_TITULO.test(titulo);
+    return !POIMatch.DESCRIPCION_PUEBLO.test(d) && !POIMatch.NO_POI_DESCRIPCION.test(d);
   }
 
-  function parsearPOIsWikipedia(datos, nombre) {
+  // Del más cercano al pueblo al más lejano (el `index` de la respuesta sigue
+  // el orden de los artículos, no la distancia).
+  function parsearPOIsWikipedia(datos, nombre, lat, lon) {
     return ((datos && datos.query && datos.query.pages) || [])
       .filter(p => p && p.title && p.coordinates && p.coordinates[0])
-      // index: el orden de la búsqueda, del más cercano al más lejano.
-      .sort((a, b) => (a.index || 0) - (b.index || 0))
       .filter(p => esPoiWikipedia(p.title, p.description, nombre))
-      .map(p => ({ nombre: p.title, tipo: 'attraction', lat: p.coordinates[0].lat, lon: p.coordinates[0].lon, pageid: p.pageid }))
+      .map(p => ({ nombre: p.title, tipo: 'attraction', lat: p.coordinates[0].lat, lon: p.coordinates[0].lon, pageid: p.pageid,
+        distM: Overpass.distanciaMetros(lat, lon, p.coordinates[0].lat, p.coordinates[0].lon) }))
+      .sort((a, b) => a.distM - b.distM)
       .slice(0, MAX_POIS_POR_PUEBLO);
   }
 
@@ -251,7 +254,7 @@
       `&format=json&formatversion=2&origin=*`;
     const datos = await fetchConTimeout(url, {}, TIMEOUT_WIKIPEDIA_MS);
     const resultados = (datos.query && datos.query.pages) || [];
-    const pois = parsearPOIsWikipedia(datos, nombre);
+    const pois = parsearPOIsWikipedia(datos, nombre, lat, lon);
     if (typeof debug !== 'undefined') {
       const top = pois.map(p => p.nombre).join(', ');
       debug.log(`POI [${nombre}] [Wikipedia]: ${pois.length} de ${resultados.length} resultados${pois.length ? ' · ' + top : ''}`);

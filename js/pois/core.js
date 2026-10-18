@@ -41,7 +41,15 @@
 
   // --- Paso 1: pueblos cercanos ---
 
+  // Regla 4: lo que sale de Wikipedia cuando Overpass no contesta es un plan B:
+  // solo en memoria y por un rato, para volver a probar con Overpass. Guardado
+  // 14 días, esa zona no le preguntaba a Overpass en dos semanas.
+  const PROVISIONAL_MS = 10 * 60 * 1000;
+
   async function obtenerPueblosCercanos(lat, lon) {
+    if (cachePueblosCercanos && cachePueblosCercanos.provisionalHasta && Date.now() > cachePueblosCercanos.provisionalHasta) {
+      cachePueblosCercanos = null; // provisional caducado: otra vez Overpass
+    }
     if (cachePueblosCercanos) {
       const dist = Overpass.distanciaMetros(
         lat, lon,
@@ -79,6 +87,7 @@
     }
 
     let pueblos;
+    let provisional = false;
     try {
       const { datos, dt } = await Overpass.query(POIFuentes.construirQueryPueblos(lat, lon), 'POI-pueblos');
       // BPC-18: el filtro de pueblos falsos vive en POIFuentes.parsearPueblos.
@@ -95,16 +104,18 @@
           debug.warn('POI pueblos: 0 tras filtros BPC-18, probando Wikipedia geosearch');
         }
         pueblos = await POIFuentes.obtenerPueblosWikipedia(lat, lon);
+        provisional = true;
       }
     } catch (e) {
       if (typeof debug !== 'undefined') {
         debug.warn(`POI pueblos: Overpass falló (${e.message}), probando Wikipedia geosearch`);
       }
       pueblos = await POIFuentes.obtenerPueblosWikipedia(lat, lon);
+      provisional = true;
     }
 
-    cachePueblosCercanos = { centroLat: lat, centroLon: lon, pueblos };
-    POIIdb.guardar(idbKey, pueblos);
+    cachePueblosCercanos = { centroLat: lat, centroLon: lon, pueblos, provisionalHasta: provisional ? Date.now() + PROVISIONAL_MS : 0 };
+    if (!provisional) POIIdb.guardar(idbKey, pueblos);
     return pueblos;
   }
 
@@ -133,6 +144,7 @@
 
     let pois = [];
     let falloRed = false;
+    let falloOverpass = false;
     try {
       const { datos, dt } = await Overpass.query(POIFuentes.construirQueryPOIs(lat, lon), `POI-${nombre}`);
       pois = POIFuentes.parsearPOIs(datos, lat, lon, PRIORIDAD);
@@ -142,6 +154,7 @@
       }
     } catch (e) {
       falloRed = true;
+      falloOverpass = true;
       if (typeof debug !== 'undefined') {
         debug.warn(`POI [${nombre}]: Overpass falló (${e.message})`);
       }
@@ -172,10 +185,11 @@
 
     // BPC-08 (RA-04): solo persistir si hay POIs o si el [] es legítimo
     // (ninguna fuente falló por red). Un [] causado por fallo de red NO se
-    // persiste — antes quedaba 14 días en IDB como "pueblo sin POIs".
+    // persiste — antes quedaba 14 días en IDB como "pueblo sin POIs". Y si
+    // Overpass falló, lo de Wikipedia o Photon tampoco (plan B): solo esta sesión.
     if (pois.length > 0 || !falloRed) {
       cachePOIs.set(nombre, pois);
-      POIIdb.guardar(idbKey, pois);
+      if (!falloOverpass) POIIdb.guardar(idbKey, pois);
     }
     return pois;
   }

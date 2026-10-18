@@ -11,7 +11,8 @@
 //   Movimiento.crear() → { actualizar(coords, ahoraMs) }
 //     coords: { latitude, longitude, accuracy, speed, heading } (pos.coords)
 //     → { velKmh, fuenteVel: 'gps' | 'calculada' | null,
-//         rumbo, fuenteRumbo: 'gps' | 'calculado' | null }
+//         rumbo, fuenteRumbo: 'gps' | 'calculado' | null,
+//         edadRumboMs: 0 el del GPS, lo que lleva el calculado, null sin rumbo }
 
 (function () {
   const __global__ = (typeof window !== 'undefined') ? window : globalThis;
@@ -63,11 +64,13 @@
 
       let rumbo = valido(c.heading) ? c.heading : null;
       let fuenteRumbo = rumbo != null ? 'gps' : null;
+      let edadRumboMs = rumbo != null ? 0 : null;
       if (rumbo == null && rumboCalculado != null && ahora - rumboCalculadoTs < RUMBO_CALCULADO_MS) {
         rumbo = rumboCalculado;
         fuenteRumbo = 'calculado';
+        edadRumboMs = ahora - rumboCalculadoTs;
       }
-      return { velKmh, fuenteVel, rumbo, fuenteRumbo };
+      return { velKmh, fuenteVel, rumbo, fuenteRumbo, edadRumboMs };
     }
 
     return { actualizar };

@@ -346,11 +346,16 @@ Overpass directamente. Siguen abiertas la 4, la 5 y la 6.
   "localidad del municipio de Astorga", "cofradía católica", "asedio de 1810"...), y solo pasan los
   que son núcleos de población. Muestreado en nueve zonas de España (Galicia, Asturias, País Vasco,
   Cataluña, Valencia, Andalucía, Canarias, Madrid, León). Lo mismo para los puntos de interés de
-  Wikipedia: ni pueblos vecinos ("Pedredo" como monumento de Murias) ni asedios. Las listas
-  guardadas con el filtro viejo se olvidan (se volverán a pedir: unos pocos KB por zona).
+  Wikipedia: ni pueblos vecinos ("Pedredo" como monumento de Murias) ni asedios. Los artículos sin
+  descripción solo pasan si el título lo deja claro. Y **lo que sale de Wikipedia ya no se guarda
+  14 días** (era un plan B: esa zona no volvía a preguntar a Overpass en dos semanas): solo en
+  memoria y por 10 minutos; en el cuaderno, queda como provisional y "Completar con internet" lo
+  cambia por lo de Overpass cuando conteste. Las listas guardadas con el filtro viejo se olvidan
+  (se volverán a pedir: unos pocos KB por zona).
 - **N.º 6, la próxima salida sin rumbo**: con el móvil viejo (que no da rumbo) la próxima salida
-  **no filtraba por sentido** y podía enseñar la que acababas de dejar atrás. Ahora usa el mismo
-  rumbo calculado que el radar y las marcas.
+  **no filtraba por sentido** y podía enseñar la que acababas de dejar atrás. Ahora usa el rumbo
+  calculado, **solo si es de los últimos 5 segundos** (uno más viejo, en una curva, descartaba la
+  salida que venía); y **sin rumbo, sin cartel**: mejor ninguno que uno equivocado.
 - **N.º 7, el simulador en el panel de verdad**: **no lo hago**. Se baja una vez por versión
   (~7,5 KB) y no hace nada si no hay `?sim=`; cargarlo aparte complicaría el arranque para nada.
 - **Cómo se deshace**: el commit "pendientes 1-6 y reorganización".
@@ -375,13 +380,22 @@ Overpass directamente. Siguen abiertas la 4, la 5 y la 6.
   del exceso no baja**. El paisaje de la vista 2 ya tenía su noche.
 - **Por qué el 70 %**: lo bastante para no deslumbrar en la cabina a oscuras sin perder contraste.
   Si te parece poco o mucho, es un número.
+- **Ajustes de la revisión**: el relieve del radar baja con opacidad, no con un filtro (un filtro
+  obligaba a redibujar el disco entero en cada fotograma del barrido); cualquier cambio de brillo
+  va de punto en punto cada segundo (al encender se calcula con el sol de Madrid y, al llegar el
+  GPS, en Vigo o Girona al anochecer podía saltar 20 puntos de golpe); la previsión por horas de
+  la vista 2 no baja (ya es un verde tenue: de noche no se leía).
 - **Para verlo**: `?hora=23:00` (también pinta el paisaje a esa hora).
 - **Cómo se deshace**: quitar `js/modo_noche.js` (los colores vuelven a los de siempre).
 
 ### D30 · Radar con escala según la velocidad: 6 o 15 km, no 25
-- **Qué**: 15 km de radio en carretera; **6 km en ciudad**, tras un minuto seguido por debajo de
-  45 km/h (un semáforo no lo cambia); vuelve a 15 km a los 20 s por encima de 55. El cambio se ve
-  como un zum de un segundo; los anillos pasan a decir 2 · 4 · 6 km.
+- **Qué**: 15 km de radio en carretera; **6 km en ciudad**, cuando la media del último minuto en
+  marcha baja de 40 km/h; vuelve a 15 km cuando la de los últimos 20 s pasa de 55. Con medias, un
+  salto del GPS entre edificios no lo deshace, y **el tiempo parado no cuenta** (en una gasolinera
+  o un atasco no se acerca: bajaría teselas para nada). El cambio se ve como un zum de un segundo;
+  los anillos pasan a decir 2 · 4 · 6 km.
+- **Sin cobertura en ciudad**, si faltan las teselas de detalle, el radar usa las de carretera
+  ampliadas (más borroso) en vez de un disco rayado, y reintenta el detalle pasado un rato.
 - **Por qué no 25 km en autovía** (como te propuse): los pueblos se buscan a 15 km; a 25, la mitad
   exterior del radar saldría vacía. Buscar más lejos gasta datos.
 - **Datos**: en ciudad el relieve va con un nivel más de detalle (a 6 km, el de carretera se veía
@@ -394,9 +408,11 @@ Overpass directamente. Siguen abiertas la 4, la 5 y la 6.
 - **Qué**: al volver a pasar a menos de 150 m de una marca de hace más de media hora, la píldora
   de debajo de la cabecera dice, 8 segundos y en ámbar, "◆ Aquí marcaste · 12 sep · Castillo de
   Turienzo" (lo elegido al revisarla, o el principio de la nota). Sin animación.
-- **Decidido**: cada marca se recuerda **como mucho una vez al mes**: en un trayecto de todos los
-  días sería un aviso diario. Media hora para que no salte con la que acabas de hacer (a la vuelta
-  del mismo viaje, sí).
+- **Decidido**: cada marca se recuerda **como mucho una vez al mes** (en un trayecto de todos los
+  días sería un aviso diario), y **solo si te habías ido** a más de 1 km: ni con la que acabas de
+  hacer ni tras media hora parado donde marcaste; a la vuelta del mismo viaje, sí. Con varias
+  marcas juntas, la más cercana y "y 2 más". Con el simulador no se apunta nada en el móvil (si no,
+  en el viaje de verdad ya no saldrían).
 - **Comprobado** en el simulador: al pasar por las marcas de la mañana salió "◆ Aquí marcaste · hoy 12:10".
 
 ### D32 · Exportar a Google Maps
@@ -412,3 +428,29 @@ Overpass directamente. Siguen abiertas la 4, la 5 y la 6.
   cada vista, con imágenes. **Sin código**: las vistas siguen como estaban hasta que elijas.
 - Mi recomendación: vista 1 **B (paisaje con los pueblos como carteles en su dirección real)** y
   vista 3 **A (postales)**.
+
+### D34 · Revisión de lo de hoy: lo que se encontró y se arregló
+- **Cómo**: tres revisiones por separado (radar y modo noche; la reorganización; cuaderno y
+  fuentes de datos), con simulaciones y algunas peticiones reales a Wikipedia. Diecisiete hallazgos;
+  todos arreglados salvo uno que ya estaba resuelto (la `SW_VERSION`). Los que importan:
+  - **Lo de Wikipedia se guardaba 14 días** cuando Overpass fallaba (regla 4). Ahora no (D27, n.º 2).
+  - **Sin cobertura, la escala de ciudad dejaba el radar rayado** y la altitud en "—" (D30).
+  - **Un salto del GPS reiniciaba el minuto** de la escala de ciudad, y parado en una gasolinera
+    acababa bajando teselas (D30).
+  - **La próxima salida podía volver a la de atrás** con el rumbo caducado (D27, n.º 6).
+  - **Artículos de Wikipedia sin descripción** se colaban como pueblos (la sede de la EMT, un
+    polideportivo, cerca de la M-30) o como monumentos (pueblos vecinos sin describir); faltaban las
+    "entidades colectivas" (Murcia), las comunas francesas y las freguesias portuguesas; y los POIs
+    salían por antigüedad del artículo, no por cercanía.
+  - **«Aquí marcaste»** podía saltar tras media hora parado donde marcaste, callarse la segunda de
+    dos marcas juntas o quedar silenciado por un reloj adelantado (D31).
+  - Un **carácter de control** en una nota invalidaba el KML entero; un **filtro** en el radar de
+    noche costaba de más; el **brillo saltaba** al llegar el GPS (D29); y si la vista de logs no
+    cargaba, `?logs=1` se quedaba en blanco (ahora lo dice).
+- **Comprobado**: 165 tests en verde (14 nuevos de la revisión, que fallaban antes del arreglo) y en
+  el navegador: escala de ciudad con las teselas de detalle bloqueadas (relieve de carretera, no
+  rayado), modo noche, «Aquí marcaste», cuaderno y logs.
+
+### D35 · Sin subir a GitHub
+- **Qué**: todo esto está en commits en tu ordenador, con `SW_VERSION`
+  `v22-2026-10-18-mejoras-pequenas`, sin `push`. Se publica cuando digas "sube".

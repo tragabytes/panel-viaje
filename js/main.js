@@ -287,6 +287,7 @@
     // Velocidad y rumbo de cada posición, también en los Android viejos que
     // los dan a null (js/movimiento.js). Un solo rumbo para todo el panel.
     const movimiento = Movimiento.crear();
+    const RUMBO_SALIDAS_MS = 5000;
     let logueadoPrimerFixSpeed = false;
     let logueadoFallbackVelocidad = false;
 
@@ -1086,9 +1087,11 @@
         actualizarGasolineras(c.latitude, c.longitude);
       }
 
-      // MotorwayExit se evalúa en CADA tick, con el mismo rumbo que el radar
-      // (PENDIENTES n.º 6: sin él no filtra por sentido).
-      actualizarProximasSalidas(c.latitude, c.longitude, rumboEfectivo, velEfectivaKmh);
+      // MotorwayExit se evalúa en CADA tick, con el rumbo del GPS o el calculado
+      // (PENDIENTES n.º 6), pero solo si es reciente: uno de hace 15 s, en una
+      // curva, descartaba la salida que venía (decisión 14). Sin rumbo, sin cartel.
+      const rumboSalidas = mov.edadRumboMs != null && mov.edadRumboMs <= RUMBO_SALIDAS_MS ? rumboEfectivo : null;
+      actualizarProximasSalidas(c.latitude, c.longitude, rumboSalidas, velEfectivaKmh);
     }
 
     // D25: qué falla y dónde se arregla (js/ayuda_gps.js). Sin permiso o sin
@@ -1212,21 +1215,31 @@
     // recordadas se apuntan en el móvil para no repetirlas en un mes (en un
     // trayecto de todos los días serían un aviso diario). Es una comodidad: si
     // localStorage falla, como mucho se repite un aviso.
+    // Con el simulador no se apuntan en el móvil: una ruta simulada junto a las
+    // marcas las dejaría "recordadas" y en el viaje de verdad no saldrían.
     const CLAVE_RECORDADAS = 'cuaderno-recordadas';
     const RECORDADAS_MS = 31 * 24 * 3600 * 1000;
+    const simulando = !!(window.Simulator && Simulator.estaActivo());
     let recordadas = {};
-    try { recordadas = JSON.parse(localStorage.getItem(CLAVE_RECORDADAS)) || {}; } catch (e) { recordadas = {}; }
+    try { if (!simulando) recordadas = JSON.parse(localStorage.getItem(CLAVE_RECORDADAS)) || {}; } catch (e) { recordadas = {}; }
+    // Marcas de las que ya te has alejado (más de 1 km desde que se abrió el
+    // panel o desde que se hicieron): solo esas pueden recordarse al volver.
+    const alejadas = new Set();
     function comprobarAquiMarcaste(pos, ahora) {
-      const aqui = Cuaderno.marcasAqui(marcasCuaderno, pos, ahora, recordadas);
+      Cuaderno.actualizarAlejadas(marcasCuaderno, pos, alejadas);
+      const aqui = Cuaderno.marcasAqui(marcasCuaderno, pos, ahora, recordadas, alejadas);
       if (!aqui.length) return;
       for (const x of aqui) recordadas[x.marca.id] = ahora;
       for (const id of Object.keys(recordadas)) {
-        if (ahora - recordadas[id] > RECORDADAS_MS) delete recordadas[id];
+        const d = ahora - recordadas[id];
+        if (d > RECORDADAS_MS || d < 0) delete recordadas[id];
       }
-      try { localStorage.setItem(CLAVE_RECORDADAS, JSON.stringify(recordadas)); } catch (e) { /* solo en memoria */ }
+      if (!simulando) {
+        try { localStorage.setItem(CLAVE_RECORDADAS, JSON.stringify(recordadas)); } catch (e) { /* solo en memoria */ }
+      }
       const m = aqui[0].marca;
-      avisarMarca(Cuaderno.textoAquiMarcaste(m, ahora), 'recuerdo', 8000);
-      debug.log(`Cuaderno: aquí marcaste (marca del ${new Date(m.id).toLocaleString('es')}, a ${Math.round(aqui[0].distM)} m)`);
+      avisarMarca(Cuaderno.textoAquiMarcaste(m, ahora, aqui.length - 1), 'recuerdo', 8000);
+      debug.log(`Cuaderno: aquí marcaste (marca del ${new Date(m.id).toLocaleString('es')}, a ${Math.round(aqui[0].distM)} m${aqui.length > 1 ? `, y ${aqui.length - 1} más` : ''})`);
     }
 
     const detectorMarca = Cuaderno.crearDetectorToqueLargo(() => {
@@ -1306,8 +1319,17 @@
     configurarSafeAreaDev();
     const params = new URLSearchParams(location.search);
     if (params.get('logs') === '1') {
-      // Nunca el panel en modo logs, aunque falte el módulo.
-      if (window.LogsVista) LogsVista.arrancar();
+      // Nunca el panel en modo logs, aunque falte el módulo: si no cargó, dilo.
+      if (window.LogsVista) {
+        LogsVista.arrancar();
+      } else {
+        document.getElementById('visor').style.display = 'none';
+        document.body.style.overflow = 'auto';
+        const aviso = document.createElement('p');
+        aviso.style.cssText = 'padding:24px; font-size:16px; color:#e8f3ef;';
+        aviso.textContent = 'No se pudo cargar la vista de logs. Recarga la página con internet.';
+        document.body.appendChild(aviso);
+      }
     } else if (params.get('cuaderno') === '1' && window.CuadernoVista) {
       // Spec 001, H3: el cuaderno es un modo aparte; el panel no enlaza aquí.
       CuadernoVista.arrancar();

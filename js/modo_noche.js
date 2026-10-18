@@ -34,6 +34,8 @@
   let conGps = false;
   let desfaseHora = 0;
   let aplicado = null;
+  let objetivo = null;
+  let paso = null;
 
   function leerHora() {
     try {
@@ -46,17 +48,29 @@
     } catch (e) { /* sin bandera */ }
   }
 
-  function aplicar() {
-    if (!__global__.PaisajeFX) return;
-    const ahora = Date.now() + desfaseHora;
-    const sol = PaisajeFX.salidaPuesta(ahora, pos.lat, pos.lon);
-    const pct = Math.round(brillo(ahora, sol.salida, sol.puesta) * 100);
-    if (pct === aplicado) return;
+  function pintar(pct) {
     aplicado = pct;
     const raiz = document.documentElement;
     raiz.style.setProperty('--brillo', pct + '%');
     raiz.classList.toggle('panel-noche', pct < 100);
-    if (typeof debug !== 'undefined') debug.log(`Modo noche: brillo ${pct} %`);
+    if (pct === objetivo && typeof debug !== 'undefined') debug.log(`Modo noche: brillo ${pct} %`);
+  }
+
+  // Hacia el brillo que toca, de punto en punto cada segundo: hasta el primer
+  // GPS se calcula con el sol de Madrid, y en Vigo o Girona al anochecer la
+  // posición de verdad podía cambiarlo 20 puntos de golpe.
+  function acercar() {
+    if (aplicado === objetivo) { clearInterval(paso); paso = null; return; }
+    pintar(aplicado + Math.sign(objetivo - aplicado));
+  }
+
+  function aplicar() {
+    if (!__global__.PaisajeFX) return;
+    const ahora = Date.now() + desfaseHora;
+    const sol = PaisajeFX.salidaPuesta(ahora, pos.lat, pos.lon);
+    objetivo = Math.round(brillo(ahora, sol.salida, sol.puesta) * 100);
+    if (aplicado == null) { pintar(objetivo); return; } // al encender, directo
+    if (objetivo !== aplicado && !paso) paso = setInterval(acercar, 1000);
   }
 
   function iniciar() {

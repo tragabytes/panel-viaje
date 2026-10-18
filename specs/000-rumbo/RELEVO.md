@@ -10,7 +10,8 @@ razonamiento y las descripciones de los comandos.
 Lee, por este orden:
 1. `CLAUDE.md` (mapa del proyecto y reglas propias).
 2. `specs/000-rumbo/vision.md` (qué quiero que sea y en qué orden).
-3. `specs/000-rumbo/DECISIONES.md`, sobre todo de D26 en adelante (lo último que se hizo).
+3. `specs/000-rumbo/DECISIONES.md`, sobre todo de D26 en adelante (lo último que se hizo, con la
+   revisión en D34).
 4. `specs/000-rumbo/PENDIENTES.md` (las dos funcionalidades grandes apuntadas y lo que espera decisión).
 5. `specs/004-vistas-1-y-3/propuesta.md` (maquetas de las vistas 1 y 3, esperan mi elección).
 6. Las specs 001, 002 y 003 con sus `tasks.md`, si vas a tocar el cuaderno, el radar o el paisaje.
@@ -22,7 +23,8 @@ Lee, por este orden:
   (DECISIONES D26-D34): los seis pendientes arreglados (provincia, nombre de vía, datos del pueblo
   anterior, límite sin cobertura, pueblos de Wikipedia que no eran pueblos, próxima salida sin
   rumbo), modo noche, radar que se acerca a 6 km en ciudad, «Aquí marcaste», marcas a Google Maps
-  (KML), el código reorganizado y el tick del GPS a prueba de fallos. Se publica cuando yo diga "sube".
+  (KML), el código reorganizado y el tick del GPS a prueba de fallos, más los 16 arreglos de la
+  revisión (D34). Se publica cuando yo diga "sube".
 - Desde la v20 las versiones entran solas en el móvil, con el coche parado (D24).
 - **Ningún móvil tiene confirmada la v21.** Los que tenían una versión anterior a la v20 necesitan
   una vez la actualización a mano (MANTENIMIENTO, sección 4).
