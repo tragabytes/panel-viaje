@@ -1,9 +1,14 @@
 // v4_radar.js — La vista 4 como un radar con relieve (specs/002-radar-relieve).
 //
 // Lo que tienes delante, arriba: el disco gira con el rumbo de la marcha. Debajo,
-// el relieve (js/relieve.js); encima, anillos cada 5 km, un barrido lento y los
+// el relieve (js/relieve.js); encima, tres anillos, un barrido lento y los
 // pueblos cercanos como ecos que se iluminan cuando el barrido pasa por ellos.
 // Las marcas del cuaderno que caen dentro aparecen como rombos.
+//
+// La escala va con la velocidad: 15 km de radio en carretera y 6 km en ciudad
+// (despacio un minuto seguido), donde los pueblos de alrededor se apiñaban en
+// el centro. No pasa de 15 km: los pueblos se buscan a 15 km y más allá el
+// disco saldría vacío. El cambio se ve como un zum de un segundo.
 //
 // Coste (CLAUDE.md, regla 1): casi todo lo mueve el compositor (giro del
 // relieve con la propiedad rotate, barrido, latido de los ecos, desplazamiento).
@@ -19,12 +24,24 @@
 //   RadarV4.pueblos([{ nombre, lat, lon }])
 //   RadarV4.marcas([{ id, lat, lon }])
 //   Puras (probadas en Node): aPantalla, desenrollar, retrasoEco,
-//       debeRecomponer, formatoDistancia, cardinal
+//       debeRecomponer, formatoDistancia, cardinal, crearEscala
 
 (function () {
   const __global__ = (typeof window !== 'undefined') ? window : globalThis;
 
-  const RADIO_KM = 15;
+  const RADIO_KM = 15;          // en carretera
+  const RADIO_CERCA_KM = 6;     // en ciudad (anillos de 2, 4 y 6 km)
+  // Histéresis de la escala: más cerca solo tras un minuto seguido por debajo
+  // de 45 km/h (un semáforo en carretera no cambia nada); más lejos a los 20 s
+  // por encima de 55 (al salir a la carretera hace falta ver lejos pronto).
+  const VEL_CERCA_KMH = 45;
+  const VEL_LEJOS_KMH = 55;
+  const SOSTENIDO_CERCA_MS = 60000;
+  const SOSTENIDO_LEJOS_MS = 20000;
+  // En ciudad, el relieve con un nivel más de detalle (z11): con el de
+  // carretera (z10) a 6 km se veía borroso. Su círculo pide las mismas teselas
+  // que el de 15 km: casi siempre 4, nunca más de 6 (regla 2; hay test).
+  const ZOOM_CERCA = 11;
   // El relieve se compone con un poco de margen para poder desplazarlo sin
   // recomponer, y solo el círculo (el radar es un disco): con 4 km y el
   // cuadrado entero se bajaban 4-9 teselas; así, casi siempre 4.
@@ -133,6 +150,30 @@
     return lados;
   }
 
+  // Qué radio toca con esta velocidad (km/h) en este momento (ms). Sin
+  // velocidad, se queda como está.
+  function crearEscala() {
+    let radio = RADIO_KM, lentoDesde = null, rapidoDesde = null;
+    return {
+      actualizar(velKmh, ahora) {
+        if (velKmh == null || isNaN(velKmh)) return radio;
+        if (velKmh < VEL_CERCA_KMH) {
+          rapidoDesde = null;
+          if (lentoDesde == null) lentoDesde = ahora;
+        } else if (velKmh > VEL_LEJOS_KMH) {
+          lentoDesde = null;
+          if (rapidoDesde == null) rapidoDesde = ahora;
+        } else {
+          lentoDesde = null;
+          rapidoDesde = null;
+        }
+        if (lentoDesde != null && ahora - lentoDesde >= SOSTENIDO_CERCA_MS) radio = RADIO_CERCA_KM;
+        if (rapidoDesde != null && ahora - rapidoDesde >= SOSTENIDO_LEJOS_MS) radio = RADIO_KM;
+        return radio;
+      },
+    };
+  }
+
   function formatoDistancia(km) {
     if (km < 1) return Math.round(km * 1000) + ' m';
     return km.toFixed(1).replace('.', ',') + ' km';
@@ -146,7 +187,10 @@
   // --- Estado ---
 
   let raiz = null, disco = null, lienzo = null, barrido = null, capaPins = null, norte = null, rotulo15 = null;
+  let rotulos = [], $radioTag = null;
   let $rumbo = null, $altitud = null;
+  const escala = crearEscala();
+  let radioKm = RADIO_KM;
   let visible = false;
   let pos = null;
   let pxPorKm = 0, radioPx = 0;
@@ -168,7 +212,7 @@
     const r = disco.clientWidth / 2;
     if (r <= 0) return;
     radioPx = r;
-    pxPorKm = r / RADIO_KM;
+    pxPorKm = r / radioKm;
     // Medido en pantalla y relativo a la vista (vale con el visor desplazado
     // y con el disco movido por transform, como en vertical).
     const vista = raiz.parentElement;
@@ -196,6 +240,27 @@
 
   // --- Relieve ---
 
+  // El lienzo compuesto a otra escala se estira o encoge (con transición: un
+  // zum de un segundo) hasta que llega el nuevo.
+  function ajustarZoom() {
+    raiz.style.setProperty('--zoom', comp ? (pxPorKm / comp.pxPorKm).toFixed(4) : '1');
+  }
+
+  function rotularEscala() {
+    const textos = [radioKm / 3, radioKm * 2 / 3, radioKm].map((v) => String(Math.round(v)));
+    textos[2] += ' km';
+    rotulos.forEach((el, i) => { if (textos[i] && el.textContent !== textos[i]) el.textContent = textos[i]; });
+    if ($radioTag) $radioTag.textContent = `ENTORNO · RADIO ${radioKm} KM`;
+  }
+
+  function cambiarEscala(nuevo) {
+    if (typeof debug !== 'undefined') debug.log(`Radar: escala de ${radioKm} a ${nuevo} km`);
+    radioKm = nuevo;
+    medir();
+    ajustarZoom();
+    rotularEscala();
+  }
+
   function colocarRelieve() {
     if (!comp || !pos || !lienzo) return;
     const p = aPantalla(pos, comp.lat, comp.lon, pxPorKm);
@@ -210,7 +275,8 @@
     componiendo = true;
     const centro = { lat: pos.lat, lon: pos.lon };
     const escala = pxPorKm;
-    Relieve.componer({ lat: centro.lat, lon: centro.lon, radioKm: RADIO_KM + MARGEN_KM, pxPorKm: escala, red: visible, circulo: true })
+    const zoom = radioKm === RADIO_CERCA_KM ? ZOOM_CERCA : undefined; // undefined: el de siempre (z10)
+    Relieve.componer({ lat: centro.lat, lon: centro.lon, radioKm: radioKm + MARGEN_KM, pxPorKm: escala, zoom, red: visible, circulo: true })
       .then((r) => {
         const lado = r.canvas.width;
         lienzo.width = lado;
@@ -224,6 +290,7 @@
         // Si faltaron teselas (sin cobertura), se reintenta pasado un rato,
         // no en cada tick: relieve.js tampoco vuelve a pedirlas antes de 60 s.
         comp = { lat: centro.lat, lon: centro.lon, pxPorKm: escala, faltan: r.faltan, reintentarEn: Date.now() + 30000 };
+        ajustarZoom(); // 1, salvo que la escala cambiara mientras se componía
         colocarRelieve();
         void lienzo.offsetWidth;
         raiz.classList.remove('p4-recomponiendo');
@@ -274,7 +341,7 @@
     for (const m of listaMarcas) {
       if (m && m.lat != null && m.lon != null) {
         const d = aPantalla(pos, m.lat, m.lon, 1).distKm;
-        if (d <= RADIO_KM) deseados.set(claveDe('marca', m), ['marca', m]);
+        if (d <= radioKm) deseados.set(claveDe('marca', m), ['marca', m]);
       }
     }
     for (const [clave, n] of nodos) {
@@ -287,7 +354,7 @@
       if (!n) { n = crearNodo(tipo, item); nodos.set(clave, n); }
       const p = aPantalla(pos, item.lat, item.lon, pxPorKm);
       // Fuera del disco: pegado al borde y apagado, como en un radar.
-      const lejos = p.distKm > RADIO_KM;
+      const lejos = p.distKm > radioKm;
       const f = lejos ? (radioPx * 0.97) / Math.hypot(p.x, p.y) : 1;
       // Ya girado: el disco de relieve gira −rumbo; los ecos van encima sin girar.
       const s = girarAPantalla(p.x * f, p.y * f, rumboAcum);
@@ -387,8 +454,10 @@
     barrido = raiz.querySelector('.p4-barrido');
     capaPins = document.getElementById('v4Pins');
     norte = raiz.querySelector('.p4-norte');
-    const rotulos = raiz.querySelectorAll('.p4-anillo-txt');
+    rotulos = Array.from(raiz.querySelectorAll('.p4-anillo-txt'));
     rotulo15 = rotulos.length ? rotulos[rotulos.length - 1] : null;
+    $radioTag = document.getElementById('v4RadioTag');
+    rotularEscala();
     $rumbo = document.getElementById('v4Rumbo');
     $altitud = document.getElementById('v4Altitud');
     reducido = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
@@ -415,6 +484,8 @@
   function posicion(p) {
     if (!raiz || !p || p.lat == null || p.lon == null) return;
     pos = { lat: p.lat, lon: p.lon };
+    const radio = escala.actualizar(p.velocidadKmh, Date.now());
+    if (radio !== radioKm) cambiarEscala(radio);
     const giro = aplicarRumbo(p.rumbo, p.velocidadKmh);
     if (pxPorKm <= 0) medir();
     colocarRelieve();
@@ -453,6 +524,9 @@
     formatoDistancia,
     cardinal,
     RADIO_KM,
+    RADIO_CERCA_KM,
+    ZOOM_CERCA,
+    crearEscala,
     PERIODO_BARRIDO_MS,
   };
 

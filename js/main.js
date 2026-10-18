@@ -70,6 +70,9 @@
       navigator.serviceWorker.register('service-worker.js').catch(() => {});
     }
 
+    // De noche, el panel baja el brillo poco a poco (js/modo_noche.js).
+    if (window.ModoNoche) ModoNoche.iniciar();
+
     // Pedir wake lock para que la pantalla no se apague durante el viaje.
     // El módulo se reactiva solo cuando la pestaña vuelve del segundo plano.
     if (window.WakeLock) {
@@ -133,8 +136,8 @@
     const RADIO_PUEBLOS_KM_TXT = (window.POIFuentes && POIFuentes.RADIO_PUEBLOS_M)
       ? Math.round(POIFuentes.RADIO_PUEBLOS_M / 1000)
       : 15;
-    const $v4RadioTag = document.getElementById('v4RadioTag');
-    if ($v4RadioTag) $v4RadioTag.textContent = `ENTORNO · RADIO ${RADIO_PUEBLOS_KM_TXT} KM`;
+    // El rótulo de la vista 4 (ENTORNO · RADIO N KM) lo escribe el radar: su
+    // escala cambia con la velocidad (js/v4_radar.js).
 
     // IU-33: la cabecera global puede crecer si los crumbs envuelven (pueblo
     // largo + comarca + HAB + M no caben en una línea). Sincroniza el alto
@@ -1034,6 +1037,7 @@
         PaisajeFX.setVelocidad(velEfectivaKmh);
         PaisajeFX.setPosicion(c.latitude, c.longitude);
       }
+      if (window.ModoNoche) ModoNoche.posicion(c.latitude, c.longitude);
 
       let hayQueActualizar = false;
       if (!ultimaPosicionUbicacion) {

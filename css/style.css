@@ -67,6 +67,25 @@
   /* Líneas de grid HUD */
   --grid-line: rgba(125, 255, 160, 0.06);
   --grid-line-strong: rgba(125, 255, 160, 0.12);
+
+  /* Modo noche (js/modo_noche.js): 100 % de día, hasta 70 % de noche. */
+  --brillo: 100%;
+}
+
+/* De noche bajan las letras y los verdes; el ámbar, la mitad (es aviso); el
+   rojo del exceso, nada. Con un Chrome sin color-mix() se queda como de día. */
+@supports (color: color-mix(in srgb, red 50%, blue)) {
+  :root {
+    --phos-100: color-mix(in srgb, #c8ffd6 var(--brillo), #000);
+    --phos-200: color-mix(in srgb, #7dffa0 var(--brillo), #000);
+    --phos-300: color-mix(in srgb, #3dff6e var(--brillo), #000);
+    --phos-400: color-mix(in srgb, #00e04b var(--brillo), #000);
+    --phos-500: color-mix(in srgb, #00a838 var(--brillo), #000);
+    --hud-white: color-mix(in srgb, #e8f3ef var(--brillo), #000);
+    --hud-white-dim: color-mix(in srgb, #8a9a95 var(--brillo), #000);
+    --hud-white-mute: color-mix(in srgb, #4a5955 var(--brillo), #000);
+    --amber: color-mix(in srgb, #ffb547 calc(50% + var(--brillo) / 2), #000);
+  }
 }
 
 /* --- Utilidades tipográficas reutilizables entre vistas --- */

@@ -90,6 +90,42 @@ test('el radar compone solo su círculo: casi siempre 4 teselas, nunca más de 6
   assert.ok(suma / n < 4.5, `media ${(suma / n).toFixed(2)}`);
 });
 
+// Lo mismo en ciudad (6 km, un nivel más de detalle): no más datos que en carretera.
+test('en ciudad, también casi siempre 4 teselas y nunca más de 6', () => {
+  let n = 0, suma = 0, max = 0;
+  for (let lat = 36.2; lat <= 43.6; lat += 0.11) {
+    for (let lon = -9.2; lon <= 3.2; lon += 0.13) {
+      const k = Relieve.teselasParaVentana(lat, lon, Radar.RADIO_CERCA_KM + Radar.MARGEN_KM, Radar.ZOOM_CERCA, true).length;
+      n++; suma += k; max = Math.max(max, k);
+    }
+  }
+  assert.ok(max <= 6, `máximo ${max}`);
+  assert.ok(suma / n < 4.5, `media ${(suma / n).toFixed(2)}`);
+});
+
+// Impide: un radar que se acerca y se aleja en cada semáforo (y recompone el
+// relieve cada vez), o que se queda en la escala de ciudad al salir a la autovía.
+test('la escala del radar: 6 km tras un minuto despacio, 15 km a los 20 s deprisa', () => {
+  const e = Radar.crearEscala();
+  assert.equal(e.actualizar(30, 0), 15, 'empieza en 15 km');
+  assert.equal(e.actualizar(30, 59000), 15);
+  assert.equal(e.actualizar(30, 60000), 6);
+  assert.equal(e.actualizar(0, 120000), 6, 'parado en un semáforo, sigue en 6');
+  assert.equal(e.actualizar(null, 125000), 6, 'sin velocidad, se queda como está');
+  assert.equal(e.actualizar(80, 130000), 6);
+  assert.equal(e.actualizar(80, 149000), 6);
+  assert.equal(e.actualizar(80, 150000), 15);
+});
+
+test('una velocidad intermedia (45-55 km/h) no cambia la escala ni cuenta para cambiarla', () => {
+  const e = Radar.crearEscala();
+  e.actualizar(30, 0);
+  e.actualizar(50, 40000);   // corta la cuenta de "despacio"
+  assert.equal(e.actualizar(30, 70000), 15);
+  assert.equal(e.actualizar(30, 130000), 6);
+  assert.equal(e.actualizar(50, 500000), 6);
+});
+
 test('girar a pantalla: con rumbo 90° (hacia el este), lo del este queda arriba', () => {
   const s = Radar.girarAPantalla(100, 0, 90);
   assert.ok(cerca(s.x, 0, 1e-9) && cerca(s.y, -100, 1e-9));

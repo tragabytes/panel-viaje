@@ -22,6 +22,14 @@
       color: #fff;
       font-family: -apple-system, system-ui, sans-serif;
     }
+    /* Modo noche (js/modo_noche.js): lo que no usa los colores del sistema de
+       diseño también baja con --brillo. Las fotos de la vista 3 y el relieve
+       del radar, con opacidad y brillo (solo de noche: de día, ni filtro). */
+    @supports (color: color-mix(in srgb, red 50%, blue)) {
+      html, body { color: color-mix(in srgb, #fff var(--brillo), #000); }
+    }
+    .panel-noche .p3-v3-thumb img { opacity: var(--brillo); }
+    .panel-noche .p4-disco { filter: brightness(var(--brillo)); }
 
     /* Visor: contenedor de las tres vistas con swipe horizontal.
        --app-height lo setea JS con window.innerHeight en cada resize/
@@ -708,6 +716,9 @@
       text-shadow: 0 1px 6px rgba(0, 0, 0, 0.95), 0 0 2px rgba(0, 0, 0, 0.9);
     }
     #vista2 .p2-metric-label, #vista2 .p2-story { color: #b4c3be; }
+    @supports (color: color-mix(in srgb, red 50%, blue)) {
+      #vista2 .p2-metric-label, #vista2 .p2-story { color: color-mix(in srgb, #b4c3be var(--brillo), #000); }
+    }
     /* Las estrellas aparecen y se van despacio con la luz. */
     .v2p-estrellasA, .v2p-estrellasB { transition: opacity 4s ease; }
     /* Modo ligero o movimiento reducido: ni titilar. */
@@ -1264,7 +1275,9 @@
       position: absolute;
       left: 50%;
       top: 50%;
-      transform: translate(-50%, -50%) translate(var(--rx), var(--ry));
+      /* --zoom: al cambiar la escala del radar, el relieve de antes se estira
+         o encoge hasta que llega el compuesto a la nueva (js/v4_radar.js). */
+      transform: translate(-50%, -50%) translate(var(--rx), var(--ry)) scale(var(--zoom, 1));
       transition: transform 1s linear, opacity 1.2s ease;
       opacity: 0;
     }
@@ -2236,6 +2249,7 @@
   <script src="js/v2_paisaje.js"></script>
   <script src="js/v2_rainfx.js"></script>
   <script src="js/v2_snowfx.js"></script>
+  <script src="js/modo_noche.js"></script>
   <script src="js/formato.js"></script>
   <script src="js/main.js"></script>
 

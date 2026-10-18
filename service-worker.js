@@ -55,6 +55,7 @@ const PRECACHE = [
   './js/v2_paisaje.js',
   './js/v2_rainfx.js',
   './js/v2_snowfx.js',
+  './js/modo_noche.js',
   './js/formato.js',
   './js/main.js',
 ];
