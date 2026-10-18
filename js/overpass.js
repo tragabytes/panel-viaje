@@ -17,9 +17,10 @@
 (function () {
   const __global__ = (typeof window !== 'undefined') ? window : globalThis;
 
+  // overpass.kumi.systems ya no está: es el mismo servidor que
+  // overpass.private.coffee (misma IP), así que caído uno, caían los dos (D7).
   const MIRRORS = [
     'https://overpass-api.de/api/interpreter',
-    'https://overpass.kumi.systems/api/interpreter',
     'https://overpass.private.coffee/api/interpreter',
   ];
 
@@ -39,6 +40,10 @@
   const COLA_TIMEOUT_MS = 30000;
   const PENALTY_MS = 60000;
 
+  // D7: la vía es la consulta más ligera y la que más se mira; no espera en
+  // la fila detrás de pueblos y puntos de interés.
+  const PRIORITARIAS = new Set(['RoadRef']);
+
   let enVueloCount = 0;
   const cola = [];  // array de { resolve, reject, etiqueta, tsEncolado }
   const penalizadoHasta = Object.create(null); // mirrorUrl → timestamp fin
@@ -53,7 +58,8 @@
     }
     return new Promise((resolve, reject) => {
       const entrada = { resolve, reject, etiqueta, tsEncolado: Date.now() };
-      cola.push(entrada);
+      if (PRIORITARIAS.has(etiqueta)) cola.unshift(entrada);
+      else cola.push(entrada);
       // Timeout anti-bloqueo: si llevan demasiado en cola, rechazar.
       entrada.timerId = setTimeout(() => {
         const i = cola.indexOf(entrada);
@@ -142,7 +148,12 @@
       );
       return { datos, dt };
     } catch (err) {
-      if (err.name === 'AbortError') throw new Error('timeout');
+      // D7: un servidor que se calla se aparta igual que uno que dice
+      // "saturado"; si no, cada consulta le vuelve a esperar 8 s.
+      if (err.name === 'AbortError') {
+        penalizarMirror(url, 'timeout');
+        throw new Error('timeout');
+      }
       throw err;
     } finally {
       clearTimeout(timeoutId);

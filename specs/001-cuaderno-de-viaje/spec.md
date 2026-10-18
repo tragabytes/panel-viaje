@@ -130,6 +130,9 @@ H1 y H2 no hay nada que revisar. **Dónde** se revisa depende de tu respuesta a 
 
 ## Preguntas para ti (cambian lo que se construye)
 
+> **Contestadas el 18/10/2026**: 1 → (a) toque largo en cualquier sitio; 3 → (a) "este momento".
+> La 2 (dónde revisar) sigue abierta; H1 no depende de ella.
+
 1. **¿Cómo quieres marcar?**
    - (a) **Toque largo en cualquier parte de la pantalla** (1 segundo). *Mi recomendación*: no hay que apuntar a nada y no se confunde con deslizar.
    - (b) Un botón fijo y grande en una esquina. Más evidente, pero hay que mirar dónde está.

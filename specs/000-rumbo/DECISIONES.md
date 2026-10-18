@@ -83,3 +83,23 @@ decidió, **por qué** y **cómo se deshace**. Las marcadas con ❓ necesitan tu
 4. **Meteo chillout**: dos o tres vídeos o imágenes que para ti sean "chillout", para escribir su spec sin adivinar tu gusto.
 5. **Archivo**: ¿borramos el tablero Kanvas, su herramienta, las skills de Obsidian y el generador del Word, o se quedan como archivo? (Mi recomendación: borrarlos; están en el historial de git si algún día hacen falta.)
 6. **Subir** a GitHub lo de esta noche (D10) y **borrar las carpetas viejas** (D11).
+
+**Respuestas del 18/10/2026**: (1) marcar con toque largo en cualquier sitio; la marca es "este
+momento"; dónde revisar, sin contestar todavía. (2) Atenuado en gris, desde 2 km. (3) Sí, arreglar
+Overpass directamente. Siguen abiertas la 4, la 5 y la 6.
+
+## 18/10/2026
+
+### D13 · Arreglo de Overpass (D7), hecho
+- **Qué**: (1) un servidor que no contesta en 8 s queda apartado 60 s, igual que uno que dice
+  "saturado"; (2) fuera `overpass.kumi.systems`, que era el mismo servidor que
+  `overpass.private.coffee`; (3) la consulta de la vía se cuela en la fila. `SW_VERSION` pasa a
+  `v15-2026-10-18-overpass`.
+- **Comprobado**: `tests/overpass.test.mjs` reproduce lo de la M-505 con servidores falsos. Antes
+  del arreglo, la vía tardaba 16,1 s; ahora, menos de 10. En el simulador, el panel aparta a
+  `overpass-api.de` cuando se calla.
+- **Sin comprobar**: la vía en menos de 10 s con los servidores de verdad. Desde casa no había
+  ninguno que funcionara: `overpass-api.de` se queda colgado o rechaza la conexión (puede que
+  siga el bloqueo de D7) y `private.coffee` falla una de cada dos veces. Se verá en la prueba en
+  carretera, con los datos del móvil.
+- **Cómo se deshace**: un commit que solo toca `js/overpass.js`, `service-worker.js` y el test.

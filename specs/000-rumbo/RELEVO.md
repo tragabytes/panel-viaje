@@ -21,7 +21,7 @@ Lee, por este orden:
 - `overpass-api.de` bloqueó temporalmente la IP de casa la noche del 30/09 por exceso de pruebas (DECISIONES D7). Antes de medir contra Overpass desde casa, comprobar que vuelve a responder, y medir con pocas peticiones.
 
 **Por dónde seguir** (cuando haya contestado a D12):
-1. **Arreglo de Overpass** (D7): apartar al servidor que no contesta, quitar el duplicado, la consulta de la vía primero. Test primero: en el simulador, con un servidor que no contesta, la vía sale en menos de 10 s tras la respuesta de Nominatim.
+1. ~~**Arreglo de Overpass** (D7)~~ — hecho el 18/10 (DECISIONES D13); falta verlo con los servidores reales en carretera.
 2. **Datos viejos sin cobertura** (D8), con el aspecto que yo elija.
 3. **Cuaderno, H1** (`specs/001-cuaderno-de-viaje/tasks.md`).
 4. **Prueba en carretera**: marcas reales + log del viaje (`?logs=1`), medir peticiones por hora y fallos de Overpass. Con eso, dar por buenas las 15 tarjetas que quedaron en revisión en la sesión 49 (DECISIONES D3).

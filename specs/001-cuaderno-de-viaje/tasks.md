@@ -7,7 +7,7 @@ Estado del trabajo. Se marca cada casilla al cerrarla. Lo imprevisto se anota aq
 > antes de empezar. No se ha tocado código.
 
 ## Antes de empezar
-- [ ] Laureano contesta las tres preguntas de la spec (se anotan allí con fecha)
+- [ ] Laureano contesta las tres preguntas de la spec (se anotan allí con fecha) — 1 y 3 contestadas el 18/10 como se recomendaba; falta la 2
 - [ ] Laureano valida la spec
 
 ## H1 · Marcar un momento sin mirar (el MVP)
