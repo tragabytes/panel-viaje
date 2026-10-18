@@ -667,6 +667,9 @@
     // Cuaderno (spec 001, H1): lo que se guarda al marcar. Se actualiza en
     // cada tick de GPS; marcar no pide nada a internet.
     let ultimaPosicionMarca = null;
+    // Cuaderno, H2: lo que el panel tiene pintado ahora mismo. Cada pintado lo
+    // apunta aquí; al marcar se copia en la marca tal cual se veía.
+    const contextoPanel = { ubicacion: null, via: null, pueblos: [], meteo: null };
 
     // Fallback de velocidad para móviles cuyo GPS reporta coords.speed=null
     // (común en Android antiguos).
@@ -690,6 +693,7 @@
     // --- Pintado ---
 
     function pintarCarretera(info) {
+      contextoPanel.via = info || null;
       // V1 HUD (IU-19): etiqueta "VÍA" + escudo fósforo + textoCrudo como label.
       // Nombre oficial, destino y PK no están disponibles hoy — se añadirán si
       // se consulta tags Overpass en una tarjeta futura.
@@ -733,6 +737,7 @@
 
     function pintarPOIs(resultado) {
       poiPrimerResultadoPintado = true;
+      contextoPanel.pueblos = resultado.pueblosCercanos || [];
       // IU-33: comarca · población · altitud van a la cabecera global, en gris,
       // tras el nombre del municipio. El prefijo " · " forma parte del valor
       // para que :empty oculte el span y su separador a la vez.
@@ -1026,6 +1031,7 @@
           frescuraUbicacion.confirmar(lat, lon);
           marcarDatosViejos(lat, lon);
         }
+        contextoPanel.ubicacion = { municipio: info.municipio, provincia: info.provincia, ccaa: info.ccaa };
         const clave = `${info.municipio}|${info.provincia}|${info.ccaa}`;
         if (clave === ultimaUbicacionMostrada) return;
         ultimaUbicacionMostrada = clave;
@@ -1197,6 +1203,7 @@
         // (subir un puerto despejado: de 28° a 18° sin repintar).
         const clave = `${meteo.hora}|${meteo.weatherCode}|${Math.round(meteo.temperatura)}`;
         // Dedupe normal: si la clave coincide y NO venimos de error, salimos.
+        contextoPanel.meteo = meteo;
         if (clave === ultimaMeteoMostrada && !meteoEnError) return;
         ultimaMeteoMostrada = clave;
 
@@ -1273,6 +1280,7 @@
         $v2MeteoMetrics.innerHTML = '';
         $v2MeteoTimeline.innerHTML = '';
         $vista2.setAttribute('data-meteo-cat', 'despejado');
+        contextoPanel.meteo = null;
         // Con DT-15, si solo cambiáramos el atributo el rAF seguiría vivo con
         // la meteo vieja: setMeteo(null) lo para de verdad.
         if (window.RainFX) RainFX.setMeteo(null);
@@ -1604,7 +1612,16 @@
     }
 
     const detectorMarca = Cuaderno.crearDetectorToqueLargo(() => {
-      Cuaderno.marcar(ultimaPosicionMarca).then((r) => {
+      // H2: lo que se veía, tal cual (atenuado incluido). Sin red no se pide nada.
+      const contexto = Cuaderno.construirContexto({
+        ubicacion: contextoPanel.ubicacion,
+        ubicacionVieja,
+        via: contextoPanel.via,
+        viaVieja: carreteraVieja,
+        pueblos: contextoPanel.pueblos,
+        meteo: contextoPanel.meteo,
+      }, ultimaPosicionMarca);
+      Cuaderno.marcar(ultimaPosicionMarca, contexto).then((r) => {
         if (!r.guardada) {
           avisarMarca('✕ Sin guardar', 'error');
           debug.error(`Cuaderno: marca NO guardada (${r.error})`);
@@ -1615,7 +1632,8 @@
           debug.log('Cuaderno: marca repetida en menos de 10 s, se queda la anterior');
         } else {
           const m = r.marca;
-          debug.log(`Cuaderno: marca guardada · ${m.lat != null ? m.lat.toFixed(5) + ', ' + m.lon.toFixed(5) : 'sin posición'}${m.aproximada ? ' (aproximada)' : ''}`);
+          const c = m.contexto || {};
+          debug.log(`Cuaderno: marca guardada · ${m.lat != null ? m.lat.toFixed(5) + ', ' + m.lon.toFixed(5) : 'sin posición'}${m.aproximada ? ' (aproximada)' : ''} · ${c.municipio || 'sin municipio'}${c.via ? ' · ' + (c.via.codigo || c.via.texto) : ''} · ${(c.pueblos || []).length} pueblos${c.pendiente ? ' · pendiente de completar' : ''}`);
         }
       });
     });
