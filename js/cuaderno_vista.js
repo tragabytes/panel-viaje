@@ -24,8 +24,10 @@
   const RADIO_MAX_KM = 12;
   const TIMEOUT_MS = 10000;
   const LADOS = { delante: 'delante', derecha: 'a la derecha', 'detrás': 'detrás', izquierda: 'a la izquierda' };
-  // Para "¿qué era?" sirven ríos, embalses o sierras; no carreteras ni empresas.
-  const EXCLUIR_SITIOS = /\b(Autov[ií]a|Autopista|Estaci[oó]n|Aeropuerto|Pol[ií]gono|Hospital|Centro comercial|Universidad|Colegio|Instituto)\b|\(empresa\)|\(compañía\)|\(revista\)|^[A-Z]{1,3}-\d/i;
+  // Para "¿qué era?" sirve casi todo lo que se ve desde la carretera (ríos,
+  // embalses, sierras, estaciones, hasta "Hospital de Órbigo", que es un
+  // pueblo). Fuera solo carreteras, polígonos y artículos que no son sitios.
+  const EXCLUIR_SITIOS = /\b(Autov[ií]a|Autopista|Pol[ií]gono industrial|Centro comercial)\b|\((empresa|compañía|revista|banda|película|álbum)\)|^[A-Z]{1,3}-\d/i;
 
   let marcas = [];
   let seleccion = null;     // id de la marca abierta
@@ -87,6 +89,10 @@
 
   function reemplazar(nueva) {
     if (!nueva) return;
+    // Lo tecleado y aún no guardado manda sobre lo que trae la base de datos.
+    if (notaPendiente && notaPendiente.id === nueva.id) {
+      nueva.revision = Object.assign({ elegido: null }, nueva.revision, { nota: notaPendiente.texto });
+    }
     const i = marcas.findIndex((x) => x.id === nueva.id);
     if (i !== -1) marcas[i] = nueva;
   }
@@ -97,7 +103,8 @@
     const url = 'https://es.wikipedia.org/w/api.php?action=query&list=geosearch' +
       `&gscoord=${lat}|${lon}&gsradius=10000&gslimit=40&format=json&origin=*`;
     const datos = await fetchJson(url);
-    return ((datos.query && datos.query.geosearch) || [])
+    if (!datos || !datos.query) throw new Error('Wikipedia sin datos'); // regla 4: no es "no hay sitios"
+    return (datos.query.geosearch || [])
       .filter((r) => !EXCLUIR_SITIOS.test(r.title))
       .map((r) => ({ nombre: r.title, lat: r.lat, lon: r.lon, pageid: r.pageid }));
   }
@@ -119,7 +126,7 @@
     if (!c.via || c.viaVieja) {
       datos.via = await intento(() => LocationModule.obtenerCarretera(m.lat, m.lon, null));
     }
-    if (!c.pueblos || !c.pueblos.length) {
+    if (!c.pueblos || !c.pueblos.length || c.pueblosViejos) {
       // Si Overpass no contesta, el mismo respaldo que usa el panel: Wikipedia.
       datos.pueblos = await intento(() => pueblosOverpass(m.lat, m.lon));
       if (!datos.pueblos || !datos.pueblos.length) {
@@ -182,9 +189,11 @@
 
   // --- Lista ---
 
+  let errorLectura = false;
+
   function pintarLista() {
-    $.cuenta.textContent = marcas.length === 1 ? '1 marca' : `${marcas.length} marcas`;
-    $.vacio.hidden = marcas.length > 0;
+    $.cuenta.textContent = errorLectura ? '' : (marcas.length === 1 ? '1 marca' : `${marcas.length} marcas`);
+    $.vacio.hidden = marcas.length > 0 || errorLectura;
     $.cuerpo.hidden = marcas.length === 0;
     const viajes = Cuaderno.agruparPorViaje(marcas);
     $.lista.innerHTML = viajes.map((v) => {
@@ -247,7 +256,13 @@
     const enEdicion = activa && activa.id === 'cuNota'
       ? { id: seleccion, valor: activa.value, inicio: activa.selectionStart, fin: activa.selectionEnd }
       : null;
-    pintarDetalleSinNota();
+    try {
+      pintarDetalleSinNota();
+    } catch (err) {
+      $.detalle.innerHTML = '<p class="cu-elige">No se ha podido abrir esta marca.</p>';
+      if (typeof debug !== 'undefined') debug.error(`Cuaderno: marca ${seleccion} sin pintar (${err && err.message})`);
+      return;
+    }
     const nota = document.getElementById('cuNota');
     if (enEdicion && nota && enEdicion.id === seleccion) {
       nota.value = enEdicion.valor;
@@ -305,12 +320,12 @@
         <button type="button" class="cu-boton cu-boton--peligro cu-borrar">Borrar marca</button>
       </div>`;
     const lienzo = $.detalle.querySelector('.cu-mapa-lienzo');
-    if (lienzo) dibujarMapa(lienzo, m, cands, elegido ? elegido.nombre : resaltado);
+    if (lienzo) dibujarMapa(lienzo, m, cands, elegido ? elegido.nombre : null, resaltado);
   }
 
   // --- Mapa de la marca ---
 
-  async function dibujarMapa(lienzo, m, cands, destacado) {
+  async function dibujarMapa(lienzo, m, cands, destacado, resaltadoNombre) {
     const lado = lienzo.clientWidth || 220;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     lienzo.width = Math.round(lado * dpr);
@@ -319,7 +334,8 @@
     const ctx = lienzo.getContext('2d');
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     const conPos = cands.filter((c) => c.distKm != null);
-    const maxKm = conPos.length ? Math.max(...conPos.map((c) => c.distKm)) : RADIO_MIN_KM;
+    const cercanos = conPos.slice().sort((a, b) => a.distKm - b.distKm).slice(0, 8);
+    const maxKm = cercanos.length ? cercanos[cercanos.length - 1].distKm : RADIO_MIN_KM;
     const radioKm = Math.min(RADIO_MAX_KM, Math.max(RADIO_MIN_KM, maxKm * 1.15));
     const pxPorKm = (lado / 2) / radioKm;
     const rumbo = m.rumbo != null ? m.rumbo : 0;
@@ -367,9 +383,8 @@
         if (Math.abs(s.x) > lado / 2 - 2 || Math.abs(s.y) > lado / 2 - 2) continue;
         items.push({ clave: c.nombre, x: s.x, y: s.y, ancho: Math.min(c.nombre.length, 22) * 5.6 + 4, alto: 13, c });
       }
-      const destacados = items.filter((it) => it.clave === destacado);
-      const resto = items.filter((it) => it.clave !== destacado);
-      const orden = destacados.concat(resto);
+      const prioridad = (it) => (it.clave === destacado ? 0 : (it.clave === resaltadoNombre ? 1 : 2));
+      const orden = items.slice().sort((a, b) => prioridad(a) - prioridad(b));
       const lados = RadarV4.colocarEtiquetas(orden.map((it) => ({ ...it, y: it.y + 4 })),
         [{ x0: -8, y0: -12, x1: 8, y1: 8 }], { x0: -lado / 2 + 2, y0: -lado / 2 + 2, x1: lado / 2 - 2, y1: lado / 2 - 2 });
       ctx.save();
@@ -381,8 +396,10 @@
         if (it.c.tipo === 'pueblo') ctx.arc(it.x, it.y, es ? 4.5 : 3.2, 0, Math.PI * 2);
         else { ctx.moveTo(it.x, it.y - 3.6); ctx.lineTo(it.x + 3.6, it.y); ctx.lineTo(it.x, it.y + 3.6); ctx.lineTo(it.x - 3.6, it.y); ctx.closePath(); }
         ctx.fill();
-        if (es) {
-          ctx.strokeStyle = 'rgba(255, 181, 71, 0.6)';
+        const res = !es && it.clave === resaltadoNombre;
+        if (es || res) {
+          ctx.lineWidth = 1.5;
+          ctx.strokeStyle = es ? 'rgba(255, 181, 71, 0.7)' : 'rgba(232, 243, 239, 0.8)';
           ctx.beginPath();
           ctx.arc(it.x, it.y, 8, 0, Math.PI * 2);
           ctx.stroke();
@@ -454,16 +471,30 @@
   }
 
   let notaTimer = null;
+  let notaPendiente = null; // { id, texto } tecleado y aún sin guardar
+
   function guardarNota(texto) {
+    const m = marcaAbierta();
+    if (m) m.revision = Object.assign({ elegido: null }, m.revision, { nota: texto });
+    notaPendiente = { id: seleccion, texto };
     clearTimeout(notaTimer);
-    const id = seleccion;
-    notaTimer = setTimeout(async () => {
-      const nueva = await Cuaderno.actualizar(id, (x) => Cuaderno.aplicarRevision(x, { nota: texto }, Date.now()));
+    notaTimer = setTimeout(guardarNotaYa, 600);
+  }
+
+  async function guardarNotaYa() {
+    clearTimeout(notaTimer);
+    const p = notaPendiente;
+    if (!p) return;
+    try {
+      const nueva = await Cuaderno.actualizar(p.id, (x) => Cuaderno.aplicarRevision(x, { nota: p.texto }, Date.now()));
+      if (notaPendiente === p) notaPendiente = null;
       if (nueva) {
         reemplazar(nueva);
         pintarLista();
       }
-    }, 600);
+    } catch (err) {
+      avisar('No se ha podido guardar la nota. Vuelve a intentarlo.', 5000);
+    }
   }
 
   async function borrarAbierta() {
@@ -564,6 +595,19 @@
     $.detalle.addEventListener('input', (e) => {
       if (e.target.id === 'cuNota') guardarNota(e.target.value);
     });
+    $.detalle.addEventListener('focusout', (e) => {
+      if (e.target.id === 'cuNota') guardarNotaYa();
+    });
+    window.addEventListener('pagehide', () => { guardarNotaYa(); });
+    document.addEventListener('visibilitychange', () => { if (document.hidden) guardarNotaYa(); });
+    const volver = $.raiz.querySelector('.cu-volver');
+    if (volver) {
+      volver.addEventListener('click', (e) => {
+        if (!notaPendiente) return;
+        e.preventDefault();
+        guardarNotaYa().finally(() => { location.href = volver.href; });
+      });
+    }
     document.getElementById('cuCompartir').addEventListener('click', compartir);
     document.getElementById('cuMas').addEventListener('click', (e) => {
       e.stopPropagation();
@@ -583,7 +627,8 @@
       marcas = await Cuaderno.listar();
     } catch (e) {
       marcas = [];
-      avisar('No se pudo leer el cuaderno en este navegador.', 0);
+      errorLectura = true;
+      avisar('No se ha podido leer el cuaderno. Tus marcas no se han borrado: cierra la app y vuelve a abrirla.', 0);
     }
     // Con pantalla ancha, se abre la marca más reciente.
     if (marcas.length && window.matchMedia('(min-width: 560px)').matches) {

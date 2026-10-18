@@ -1,71 +1,52 @@
 # Panel de viaje
 
-Panel informativo para coche que muestra en tiempo real, sobre un móvil Android colocado en el salpicadero, información contextual del lugar por el que se circula: ubicación administrativa, carretera actual, próxima salida en autovía, pueblos cercanos con sus puntos de interés, y previsión meteorológica.
+Un **cuaderno de viaje** para el coche: una web que va en un móvil Android apaisado junto al
+navegador. Enseña dónde vas y qué hay alrededor, y **deja marcar los sitios que te llaman** para
+investigarlos después, con calma.
 
-**URL del panel:** https://tragabytes.github.io/panel-viaje/ *(disponible una vez activado GitHub Pages)*
+**Panel:** https://tragabytes.github.io/panel-viaje/ — se instala desde Chrome con "Instalar
+aplicación". No es un navegador: va al lado de Google Maps o Waze, no en su lugar.
 
 ## Qué hace
 
-El panel se alimenta del GPS del propio móvil y se actualiza solo, sin necesidad de tocar nada mientras se conduce. Está pensado para usarse junto a un GPS principal (Google Maps, Waze) en el móvil principal, no como sustituto.
+Se alimenta del GPS del propio móvil y se actualiza solo. Cuatro vistas, deslizando de lado:
 
-Tiene tres vistas deslizables horizontalmente:
+1. **Todo de un vistazo**: pueblo, vía, próxima salida en autovía, pueblos cercanos, puntos de
+   interés, gasolineras y el tiempo.
+2. **El tiempo como paisaje**: un paisaje lo-fi que cambia con la hora real del día, el sol y la
+   luna (con su fase), las nubes y el viento de verdad, la niebla, la lluvia y la nieve.
+3. **Qué ver por la zona**: los puntos de interés cercanos con foto.
+4. **Radar**: los pueblos cercanos en un radar que gira con la marcha, con el relieve debajo.
 
-1. **Vista completa** — toda la información en una sola pantalla.
-2. **Vista ubicación + meteo** — solo ubicación y tiempo, con sistema de animaciones full-inmersión según las condiciones meteorológicas: sol/luna realista con momento del día, god-rays, estrellas de noche, lluvia y nieve en Canvas 2D con viento real, tormenta con rayos SVG bifurcados y eco cálido, niebla volumétrica con `feTurbulence`.
-3. **Vista qué ver por la zona** — rejilla con los pueblos cercanos y sus puntos de interés histórico-monumentales, barra inferior de gasolineras cercanas.
+**Marcar**: mantener el dedo un segundo en cualquier sitio de la pantalla guarda ese momento y lo
+que había alrededor. Después, en el **cuaderno** (`?cuaderno=1`, o manteniendo pulsado el icono de
+la app), cada marca sale en un mapa con lo que podía ser, para elegir "era esto", añadir una nota,
+abrirlo en Google Maps o Wikipedia y compartirlo.
 
-## Stack técnico
+## Cómo está hecho
 
-- HTML, CSS y JavaScript vanilla (sin frameworks)
-- Progressive Web App (PWA)
-- Despliegue: GitHub Pages
+- HTML, CSS y JavaScript sin frameworks ni compilación: lo que hay en el repositorio es lo que se
+  publica (GitHub Pages).
+- Aplicación web instalable (PWA) que arranca sin cobertura.
+- APIs gratuitas y sin clave: Open-Meteo (tiempo), Nominatim y Overpass de OpenStreetMap (lugar,
+  vías, pueblos), Wikipedia y Wikidata (sitios, fotos, datos de municipios), Photon y las teselas
+  de relieve de AWS.
+- Pensado para un móvil viejo: los efectos los mueve la tarjeta gráfica y se paran fuera de
+  pantalla; cada petición a internet se evita si se puede y se guarda con su caducidad.
 
-## APIs utilizadas
+## Para quien lo mantenga
 
-Todas gratuitas y sin API key (en evaluación durante la fase 1):
-
-- **Open-Meteo** — meteorología
-- **Nominatim** (OpenStreetMap) — geocodificación inversa
-- **Overpass API** (OpenStreetMap) — vías y puntos de interés
-- **Wikipedia / Wikidata** — descripciones, fotos y datos de municipios
-
-## Estructura del repositorio
-
-```
-/
-├── index.html              Punto de entrada de la PWA (HTML + CSS + bootstrap JS)
-├── README.md               Este archivo
-├── CLAUDE.md               Constitución del proyecto para el asistente
-├── canvas-tool.py          CLI del tablero Kanvas (gestión de tareas)
-├── RULES.md                Reglas del flujo Kanvas
-├── tablero.canvas          Tablero Kanvas (Obsidian Canvas)
-├── js/                     Módulos JavaScript (vanilla, sin frameworks)
-├── docs/                   Documentación y sistema de seguimiento
-│   ├── seguimiento.json                           Historia canónica del proyecto
-│   ├── generar_seguimiento.js                     Generador del .docx desde el JSON
-│   ├── seguimiento_desarrollo_panel_viaje.docx    Generado automáticamente
-│   ├── plan_desarrollo_panel_viaje.docx           Plan maestro
-│   └── instrucciones_proyecto_panel_viaje.docx    Instrucciones originales
-└── tests/                  Notebooks de Google Colab (análisis de APIs)
-```
-
-## Estado del proyecto
-
-En desarrollo. Módulos de datos completos (LocationModule, WeatherModule, RoadRef, MotorwayExit, POIModule, Gasolineras). Bloque UI full-inmersión de la V2 cerrado (IU-12 a IU-15: luminaria con momento del día, lluvia, tormenta con rayos, nieve y niebla). Logs persistentes de trayectos en IndexedDB con exportación `.txt`. Pendiente de prueba en carretera real.
-
-Ver `docs/seguimiento_desarrollo_panel_viaje.docx` para el estado detallado y la historia de decisiones.
-
-## Parámetros útiles de URL
-
-- `?debug=1` — panel de debug en pantalla con el historial de logs.
-- `?sim=<ruta>` — simulador de GPS sin conducir (rutas: `urbano-lasrozas`, `a6`, `m505`, `cruce-a6-m505`).
-- `?speed=<n>` — factor de velocidad del simulador (por defecto x10).
-- `?logs=1` — modo admin para listar, ver y descargar los trayectos persistidos.
-- `?fogfallback=1` — fuerza el fallback CSS de la niebla (radiales) si el filter SVG da lag en el móvil.
+- [`CLAUDE.md`](CLAUDE.md): mapa del proyecto y sus reglas.
+- [`specs/`](specs/): qué se quiere que sea (`000-rumbo`), y cada pieza con su especificación y
+  sus tareas.
+- [`MANTENIMIENTO.md`](MANTENIMIENTO.md): cómo probar con el simulador, las banderas de la URL,
+  cómo publicar y cómo sacar los logs de un viaje.
+- Tests: `node --test`.
 
 ## Uso personal
 
-Este es un proyecto personal sin pretensiones comerciales. El código es público porque GitHub Pages gratuito lo requiere, pero está pensado para uso del autor.
+Proyecto personal sin pretensiones comerciales. El código es público porque GitHub Pages gratuito
+lo requiere.
 
 ## Añado botón para abrir en COLAB
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/tragabytes/panel-viaje/blob/main/tests/fase1_geocoding.ipynb)

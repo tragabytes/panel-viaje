@@ -277,6 +277,82 @@ test('el texto para compartir lleva lugar, lo elegido, la nota y el enlace al ma
   assert.match(texto, /https:\/\/www\.google\.com\/maps\/search\/\?api=1&query=42\.46300,-6\.21050/);
 });
 
+// ---------------------------------------------------------------- arreglos de la revisión (D22)
+
+// Impide: perder todas las marcas durante una hora si el reloj se corrige hacia atrás.
+test('si el reloj retrocede, la marca no se toma por repetida', () => {
+  assert.notEqual(Cuaderno.construirMarca(POS, 1000000 - 3600000, 1000000), null);
+});
+
+// Impide: una marca hecha sin cobertura que se queda con los pueblos de 20 km atrás.
+test('sin cobertura, los pueblos viejos se apuntan y se sustituyen al completar', () => {
+  const lejos = { ...PANEL, ubicacionVieja: true, pueblos: [{ nombre: 'Astorga', lat: 42.4589, lon: -6.0633, pois: [] }] };
+  const m = { ...Cuaderno.construirMarca(AQUI, 3000, null), contexto: Cuaderno.construirContexto(lejos, AQUI) };
+  assert.equal(m.contexto.pueblosViejos, true);
+  const c = Cuaderno.completarContexto(m, {
+    ubicacion: { municipio: 'Santa Colomba de Somoza' }, via: null,
+    pueblos: [{ nombre: 'El Ganso', lat: 42.4630, lon: -6.2105 }], sitios: null,
+  }, 5000).contexto;
+  assert.deepEqual(c.pueblos.map((p) => p.nombre), ['El Ganso']);
+  assert.equal(c.pueblosViejos, false);
+  assert.equal(c.pendiente, false);
+  // Con cobertura pero con el pueblo más cercano a más de 8 km, también son viejos.
+  const solo = { ...PANEL, pueblos: [{ nombre: 'Astorga', lat: 42.4589, lon: -6.0633 }] };
+  assert.equal(Cuaderno.construirContexto(solo, AQUI).pueblosViejos, true);
+});
+
+// Impide: elegir la "Iglesia de Santa María" de otro pueblo y enlazar al sitio equivocado.
+test('el mismo nombre solo es el mismo sitio si está cerca', () => {
+  const base = { ...Cuaderno.construirMarca(AQUI, 3000, null) };
+  const lejos = { ...base, contexto: { pueblos: [], sitios: [{ nombre: 'Iglesia de Santa María', lat: 42.4605, lon: -6.2305, pageid: 7 }],
+    pois: [{ nombre: 'Iglesia de Santa María', lat: 42.4815, lon: -6.2845, tipo: 'church' }] } };
+  const dos = Cuaderno.candidatos(lejos).filter((c) => c.nombre === 'Iglesia de Santa María');
+  assert.equal(dos.length, 2);
+  const cerca = { ...base, contexto: { pueblos: [], sitios: [{ nombre: 'Iglesia de Santa María', lat: 42.4816, lon: -6.2846, pageid: 7 }],
+    pois: [{ nombre: 'Iglesia de Santa María', lat: 42.4815, lon: -6.2845, tipo: 'church' }] } };
+  const una = Cuaderno.candidatos(cerca);
+  assert.equal(una.length, 1);
+  assert.equal(una[0].pageid, 7); // se queda el del panel, con el enlace de Wikipedia
+});
+
+// Impide: que una copia editada a mano o de otra versión rompa el cuaderno.
+test('una copia con campos raros se sanea y no rompe nada', () => {
+  const marcas = Cuaderno.leerCopia([
+    { id: 1, lat: 40, lon: -3, contexto: { pueblos: {}, pois: [null, 5, { nombre: 'Bien', lat: 40.01, lon: -3 }], via: 'x', meteo: 7 }, revision: { nota: 5, elegido: 'x' } },
+    { id: 2, lat: null, lon: null, contexto: null, revision: null, extra: '<script>' },
+  ]);
+  assert.equal(marcas.length, 2);
+  assert.deepEqual(marcas[0].contexto.pueblos, []);
+  assert.deepEqual(marcas[0].contexto.pois.map((p) => p.nombre), ['Bien']);
+  assert.equal(marcas[0].contexto.via, null);
+  assert.equal(marcas[0].revision.nota, '');
+  assert.equal(marcas[0].revision.elegido, null);
+  assert.equal('extra' in marcas[1], false);
+  assert.doesNotThrow(() => marcas.forEach((m) => Cuaderno.candidatos(m)));
+  assert.doesNotThrow(() => Cuaderno.textoParaCompartir(marcas));
+});
+
+// Impide: perder una marca porque la base de datos no responde (móvil lleno,
+// conexión cerrada por Chrome). En Node no hay IndexedDB: es justo ese caso.
+test('si la base de datos no responde, la marca va al respaldo y se ve igual', async () => {
+  const almacen = new Map();
+  globalThis.localStorage = {
+    getItem: (k) => (almacen.has(k) ? almacen.get(k) : null),
+    setItem: (k, v) => almacen.set(k, String(v)),
+    removeItem: (k) => almacen.delete(k),
+  };
+  try {
+    const r = await Cuaderno.marcar({ lat: 42.46, lon: -6.23, precision: 5, rumbo: 270, velocidadKmh: 80, ts: Date.now() }, null);
+    assert.equal(r.guardada, true);
+    assert.equal(r.respaldo, true);
+    const lista = await Cuaderno.listar();
+    assert.equal(lista.length, 1);
+    assert.equal(lista[0].lat, 42.46);
+  } finally {
+    delete globalThis.localStorage;
+  }
+});
+
 // ---------------------------------------------------------------- que no se pierdan
 
 function ficherosJs(dir) {
@@ -327,6 +403,13 @@ test('el cuaderno no tiene ningún borrado en bloque', () => {
 
 test('(control) la comprobación de borrado en bloque detecta un clear()', () => {
   assert.equal(borraEnBloque("tx.objectStore('marcas').clear()"), true);
+});
+
+// Impide: que alguien vacíe localStorage y se lleve el respaldo de marcas sin guardar.
+test('ningún módulo vacía localStorage entero', () => {
+  const culpables = [...ficherosJs(join(RAIZ, 'js')), join(RAIZ, 'index.html')]
+    .filter((ruta) => /localStorage\.clear\s*\(/.test(readFileSync(ruta, 'utf8')));
+  assert.deepEqual(culpables, []);
 });
 
 test('el service worker no toca IndexedDB', () => {

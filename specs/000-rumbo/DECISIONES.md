@@ -146,3 +146,76 @@ Overpass directamente. Siguen abiertas la 4, la 5 y la 6.
   primero que cambiaría.
 - **Aún no hay forma de ver las marcas** en el panel: eso es H3. En la prueba en carretera se ven
   en el log del viaje (`?logs=1`), con hora y posición.
+
+## 18/10/2026, tarde: todo lo que quedaba, en tu ausencia
+
+### D17 · El encargo y cómo lo he llevado
+- **El encargo** (tú, antes de salir a la prueba en carretera): "ponte a construir todo lo que
+  queda… toma por mí todas las decisiones que hagan falta y termina el trabajo… revísalo después
+  para encontrar bugs… quiero las H2 y H3 pero también… radar con relieve y meteo chillout. Las
+  mejoras pequeñas apúntalas como pendientes. Al acabar actualiza toda la documentación".
+- **Hecho**: cuaderno H2 y H3, radar con relieve (spec 002), meteo chillout (spec 003), revisión
+  con tres revisores independientes más la mía (D22), pendientes en `PENDIENTES.md` y documentación.
+- **No subido a GitHub** (D23): estabas probando la versión publicada en el coche y publicar es de
+  las cosas que, según tus reglas, se preguntan.
+- **Las specs 002 y 003 se escribieron después de construir**, al revés de lo normal, porque me
+  pediste no esperarte. Lo que decidí yo va marcado como "(decidido)".
+
+### D18 · H2: qué guarda una marca
+- **Qué**: además de la hora y la posición, el municipio con su provincia y comunidad, la vía, los
+  pueblos cercanos (hasta 8) y los puntos de interés (hasta 12) con su distancia y su rumbo
+  **medidos desde la marca**, y el tiempo (descripción, temperatura, viento). Si el pueblo o la vía
+  estaban atenuados por viejos (D14), la marca lo apunta.
+- **Sin datos al marcar** (sin cobertura, recién arrancado): se guarda lo que hubiera y la marca
+  queda "pendiente de completar". **Se completa al abrir el cuaderno con internet**, no en el
+  coche: así no gasta datos del móvil y no compite con el panel. Las marcas de la primera versión
+  (sin nada de esto) se completan igual.
+- **Lo que el panel vio manda**: al completar no se pisa la vía ni los pueblos que se vieron al
+  marcar, salvo que estuvieran atenuados. Una consulta que falla no borra nada (regla 4).
+- **Cómo se deshace**: el contexto es un campo aparte de la marca; quitarlo no toca lo demás.
+
+### D19 · H3: dónde y cómo se revisa
+- **Pregunta 2 de la spec, decidida: (c) las dos.** El cuaderno se abre en el propio móvil del
+  panel (`?cuaderno=1`, o manteniendo pulsado el icono de la app → "Cuaderno de viaje", o desde
+  `?logs=1`). Desde ahí, **"Compartir"** manda la lista (con enlaces a Google Maps) a WhatsApp, al
+  correo o a donde quieras, y **la copia de seguridad** se descarga como archivo.
+- **Nunca en marcha**: el panel no tiene ningún botón que lleve al cuaderno (criterio 3 de H3).
+- **Mapa de cada marca**: con el relieve, **orientado hacia donde ibas** (lo de delante, arriba) y
+  con un cono suave de "delante". Los candidatos dicen a qué lado quedaban (delante, a la derecha,
+  detrás, a la izquierda): a 120 km/h, entre verlo y marcar pasan 100 m.
+- **Candidatos**: los pueblos y puntos de interés que el panel conocía, más los **sitios de
+  Wikipedia** a menos de 10 km (ríos, embalses, sierras, monumentos…), que se bajan al abrir la marca.
+- **Borrar**: una a una y con confirmación. **Importar** una copia solo añade marcas que no
+  existen; nunca pisa ni borra.
+- **Viajes**: más de 4 horas sin marcar es otro viaje.
+
+### D20 · Radar con relieve (spec 002)
+- **Qué y por qué**: en `specs/002-radar-relieve/spec.md`. Lo principal: gira con la marcha,
+  anillos cada 5 km, barrido de 8 s, pueblos en su sitio real, marcas del cuaderno como rombos,
+  relieve con curvas de nivel y altitud del terreno.
+- **Datos**: el relieve solo se pide con la vista 4 en pantalla y se guarda para siempre (tope de
+  300 teselas, ~40 MB, se borran las menos usadas).
+- **Rumbo calculado**: el GPS de muchos Android viejos no da rumbo; el panel lo calcula entre dos
+  posiciones separadas al menos 25 m. Lo usan el radar y las marcas.
+- **Se quitó** el mapa anterior de la vista 4 (chinchetas repartidas en ángulo a ojo).
+- **Cómo se deshace**: el commit "radar con relieve" se puede revertir solo.
+
+### D21 · Meteo chillout (spec 003), sin tus referencias
+- **Qué y por qué**: en `specs/003-meteo-chillout/spec.md`. Un paisaje lo-fi por capas en lugar
+  de los efectos sueltos de antes.
+- **Sin rayos en la tormenta**: un resplandor suave dentro de las nubes. Regla 3.
+- **Se retiraron** los rayos SVG, la niebla con filtro SVG (`?fogfallback=1` ya no existe), el sol
+  de esquina con sus rayos de luz, las nubes de dibujo y las estrellas sueltas.
+- **De paso, dos fallos viejos de la vista 2**: la palabra grande se cortaba ("DESPEJAD") y la
+  previsión se salía por abajo por una regla de estilo que descolocaba el bloque de texto.
+- **Si el móvil no llega a 24 fps**, el paisaje se queda quieto; se recuerda tras dos medidas malas.
+- **Cómo se deshace**: el commit "meteo chillout" se puede revertir solo (vuelven los efectos
+  anteriores).
+
+### D23 · Sin subir a GitHub
+- **Qué**: todo lo de esta tarde está en commits en tu ordenador, con `SW_VERSION`
+  `v19-2026-10-18-cuaderno-radar-paisaje`, sin `push`.
+- **Por qué**: (1) estabas probando la v18 en el coche: si publicaba a mitad de viaje, el panel
+  podía cambiar al recargarlo y la prueba dejaba de valer; (2) publicar es de las decisiones que,
+  según tus reglas, se preguntan aunque el resto lo decida yo.
+- **Cómo se hace**: dime "sube".

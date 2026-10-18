@@ -3,11 +3,11 @@
 Estado del trabajo. Se marca cada casilla al cerrarla. Lo imprevisto se anota aquí y se avisa.
 
 > Escrito con mis recomendaciones a las tres preguntas de la spec. El 18/10 Laureano eligió las
-> mismas en la 1 y la 3 y pidió empezar H1 "tal como está en la spec". H1 está construida y
-> falta probarla en el móvil y en el coche.
+> mismas en la 1 y la 3, pidió H1 "tal como está en la spec" y, después, que hiciera H2 y H3
+> decidiendo yo (la pregunta 2 incluida). Las tres están construidas; falta el coche.
 
 ## Antes de empezar
-- [ ] Laureano contesta las tres preguntas de la spec (se anotan allí con fecha) — 1 y 3 contestadas el 18/10 como se recomendaba; falta la 2
+- [x] Laureano contesta las tres preguntas de la spec (se anotan allí con fecha) — 1 y 3 el 18/10; la 2 la decidí yo ese día por encargo suyo (D19)
 - [x] Laureano valida la spec (18/10: "tal como está en la spec")
 
 ## H1 · Marcar un momento sin mirar (el MVP)
@@ -18,27 +18,31 @@ Estado del trabajo. Se marca cada casilla al cerrarla. Lo imprevisto se anota aq
 - [x] La confirmación discreta en la cabecera (2 s)
 - [x] Probar en el simulador (3 marcas en una ruta, recargar, siguen ahí)
 - [ ] Probar en el móvil del panel por cable: el toque largo se hace sin mirar y no se dispara solo
-- [ ] Publicar (subir `SW_VERSION`, `node --test` en verde)
-- [ ] **Parar y validar con Laureano en el coche**
+- [x] Publicar (subir `SW_VERSION`, `node --test` en verde) — v18, 18/10
+- [ ] **Parar y validar con Laureano en el coche** — prueba en carretera del 18/10 en marcha
 
 ## H2 · Qué había alrededor
-- [ ] La marca guarda lo que el panel ya sabía: municipio, vía, pueblos cercanos (distancia y dirección), puntos de interés y tiempo
-- [ ] Sin datos en el momento de marcar: se guarda lo que haya y se completa cuando vuelva la red
+- [x] La marca guarda lo que el panel ya sabía: municipio, vía, pueblos cercanos (distancia y dirección), puntos de interés y tiempo
+- [x] Sin datos en el momento de marcar: se guarda lo que haya y se completa cuando vuelva la red — al abrir el cuaderno con internet (D18)
 - [ ] **Parar y validar**
 
 ## H3 · Revisar el cuaderno
-- [ ] Modo cuaderno aparte (como `?logs=1`): marcas por viaje, con fecha, hora y municipio
-- [ ] Cada marca en un mapa con el sentido de la marcha y los candidatos alrededor (atrás y a los lados también)
-- [ ] Elegir "era esto", nota, borrar, abrir en Wikipedia o Google Maps
-- [ ] Exportar todas (copia de seguridad)
+- [x] Modo cuaderno aparte (como `?logs=1`): marcas por viaje, con fecha, hora y municipio — `?cuaderno=1`, atajo en el icono de la app y enlace desde `?logs=1`
+- [x] Cada marca en un mapa con el sentido de la marcha y los candidatos alrededor (atrás y a los lados también)
+- [x] Elegir "era esto", nota, borrar, abrir en Wikipedia o Google Maps
+- [x] Exportar todas (copia de seguridad) — y también importar (solo añade) y compartir como texto
 - [ ] **Parar y validar**
 
 ## Cierre
-- [ ] `node --test` en verde
+- [x] `node --test` en verde
 - [ ] Prueba en carretera: al menos 5 marcas, 0 falsas en 30 min (E-002, E-003)
 - [ ] Una línea en `specs/000-rumbo/RELEVO.md` apuntando aquí
 
 ## Aprendido
+
+- **Las marcas de la primera versión (H1, sin "lo que había alrededor") se completan solas** al
+  abrir el cuaderno con internet: pueblo y vía con Nominatim, pueblos con Overpass y, si Overpass
+  no contesta, con Wikipedia (el mismo respaldo que el panel).
 
 - **Que las marcas sobrevivan se vigila sobre el código**, no con 11 viajes de verdad: Node no
   tiene IndexedDB. Los tests comprueban que solo `cuaderno.js` nombra su base de datos (ni la

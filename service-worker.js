@@ -9,7 +9,7 @@
 //
 // Para forzar actualización, subir SW_VERSION.
 
-const SW_VERSION = 'v18-2026-10-18-cuaderno-h1';
+const SW_VERSION = 'v19-2026-10-18-cuaderno-radar-paisaje';
 const APP_CACHE = `panel-viaje-app-${SW_VERSION}`;
 const API_CACHE = `panel-viaje-api-${SW_VERSION}`;
 

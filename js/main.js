@@ -439,6 +439,21 @@
       return partes.join('');
     }
 
+    // Spec 003: en el móvil apaisado no siempre caben las 6 horas (depende de
+    // si la cabecera o la línea del viento ocupan una línea o dos). Se
+    // esconden las últimas filas que no caben enteras, en vez de cortarlas.
+    function ajustarPrevisionV2() {
+      const filas = $v2MeteoTimeline.querySelectorAll('.p2-hr');
+      if (!filas.length) return;
+      filas.forEach((f) => { f.style.display = ''; });
+      const inner = $v2MeteoTimeline.parentElement;
+      const limite = inner.getBoundingClientRect().bottom - (parseFloat(getComputedStyle(inner).paddingBottom) || 0);
+      for (let i = filas.length - 1; i > 0; i--) {
+        if (filas[i].getBoundingClientRect().bottom <= limite + 0.5) break;
+        filas[i].style.display = 'none';
+      }
+    }
+
     // IU-22 V4: formatea coordenadas GPS a formato grados-minutos con
     // hemisferio (ej. "40°34′N · 3°54′O"). Se muestra en la esquina superior
     // derecha del mapa como cartografía.
@@ -571,7 +586,11 @@
     // ruido del GPS da rumbos al azar). Lo usan el radar y las marcas.
     let ultimoFixRumbo = null;     // { lat, lon }
     let rumboCalculado = null;
+    let rumboCalculadoTs = 0;
     const RUMBO_MIN_M = 25;
+    // Un rumbo calculado de hace más de esto ya no dice hacia dónde vas: parado
+    // en un semáforo, la marca no debe llevar el sentido del último tramo.
+    const RUMBO_CALCULADO_MS = 15000;
     let logueadoPrimerFixSpeed = false;
     let logueadoFallbackVelocidad = false;
 
@@ -777,7 +796,7 @@
           // El data-tipo permite al onerror swap a icono temático si la foto falla.
           const tipoAttr = `data-tipo="${escapar(poi.tipo || '')}"`;
           const thumb = fotoSrc
-            ? `<div class="p3-v3-thumb" ${tipoAttr}><img src="${escapar(fotoSrc)}" alt="" loading="lazy"></div>`
+            ? `<div class="p3-v3-thumb" ${tipoAttr}><img src="${escapar(fotoSrc)}" alt="" loading="lazy" draggable="false"></div>`
             : `<div class="p3-v3-thumb p3-v3-icon" ${tipoAttr}>${iconoSvgPoi(poi.tipo)}</div>`;
           return `<div class="p3-v3-card">
             ${thumb}
@@ -1105,14 +1124,15 @@
 
     async function actualizarMeteo(lat, lon) {
       try {
-        const meteo = forzarMeteo(await Weather.obtenerTiempoActual(lat, lon));
+        const real = await Weather.obtenerTiempoActual(lat, lon);
+        const meteo = forzarMeteo(real);
         // DT-12: la clave incluye la temperatura redondeada — sin ella, una
         // respuesta fresca ya pagada con el mismo bloque de 15 min y el mismo
         // código WMO se descartaba aunque la temperatura hubiera cambiado
         // (subir un puerto despejado: de 28° a 18° sin repintar).
         const clave = `${meteo.hora}|${meteo.weatherCode}|${Math.round(meteo.temperatura)}`;
         // Dedupe normal: si la clave coincide y NO venimos de error, salimos.
-        contextoPanel.meteo = meteo;
+        contextoPanel.meteo = real; // a una marca va el tiempo real, nunca el de ?meteo=
         if (clave === ultimaMeteoMostrada && !meteoEnError) return;
         ultimaMeteoMostrada = clave;
 
@@ -1148,6 +1168,7 @@
         $v2MeteoStory.innerHTML = renderStoryV2(meteo, meteo.previsionHoraria || []);
         $v2MeteoMetrics.innerHTML = renderMetricsV2(meteo);
         $v2MeteoTimeline.innerHTML = renderTimelineV2(meteo.previsionHoraria || []);
+        ajustarPrevisionV2();
         $vista2.setAttribute('data-meteo-cat', meteo.categoria || 'despejado');
 
         const momentoV2 = calcularMomentoDia(meteo.sunrise, meteo.sunset, Date.now());
@@ -1332,9 +1353,12 @@
         ultimoFixRumbo = { lat: c.latitude, lon: c.longitude };
       } else if (distanciaMetros(ultimoFixRumbo.lat, ultimoFixRumbo.lon, c.latitude, c.longitude) >= RUMBO_MIN_M) {
         rumboCalculado = Geo.rumboHacia(ultimoFixRumbo.lat, ultimoFixRumbo.lon, c.latitude, c.longitude);
+        rumboCalculadoTs = ahora;
         ultimoFixRumbo = { lat: c.latitude, lon: c.longitude };
       }
-      const rumboEfectivo = (c.heading != null && !isNaN(c.heading)) ? c.heading : rumboCalculado;
+      const rumboEfectivo = (c.heading != null && !isNaN(c.heading))
+        ? c.heading
+        : (ahora - rumboCalculadoTs < RUMBO_CALCULADO_MS ? rumboCalculado : null);
 
       // FN-02a: registrar punto en el track del trayecto.
       if (window.Trayectos) {
@@ -1401,8 +1425,12 @@
       if (window.RadarV4) {
         RadarV4.posicion({ lat: c.latitude, lon: c.longitude, rumbo: rumboEfectivo, velocidadKmh: velEfectivaKmh });
       }
-      // Spec 003: las montañas de la vista 2 se deslizan solo en marcha.
-      if (window.PaisajeFX) PaisajeFX.setVelocidad(velEfectivaKmh);
+      // Spec 003: las montañas de la vista 2 se deslizan solo en marcha; la
+      // posición sirve para calcular la salida y la puesta del sol.
+      if (window.PaisajeFX) {
+        PaisajeFX.setVelocidad(velEfectivaKmh);
+        PaisajeFX.setPosicion(c.latitude, c.longitude);
+      }
 
       let hayQueActualizar = false;
       if (!ultimaPosicionUbicacion) {
@@ -1488,6 +1516,7 @@
       actualizarAppHeight();
       realinearScrollVisor();
       actualizarPageDots();
+      ajustarPrevisionV2();
     });
     window.addEventListener('orientationchange', () => {
       actualizarAppHeight();
@@ -1546,6 +1575,7 @@
           return;
         }
         avisarMarca('◆ Marcado');
+        if (r.respaldo) debug.warn(`Cuaderno: la base de datos no respondió (${r.error}); marca guardada en el respaldo`);
         if (r.duplicada) {
           debug.log('Cuaderno: marca repetida en menos de 10 s, se queda la anterior');
         } else {

@@ -1,6 +1,6 @@
 # Especificación: Cuaderno de viaje
 
-**Carpeta**: `specs/001-cuaderno-de-viaje/` · **Fecha**: 2026-09-30 · **Estado**: borrador (esperando tus 3 respuestas)
+**Carpeta**: `specs/001-cuaderno-de-viaje/` · **Fecha**: 2026-09-30 · **Estado**: H1, H2 y H3 construidas (18/10); falta probarlas en el coche
 
 **Lo que se pidió**: "quiero que sea mi cuaderno de viaje. La llevaré conectada en mi coche al lado
 del gps y a medida que vayamos pasando por pueblos o sitios chulos quiero poder marcarlos y
@@ -131,7 +131,9 @@ H1 y H2 no hay nada que revisar. **Dónde** se revisa depende de tu respuesta a 
 ## Preguntas para ti (cambian lo que se construye)
 
 > **Contestadas el 18/10/2026**: 1 → (a) toque largo en cualquier sitio; 3 → (a) "este momento".
-> La 2 (dónde revisar) sigue abierta; H1 no depende de ella.
+> La 2 la decidí yo el mismo día, cuando me pediste que tomara las decisiones: **(c) las dos**. Se
+> revisa en el propio móvil (modo cuaderno) y desde ahí se manda a tu móvil o a tu ordenador con
+> "Compartir" (una lista con enlaces a Google Maps) o con la copia de seguridad (DECISIONES D19).
 
 1. **¿Cómo quieres marcar?**
    - (a) **Toque largo en cualquier parte de la pantalla** (1 segundo). *Mi recomendación*: no hay que apuntar a nada y no se confunde con deslizar.

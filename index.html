@@ -167,11 +167,24 @@
 
     /* Cuaderno (spec 001, H1): confirmación de una marca, 2 s en el centro de
        la cabecera. Aparece y se va sin animación: nada que destelle. */
+    /* Píldora bajo la cabecera, encima del contenido: no ocupa sitio en la
+       fila (si lo ocupara, con un nombre de pueblo largo la cabecera crecería
+       una línea durante 2 s, un salto a la vista conduciendo). */
     .marca-aviso {
-      font-size: 11px;
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 4px 12px;
+      border-radius: 12px;
+      background: rgba(8, 12, 14, 0.94);
+      border: 1px solid rgba(61, 255, 110, 0.45);
+      font-size: 12px;
       color: var(--phos-300);
+      white-space: nowrap;
+      pointer-events: none;
     }
-    .marca-aviso.error { color: var(--amber); }
+    .marca-aviso.error { color: var(--amber); border-color: rgba(255, 181, 71, 0.6); }
     /* Mantener el dedo 1 s es el gesto de marcar: que el navegador no lo
        tome por "seleccionar texto" ni saque su menú. */
     .visor, .app-header {
@@ -179,6 +192,9 @@
       user-select: none;
       -webkit-touch-callout: none;
     }
+    /* Una foto que se puede arrastrar convierte el toque largo en un arrastre
+       (pointercancel) y no marca: en la vista 3 las fotos ocupan media pantalla. */
+    .visor img { -webkit-user-drag: none; }
 
     .p1-speed {
       display: flex;
@@ -682,13 +698,25 @@
       background: radial-gradient(ellipse 45% 70% at var(--rx, 50%) 30%, rgba(205, 195, 255, 0.55), rgba(205, 195, 255, 0) 70%);
       mix-blend-mode: screen;
     }
-    /* Velo detrás de la palabra y la temperatura: el texto siempre se lee. */
+    /* Velo detrás del texto (palabra, temperatura, viento, previsión), que va
+       a la izquierda: se lee sobre cualquier cielo, también con el horizonte
+       claro del atardecer justo detrás de la línea del viento. */
     .v2p-velo {
       position: absolute;
       inset: 0;
-      background: radial-gradient(ellipse 75% 65% at 16% 24%, rgba(0, 0, 0, 0.38), rgba(0, 0, 0, 0) 70%);
+      background:
+        radial-gradient(ellipse 75% 65% at 16% 24%, rgba(0, 0, 0, 0.38), rgba(0, 0, 0, 0) 70%),
+        linear-gradient(90deg, rgba(0, 0, 0, 0.42) 0%, rgba(0, 0, 0, 0.22) 45%, rgba(0, 0, 0, 0) 75%);
     }
     #vista2 .p2-word, #vista2 .p2-temp { text-shadow: 0 2px 14px rgba(0, 0, 0, 0.55); }
+    #vista2 .p2-weatherline, #vista2 .p2-timeline-head, #vista2 .p2-timeline {
+      text-shadow: 0 1px 6px rgba(0, 0, 0, 0.95), 0 0 2px rgba(0, 0, 0, 0.9);
+    }
+    #vista2 .p2-metric-label, #vista2 .p2-story { color: #b4c3be; }
+    /* Las estrellas aparecen y se van despacio con la luz. */
+    .v2p-estrellasA, .v2p-estrellasB { transition: opacity 4s ease; }
+    /* Modo ligero o movimiento reducido: ni titilar. */
+    .v2p-quieto .v2p-estrellasB canvas { animation: none; }
 
     /* Lluvia y nieve (v2_rainfx.js, v2_snowfx.js): delante del paisaje,
        detrás del texto. */
@@ -931,11 +959,8 @@
       opacity: 0.7;
     }
     .p2-hr-pct:empty { opacity: 0; }
-    /* Spec 003: en el móvil apaisado (360 px de alto) caben 4 horas, no 6:
-       antes las dos últimas quedaban cortadas por abajo. */
-    @media (max-height: 420px) {
-      .p2-hr:nth-child(n+6) { display: none; }
-    }
+    /* Spec 003: las horas que no caben enteras las esconde main.js
+       (ajustarPrevisionV2); antes las últimas quedaban cortadas por abajo. */
 
     /* ---- Fin Vista 2 ---- */
 

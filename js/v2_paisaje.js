@@ -22,7 +22,8 @@
 //   PaisajeFX.init()
 //   PaisajeFX.setMeteo(meteo | null)     el objeto de Weather; null = sin datos
 //   PaisajeFX.setVelocidad(kmh | null)
-//   Puras (probadas en Node): posicionSol, faseLunar, paleta, ajustarPorTiempo,
+//   PaisajeFX.setPosicion(lat, lon)     para la salida y la puesta del sol
+//   Puras (probadas en Node): posicionSol, salidaPuesta, faseLunar, paleta, ajustarPorTiempo,
 //       nubosidadDe, nieblaDe, perfil, mezclar
 
 (function () {
@@ -92,6 +93,27 @@
     return { dia: false, t, altura: -Math.sin(Math.PI * t) };
   }
 
+  // Salida y puesta del sol de un día en un sitio (ecuación del amanecer, con
+  // la refracción de la atmósfera). No depende de internet: sin cobertura, el
+  // paisaje no se inventa la hora del ocaso ni cambia de golpe al volver la red.
+  function salidaPuesta(ms, lat, lon) {
+    const RAD = Math.PI / 180;
+    const d = new Date(ms);
+    const jd0 = Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86400000 + 2440587.5;
+    const n = Math.ceil(jd0 - 2451545.0 + 0.0008);
+    const jMedio = n - lon / 360;
+    const M = (357.5291 + 0.98560028 * jMedio) % 360;
+    const C = 1.9148 * Math.sin(M * RAD) + 0.02 * Math.sin(2 * M * RAD) + 0.0003 * Math.sin(3 * M * RAD);
+    const lambda = (M + C + 180 + 102.9372) % 360;
+    const jTransito = 2451545.0 + jMedio + 0.0053 * Math.sin(M * RAD) - 0.0069 * Math.sin(2 * lambda * RAD);
+    const sinDecl = Math.sin(lambda * RAD) * Math.sin(23.4397 * RAD);
+    const cosDecl = Math.cos(Math.asin(sinDecl));
+    const cosW = (Math.sin(-0.833 * RAD) - Math.sin(lat * RAD) * sinDecl) / (Math.cos(lat * RAD) * cosDecl);
+    const w = Math.acos(Math.max(-1, Math.min(1, cosW))) / RAD;
+    const aMs = (j) => (j - 2440587.5) * 86400000;
+    return { salida: aMs(jTransito - w / 360), puesta: aMs(jTransito + w / 360) };
+  }
+
   // 0 = luna nueva, 0,5 = llena. Referencia: luna nueva del 6/1/2000 18:14 UTC.
   function faseLunar(ms) {
     const SINODICO = 29.530588853;
@@ -147,7 +169,7 @@
       const k = suave(0, 0.2, -sol.altura);
       p = mezclarPaleta(crep, PALETAS.noche, k);
       estrellas = suave(0.06, 0.24, -sol.altura);
-      resplandorAlfa = 0.4 * (1 - k) + 0.12;
+      resplandorAlfa = 0.33 * (1 - k) + 0.12;
     }
     return Object.assign(p, { estrellas, resplandorAlfa });
   }
@@ -177,7 +199,9 @@
     let n = 0;
     if (c === 45 || c === 48) n = 0.72;
     else if ((c >= 51 && c <= 67) || (c >= 80 && c <= 82)) n = 0.22;
-    if (meteo.humedad != null && meteo.humedad >= 93 && (!sol.dia || sol.altura < 0.3)) n = Math.max(n, 0.35);
+    if (meteo.humedad != null && meteo.humedad >= 93) {
+      n = Math.max(n, sol.dia ? 0.35 * (1 - suave(0.15, 0.4, sol.altura)) : 0.35);
+    }
     if (meteo.visibilidad != null && meteo.visibilidad < 3000) n = Math.max(n, 0.55);
     return n;
   }
@@ -239,6 +263,9 @@
   let tormentaTimer = null;
   let desfaseHora = 0;
   let midiendo = false;
+  // Para calcular la salida y la puesta del sol. Hasta el primer GPS, Madrid.
+  const posicion = { lat: 40.42, lon: -3.70 };
+  let claveViento = '';
 
   function ahora() { return Date.now() + desfaseHora; }
 
@@ -304,18 +331,22 @@
   // --- Dibujo ---
 
   // El arco del sol y de la luna va por la mitad derecha del cielo, la que
-  // no tapa el texto (la palabra y la temperatura van a la izquierda).
+  // menos texto tiene (la palabra y la temperatura van a la izquierda). El
+  // este queda a la derecha, como para la lluvia y las nubes: el sol sale por
+  // la derecha y se pone hacia el centro.
   function posicionAstro(sol) {
     const yH = alto * 0.66;
     return {
-      x: ancho * (0.5 + 0.42 * sol.t),
+      x: ancho * (0.92 - 0.42 * sol.t),
       y: yH - Math.sin(Math.PI * sol.t) * (yH - alto * 0.36),
     };
   }
 
   function pintarCielo(p, sol) {
     const yH = alto * 0.66;
-    const a = posicionAstro(sol);
+    // El resplandor sigue al sol; de noche se queda donde se puso (y antes del
+    // alba, donde va a salir), así no salta de un lado a otro con el ocaso.
+    const a = sol.dia ? posicionAstro(sol) : { x: ancho * (sol.t < 0.5 ? 0.5 : 0.92), y: yH };
     const sx = a.x / ancho * 100;
     const sy = a.y / alto * 100;
     capas.cielo.el.style.background =
@@ -356,17 +387,14 @@
   }
 
   function dibujarLuna(ctx, x, y, r, fase, color) {
-    // Disco apagado, apenas visible, y la parte iluminada según la fase.
-    ctx.fillStyle = 'rgba(40, 50, 70, 0.55)';
+    // Disco apagado (la luz cenicienta), apenas visible.
+    ctx.fillStyle = 'rgba(40, 50, 70, 0.5)';
     ctx.beginPath();
     ctx.arc(x, y, r, 0, Math.PI * 2);
     ctx.fill();
     const crece = fase < 0.5;
     const k = Math.cos(2 * Math.PI * fase); // 1 nueva, −1 llena
     ctx.save();
-    ctx.beginPath();
-    ctx.arc(x, y, r, 0, Math.PI * 2);
-    ctx.clip();
     ctx.fillStyle = rgba(color, 0.95);
     // Media luna iluminada (derecha si crece, izquierda si mengua).
     ctx.beginPath();
@@ -375,9 +403,11 @@
     // derecho en creciente-menguante fina (k>0 creciendo) y en gibosa menguante;
     // por el izquierdo en los otros dos casos.
     ctx.ellipse(x, y, Math.abs(k) * r, r, 0, Math.PI / 2, -Math.PI / 2, (k > 0) === crece);
+    ctx.closePath();
     ctx.fill();
-    // Mares lunares, muy suaves.
-    ctx.fillStyle = 'rgba(120, 130, 150, 0.18)';
+    // Mares lunares, muy suaves y solo sobre lo iluminado (en luna nueva, nada).
+    ctx.clip();
+    ctx.fillStyle = 'rgba(110, 120, 140, 0.22)';
     for (const [dx, dy, rr] of [[0.25, -0.2, 0.22], [-0.15, 0.25, 0.18], [0.35, 0.3, 0.12]]) {
       ctx.beginPath();
       ctx.arc(x + dx * r, y + dy * r, rr * r, 0, Math.PI * 2);
@@ -408,17 +438,21 @@
       ctx.arc(c, c, r, 0, Math.PI * 2);
       ctx.fill();
     } else {
+      const fase = faseLunar(ahora());
+      const iluminada = (1 - Math.cos(2 * Math.PI * fase)) / 2;
       const halo = ctx.createRadialGradient(c, c, 8, c, c, c * 0.8);
-      halo.addColorStop(0, 'rgba(170, 195, 240, 0.20)');
+      halo.addColorStop(0, `rgba(170, 195, 240, ${(0.2 * (0.15 + 0.85 * iluminada)).toFixed(3)})`);
       halo.addColorStop(1, 'rgba(170, 195, 240, 0)');
       ctx.fillStyle = halo;
       ctx.fillRect(0, 0, tam, tam);
-      dibujarLuna(ctx, c, c, 12, faseLunar(ahora()), p.astro);
+      dibujarLuna(ctx, c, c, 12, fase, p.astro);
     }
     const el = capas.astro.el;
     el.style.transform = `translate(${(x - c).toFixed(1)}px, ${(y - c).toFixed(1)}px)`;
-    // Con el cielo cubierto, el astro se intuye apenas.
-    el.style.opacity = (1 - Math.min(0.92, p.nubosidad * 1.05)).toFixed(2);
+    // Con el cielo cubierto, el astro se intuye apenas; junto al horizonte se
+    // desvanece (al ponerse el sol sale la luna por el otro lado: sin salto).
+    const nubes = 1 - Math.min(0.92, p.nubosidad * 1.05);
+    el.style.opacity = (nubes * suave(0, 0.04, Math.abs(sol.altura))).toFixed(2);
   }
 
   function pintarMontes(nombre, p, cfg) {
@@ -434,7 +468,8 @@
     ctx.fillStyle = g;
     ctx.beginPath();
     ctx.moveTo(0, altoCapa);
-    for (let x = 0; x <= ancho * 2; x += 3) ctx.lineTo(x, yDe(x));
+    for (let x = 0; x < ancho * 2; x += 3) ctx.lineTo(x, yDe(x));
+    ctx.lineTo(ancho * 2, yDe(ancho * 2)); // el final exacto: sin cuña al dar la vuelta
     ctx.lineTo(ancho * 2, altoCapa);
     ctx.closePath();
     ctx.fill();
@@ -442,12 +477,13 @@
     ctx.strokeStyle = rgba(mezclar(cfg.color, p.astro, 0.45), cfg.borde);
     ctx.lineWidth = 1;
     ctx.beginPath();
-    for (let x = 0; x <= ancho * 2; x += 3) {
+    for (let x = 0; x < ancho * 2; x += 3) {
       if (x === 0) ctx.moveTo(x, yDe(x)); else ctx.lineTo(x, yDe(x));
     }
+    ctx.lineTo(ancho * 2, yDe(ancho * 2));
     ctx.stroke();
     if (cfg.pinos) pintarPinos(ctx, yDe, cfg);
-    if (cfg.casas) pintarCasas(ctx, yDe, cfg, p);
+    if (cfg.casas) pintarCasas(ctx, yDe, cfg);
   }
 
   function pintarPinos(ctx, yDe, cfg) {
@@ -459,7 +495,7 @@
       if (bosque(x) > 0.05) posiciones.push([x, 6 + r() * 9]);
     }
     for (const [x0, alt] of posiciones) {
-      for (const x of [x0, x0 + ancho]) {
+      for (const x of [x0 - ancho, x0, x0 + ancho, x0 + 2 * ancho]) {
         const y = yDe(x) + 2;
         const a = alt * 0.42;
         ctx.beginPath();
@@ -476,12 +512,12 @@
     }
   }
 
-  function pintarCasas(ctx, yDe, cfg, p) {
+  function pintarCasas(ctx, yDe, cfg) {
     const r = aleatorio(cfg.semilla + 19);
-    const noche = p.estrellas > 0.3 || p.resplandorAlfa < 0.2;
+    const noche = cfg.luces;
     for (let i = 0; i < 3; i++) {
       const x0 = ancho * (0.15 + 0.3 * i + r() * 0.12);
-      for (const x of [x0, x0 + ancho]) {
+      for (const x of [x0 - ancho, x0, x0 + ancho, x0 + 2 * ancho]) {
         const y = yDe(x) + 3;
         ctx.fillStyle = rgba(mezclar(cfg.color, [0, 0, 0], 0.15));
         ctx.fillRect(x - 5, y - 6, 10, 6);
@@ -514,7 +550,7 @@
       for (let i = 0; i < piezas; i++) {
         bolas.push([cx + (r() - 0.5) * rad * 2.6, cy - r() * rad * 0.55, rad * (0.55 + r() * 0.6)]);
       }
-      for (const dx of [0, ancho, -ancho]) {
+      for (const dx of [-ancho, 0, ancho, 2 * ancho]) {
         // Primero la sombra (abajo), después la luz (arriba): volumen.
         for (const [x, y, rr] of bolas) {
           const g = ctx.createRadialGradient(x + dx, y + rr * 0.25, 0, x + dx, y + rr * 0.25, rr);
@@ -559,9 +595,12 @@
       const y = cfg.alto * (0.35 + r() * 0.4);
       const rx = 60 + r() * 140;
       const ry = 8 + r() * 16;
-      for (const dx of [0, ancho, -ancho]) {
+      // Una sola opacidad por mancha: si cada copia tuviera la suya, la niebla
+      // aparecería o desaparecería de golpe cada vez que la capa da la vuelta.
+      const alfa = cfg.alfa * (0.35 + r() * 0.3);
+      for (const dx of [-ancho, 0, ancho, 2 * ancho]) {
         const g = ctx.createRadialGradient(x + dx, y, 0, x + dx, y, rx);
-        g.addColorStop(0, rgba(p.niebla, cfg.alfa * (0.35 + r() * 0.3)));
+        g.addColorStop(0, rgba(p.niebla, alfa));
         g.addColorStop(1, rgba(p.niebla, 0));
         ctx.fillStyle = g;
         ctx.save();
@@ -587,11 +626,15 @@
         avance = (c.anim.currentTime % c.anim.baseDuracion) / c.anim.baseDuracion;
         if (c.anim.sentido !== sentido) avance = 1 - avance;
       }
+      const quieta = reducido || ligero || c.vacia;
+      const donde = quieta ? getComputedStyle(c.el).transform : '';
       c.anim.cancel();
       c.anim = null;
+      c.el.style.transform = donde && donde !== 'none' ? donde : '';
+    } else {
+      c.el.style.transform = '';
     }
-    c.el.style.transform = '';
-    if (reducido || ligero || !c.el.animate) return;
+    if (reducido || ligero || c.vacia || !c.el.animate) return;
     const duracion = (ancho / Math.max(0.05, Math.abs(pxPorSegundo))) * 1000;
     const desde = sentido > 0 ? `translateX(${-ancho}px)` : 'translateX(0px)';
     const hasta = sentido > 0 ? 'translateX(0px)' : `translateX(${-ancho}px)`;
@@ -620,8 +663,9 @@
   function animarTodo() {
     const m = meteoActual;
     const viento = m && m.vientoVelocidad != null ? m.vientoVelocidad : 5;
-    // Viento del oeste (270°): las nubes van hacia la izquierda; del este, a la derecha.
-    const sentidoViento = m && m.vientoDireccion != null && Math.sin(m.vientoDireccion * Math.PI / 180) > 0 ? 1 : -1;
+    // Con el este a la derecha, como la lluvia y la nieve: viento del este
+    // (90°) empuja las nubes a la izquierda; del oeste (270°), a la derecha.
+    const sentidoViento = m && m.vientoDireccion != null && Math.sin(m.vientoDireccion * Math.PI / 180) < 0 ? 1 : -1;
     animar('nubesLejos', 1.2 + viento * 0.05, sentidoViento);
     animar('nubesCerca', 2.4 + viento * 0.11, sentidoViento);
     animar('niebla1', 1.1, 1);
@@ -636,14 +680,19 @@
 
   function escenaActual() {
     const m = meteoActual;
-    const salida = m && m.sunrise ? new Date(m.sunrise).getTime() : null;
-    const puesta = m && m.sunset ? new Date(m.sunset).getTime() : null;
+    const { salida, puesta } = salidaPuesta(ahora(), posicion.lat, posicion.lon);
     const sol = posicionSol(ahora(), salida, puesta);
     const p = ajustarPorTiempo(paleta(sol), m);
     return { sol, p, niebla: nieblaDe(m, sol) };
   }
 
   let pendiente = false;
+
+  function vaciar(nombre, vacia) {
+    const c = capas[nombre];
+    c.vacia = vacia;
+    c.el.style.display = vacia ? 'none' : '';
+  }
 
   function pintarEscena(forzar) {
     if (!raiz) return;
@@ -656,29 +705,36 @@
     const { sol, p, niebla } = escenaActual();
     const m = meteoActual;
     // Clave: lo que cambia el dibujo. La luz se cuantiza para no repintar a cada rato.
+    const paso = Math.abs(sol.altura) < 0.35 ? 100 : 20; // crepúsculo: pasos finos
     const clave = [ancho, alto, m ? m.weatherCode : '-', sol.dia ? 'd' : 'n', sol.t < 0.5 ? 'a' : 'b',
-      Math.round(sol.altura * 20), Math.round(niebla * 10)].join('|');
+      Math.round(sol.altura * paso), Math.round(niebla * 20)].join('|');
     if (!forzar && clave === claveEscena) return;
     claveEscena = clave;
     escala = Math.min(1.5, (window.devicePixelRatio || 1) * 0.75);
 
     const yH = alto * 0.66;
-    pintarCielo(p, sol);
-    pintarEstrellas(p);
-    pintarAstro(p, sol);
-
     const nub = p.nubosidad;
     const cat = p.categoria;
     const cubierto = nub >= 0.75;
-    pintarNubes('nubesLejos', p, {
-      semilla: 31, top: alto * 0.04, alto: alto * 0.42,
-      cantidad: Math.round(nub * 7 + (nub > 0 ? 1 : 0)), tam: 26, alfa: 0.22 + nub * 0.3, techo: 0,
-    });
-    pintarNubes('nubesCerca', p, {
-      semilla: 57, top: 0, alto: alto * 0.4,
+    const nubesLejos = { semilla: 31, top: alto * 0.04, alto: alto * 0.42,
+      cantidad: Math.round(nub * 7 + (nub > 0 ? 1 : 0)), tam: 26, alfa: 0.22 + nub * 0.3, techo: 0 };
+    const nubesCerca = { semilla: 57, top: 0, alto: alto * 0.4,
       cantidad: cubierto ? 9 : Math.round(nub * 4), tam: 44, alfa: 0.3 + nub * 0.35,
-      techo: cubierto ? (cat === 'tormenta' ? 0.75 : 0.5) : 0,
-    });
+      techo: cubierto ? (cat === 'tormenta' ? 0.75 : 0.5) : 0 };
+    // Una capa sin nada que enseñar (sin estrellas de día, sin nubes, sin
+    // niebla) se oculta y no se anima: componerla vacía es trabajo perdido.
+    vaciar('estrellasA', p.estrellas < 0.02);
+    vaciar('estrellasB', p.estrellas < 0.02);
+    vaciar('nubesLejos', nubesLejos.cantidad <= 0);
+    vaciar('nubesCerca', nubesCerca.cantidad <= 0 && nubesCerca.techo <= 0);
+    vaciar('niebla1', niebla < 0.02);
+    vaciar('niebla2', niebla < 0.02);
+
+    pintarCielo(p, sol);
+    if (!capas.estrellasA.vacia) pintarEstrellas(p);
+    pintarAstro(p, sol);
+    if (!capas.nubesLejos.vacia) pintarNubes('nubesLejos', p, nubesLejos);
+    if (!capas.nubesCerca.vacia) pintarNubes('nubesCerca', p, nubesCerca);
     const montes = {
       lejos: mezclar(p.horizonte, p.monte, 0.42),
       medio: mezclar(p.horizonte, p.monte, 0.72),
@@ -688,16 +744,20 @@
       semilla: 101, base: yH - alto * 0.07, amp: alto * 0.1, extra: 2, color: montes.lejos, borde: 0.18,
       armonicos: [[1, 1], [2, 0.7], [3, 0.5], [5, 0.3], [8, 0.18], [13, 0.08], [21, 0.04]],
     });
-    pintarNiebla('niebla1', p, { semilla: 5, top: yH - alto * 0.08, alto: alto * 0.16, alfa: niebla });
+    if (!capas.niebla1.vacia) pintarNiebla('niebla1', p, { semilla: 5, top: yH - alto * 0.08, alto: alto * 0.16, alfa: niebla });
     pintarMontes('montesMedio', p, {
       semilla: 202, base: yH + alto * 0.04, amp: alto * 0.07, extra: 4, color: montes.medio, borde: 0.14,
       armonicos: [[2, 1], [3, 0.6], [4, 0.45], [7, 0.3], [11, 0.15], [17, 0.08]],
     });
-    pintarNiebla('niebla2', p, { semilla: 9, top: yH + alto * 0.06, alto: alto * 0.16, alfa: niebla * 0.8 });
+    if (!capas.niebla2.vacia) pintarNiebla('niebla2', p, { semilla: 9, top: yH + alto * 0.06, alto: alto * 0.16, alfa: niebla * 0.8 });
     pintarMontes('montesCerca', p, {
       semilla: 303, base: yH + alto * 0.18, amp: alto * 0.045, extra: 16, color: montes.cerca, borde: 0.1,
       armonicos: [[3, 1], [5, 0.55], [9, 0.3], [14, 0.15], [23, 0.06]], pinos: true, casas: true,
+      luces: !sol.dia || sol.altura < 0.12 || (nub >= 0.85 && ['lluvia', 'tormenta', 'nieve', 'niebla'].includes(cat)),
     });
+    // De noche, un resplandor de tormenta más tenue: sobre un cielo negro, el
+    // mismo brillo se vería como un destello.
+    capas.resplandor.pico = sol.dia ? 0.3 : 0.18;
     animarTodo();
     programarTormenta();
   }
@@ -706,14 +766,15 @@
 
   function programarTormenta() {
     clearTimeout(tormentaTimer);
-    if (!meteoActual || meteoActual.categoria !== 'tormenta' || reducido) return;
+    if (!meteoActual || meteoActual.categoria !== 'tormenta' || reducido || ligero) return;
     tormentaTimer = setTimeout(() => {
       const el = capas.resplandor && capas.resplandor.el;
       if (el && visible && el.animate) {
         el.style.setProperty('--rx', (12 + Math.random() * 76).toFixed(0) + '%');
+        // Un solo pulso: sube en 1,3 s y se apaga en 2,3 s.
         el.animate(
-          [{ opacity: 0 }, { opacity: 0.55, offset: 0.18 }, { opacity: 0.18, offset: 0.4 }, { opacity: 0.4, offset: 0.55 }, { opacity: 0 }],
-          { duration: 2600, easing: 'ease-in-out' }
+          [{ opacity: 0, easing: 'ease-out' }, { opacity: capas.resplandor.pico || 0.25, offset: 0.36, easing: 'ease-in' }, { opacity: 0 }],
+          { duration: 3600 }
         );
       }
       programarTormenta();
@@ -727,13 +788,19 @@
   function medirFluidez() {
     if (midiendo || ligero || reducido || !visible || document.visibilityState !== 'visible') return;
     midiendo = true;
-    let fotogramas = 0;
+    const intervalos = [];
     const t0 = performance.now();
+    let previo = t0;
     const paso = (t) => {
-      fotogramas++;
+      intervalos.push(t - previo);
+      previo = t;
       if (t - t0 < MUESTREO_MS) { requestAnimationFrame(paso); return; }
       midiendo = false;
-      const fps = fotogramas / ((t - t0) / 1000);
+      // La mediana, no la media: unos pocos fotogramas largos por trabajo del
+      // hilo principal no dicen que el móvil no pueda con el paisaje.
+      intervalos.sort((a, b) => a - b);
+      const mediana = intervalos[Math.floor(intervalos.length / 2)] || 1000;
+      const fps = 1000 / mediana;
       if (document.visibilityState !== 'visible') return; // medida no válida
       if (fps < FPS_MINIMO) {
         ligero = true;
@@ -744,6 +811,7 @@
           if (veces >= 2) localStorage.setItem(CLAVE_LIGERO, '1');
         } catch (e) { /* nada */ }
         animarTodo();
+        raiz.classList.add('v2p-quieto');
         if (typeof debug !== 'undefined') debug.warn(`Paisaje: ${fps.toFixed(0)} fps, se queda quieto (modo ligero${veces >= 2 ? ', recordado' : ', esta sesión'})`);
       } else {
         try { localStorage.removeItem(CLAVE_LENTO); } catch (e) { /* nada */ }
@@ -764,6 +832,7 @@
     reducido = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
     leerOpciones();
     crearCapas();
+    if (ligero || reducido) raiz.classList.add('v2p-quieto');
     pintarEscena(true);
     if (typeof IntersectionObserver === 'function') {
       new IntersectionObserver((entradas) => {
@@ -793,13 +862,25 @@
 
   function setMeteo(meteo) {
     meteoActual = meteo || null;
+    const m = meteoActual;
+    const viento = m ? `${Math.sign(Math.sin((m.vientoDireccion || 0) * Math.PI / 180))}|${Math.round((m.vientoVelocidad || 0) / 10)}` : '';
+    const cambioViento = viento !== claveViento;
+    claveViento = viento;
+    const antes = claveEscena;
     pintarEscena(false);
+    if (cambioViento && claveEscena === antes && raiz) animarTodo();
     programarTormenta();
   }
 
+  function setPosicion(lat, lon) {
+    if (typeof lat !== 'number' || typeof lon !== 'number' || !isFinite(lat) || !isFinite(lon)) return;
+    posicion.lat = lat;
+    posicion.lon = lon;
+  }
+
   function setVelocidad(kmh) {
-    const v = kmh == null ? 0 : kmh;
-    if (Math.abs(v - velocidad) < 3) return;
+    const v = kmh == null || kmh < 3 ? 0 : kmh;
+    if (v === velocidad || (v !== 0 && Math.abs(v - velocidad) < 3)) return;
     velocidad = v;
     aplicarVelocidad();
   }
@@ -808,7 +889,9 @@
     init,
     setMeteo,
     setVelocidad,
+    setPosicion,
     posicionSol,
+    salidaPuesta,
     faseLunar,
     paleta,
     ajustarPorTiempo,

@@ -34,6 +34,21 @@ test('el sol: arriba a mediodía, en el horizonte al salir, abajo a medianoche',
   assert.equal(P.posicionSol(HOY(13, 0), null, null).dia, true);
 });
 
+// Impide: que sin cobertura el paisaje se invente la hora del ocaso (pintaba de
+// noche a las 20:30 de junio y se hacía de día de golpe al volver la red).
+test('la salida y la puesta del sol se calculan sin internet', () => {
+  const utc = (ms) => new Date(ms).getUTCHours() * 60 + new Date(ms).getUTCMinutes();
+  const verano = P.salidaPuesta(new Date(2026, 5, 21, 12).getTime(), 40.4168, -3.7038);
+  assert.ok(Math.abs(utc(verano.salida) - (4 * 60 + 44)) <= 4, 'salida 21/6 en Madrid: 6:44 peninsular');
+  assert.ok(Math.abs(utc(verano.puesta) - (19 * 60 + 48)) <= 4, 'puesta 21/6 en Madrid: 21:48 peninsular');
+  const invierno = P.salidaPuesta(new Date(2026, 11, 21, 12).getTime(), 40.4168, -3.7038);
+  assert.ok(Math.abs(utc(invierno.salida) - (7 * 60 + 33)) <= 4, 'salida 21/12 en Madrid: 8:33 peninsular');
+  assert.ok(Math.abs(utc(invierno.puesta) - (16 * 60 + 53)) <= 4, 'puesta 21/12 en Madrid: 17:53 peninsular');
+  // Galicia, más al oeste, ve ponerse el sol más tarde que Madrid.
+  const santiago = P.salidaPuesta(new Date(2026, 5, 21, 12).getTime(), 42.88, -8.54);
+  assert.ok(santiago.puesta > verano.puesta + 15 * 60000);
+});
+
 // Impide: un cielo claro que deslumbre o se coma el texto al conducir (regla 3).
 test('el cielo es oscuro también de día, y más de noche', () => {
   const dia = P.paleta(P.posicionSol((SALIDA + PUESTA) / 2, SALIDA, PUESTA));
@@ -71,6 +86,9 @@ test('nubosidad y niebla según el código WMO y la humedad', () => {
   assert.equal(P.nieblaDe({ weatherCode: 0, humedad: 96 }, dia), 0);    // mediodía: no
   assert.ok(P.nieblaDe({ weatherCode: 0, humedad: 96 }, alba) > 0.3);   // mañana húmeda: sí
   assert.equal(P.nieblaDe(null, dia), 0);
+  // Y se va despacio según sube el sol, sin desaparecer de golpe.
+  const niebla = (altura) => P.nieblaDe({ weatherCode: 0, humedad: 96 }, { dia: true, t: 0.1, altura });
+  assert.ok(niebla(0.25) < niebla(0.15) && niebla(0.25) > niebla(0.4));
 });
 
 // Impide: una costura visible cada vez que la capa de montañas da la vuelta.

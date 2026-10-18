@@ -1,6 +1,6 @@
 # Rumbo: un cuaderno de viaje para el coche
 
-**Fecha**: 2026-09-30 · **Estado**: borrador, para que lo corrijas
+**Fecha**: 2026-09-30 · **Estado**: los seis deseos construidos el 18/10; falta probarlos en el coche
 
 **Lo que se pidió** (30/09, por la noche): "quiero que sea mi cuaderno de viaje. La llevaré
 conectada en mi coche al lado del gps y a medida que vayamos pasando por pueblos o sitios chulos
@@ -8,6 +8,19 @@ quiero poder marcarlos y guardarlos para luego investigarlos. Quiero que las ani
 sean extremadamente detallistas y chillout y quiero que la vista de los pueblos cercanos se sienta
 como mirar un radar ¿tal vez incluso con el relieve?. Quiero que la app sea excelente desde el punto
 de vista del diseño y la usabilidad, quiero que cargue rápido. Su posición normal será apaisada."
+
+## Dónde está cada deseo (18/10/2026)
+
+| Deseo | Estado |
+|---|---|
+| 1. Marcar sitios y guardarlos para investigarlos | **Hecho** (spec 001): toque largo de 1 s, la marca guarda lo que había alrededor, y el cuaderno (`?cuaderno=1`) para revisarlas en un mapa, elegir "era esto", anotar y compartir |
+| 2. Pueblos cercanos como un radar, con relieve | **Hecho** (spec 002): gira con la marcha, anillos, barrido, relieve con curvas de nivel |
+| 3. Animaciones del tiempo detallistas y chillout | **Hecho** (spec 003), **sin tus referencias**: paisaje lo-fi que cambia con la hora y el tiempo reales. Dime si es tu idea de chillout |
+| 4. Excelente en diseño y usabilidad | Arreglados los dos fallos de uso que más pesaban (Overpass lento, datos viejos como actuales) y dos de la vista 2 (palabra cortada, previsión que se salía). Lo demás, en la prueba en carretera |
+| 5. Que cargue rápido | La app ya cargaba rápido; la vía ya no se queda esperando a un servidor caído (D13) |
+| 6. Apaisado | Sigue siéndolo; el cuaderno también funciona en vertical |
+
+Lo de abajo es el análisis del 30/09, que se conserva como explicación del porqué.
 
 ## El cambio de fondo
 
@@ -82,13 +95,13 @@ Todo el panel está diseñado para apaisado. Se mantiene como la posición norma
 
 ## Orden que propongo
 
-1. **Arreglos de fiabilidad** (Overpass y datos viejos). Son arreglos, no funciones nuevas: poco
-   código, y todo lo demás se apoya en que lo que dice el panel sea verdad.
-2. **Cuaderno, H1: marcar sin mirar.** Lo antes posible en el coche, porque es lo que da sentido a
-   todo y porque solo usándolo sabremos cómo quieres revisarlo.
-3. **Prueba en carretera** con marcas reales y el log del viaje.
-4. **Cuaderno, H2 y H3** (qué había alrededor y revisarlo), con lo aprendido en la prueba.
-5. **Radar con relieve** (spec 002).
-6. **Meteo chillout** (spec 003), con tus referencias.
+1. ~~**Arreglos de fiabilidad** (Overpass y datos viejos)~~ — hecho el 18/10 (D13, D14).
+2. ~~**Cuaderno, H1: marcar sin mirar**~~ — hecho y publicado el 18/10 (D16).
+3. **Prueba en carretera** con marcas reales y el log del viaje — hecha el 18/10 con la v18; falta
+   leer su log.
+4. ~~**Cuaderno, H2 y H3**~~ — hechos el 18/10 sin esperar a la prueba, por encargo tuyo (D18, D19).
+5. ~~**Radar con relieve** (spec 002)~~ — hecho el 18/10 (D20).
+6. ~~**Meteo chillout** (spec 003)~~ — hecho el 18/10 sin tus referencias (D21).
 
-Cada paso se prueba en el coche antes del siguiente.
+Cada paso se prueba en el coche antes del siguiente: los cuatro últimos van juntos a la próxima
+prueba.

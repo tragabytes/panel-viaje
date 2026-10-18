@@ -19,10 +19,12 @@
 //     Cuaderno.borrar(id)             → Promise<void>        una sola marca
 //     Cuaderno.importar(texto|objeto) → Promise<number>      cuántas añadió
 //     Cuaderno.exportar()             → Promise<objeto>      copia de seguridad
+//   Si IndexedDB falla al marcar, la marca va a un respaldo en localStorage y
+//   pasa a la base de datos en cuanto se puede (listar() y cada marca lo intentan).
 //   Puras (probadas en Node)
 //     construirMarca, construirContexto, necesitaCompletar, completarContexto,
 //     aplicarRevision, candidatos, agruparPorViaje, fusionarImportacion,
-//     leerCopia, textoParaCompartir, urlMapa, urlWikipedia,
+//     leerCopia, sanearMarca, textoParaCompartir, urlMapa, urlWikipedia,
 //     crearDetectorToqueLargo
 
 (function () {
@@ -58,6 +60,13 @@
   const MAX_SITIOS = 20;
   const MAX_CANDIDATOS = 24;
   const MAX_NOTA = 2000;
+  // Si el pueblo más cercano de los que el panel conocía está más lejos que
+  // esto, la lista es de otro sitio (sin cobertura se quedan los de donde hubo
+  // red): la marca se completará con los de verdad.
+  const PUEBLO_LEJOS_KM = 8;
+  // Mismo nombre a menos de esto = el mismo sitio (iglesias de Santa María
+  // hay en cada pueblo: más lejos son sitios distintos).
+  const MISMO_SITIO_KM = 0.5;
   // H3: marcas separadas más de esto son de viajes distintos.
   const HUECO_VIAJE_MS = 4 * 3600 * 1000;
 
@@ -95,13 +104,16 @@
   }
 
   function normalizarNombre(s) {
-    return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').trim();
+    return String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
   }
 
   // --- La marca (pura) ---
 
   function construirMarca(pos, ahora, ultimaMarcaTs) {
-    if (ultimaMarcaTs != null && ahora - ultimaMarcaTs < DEDUPE_MS) return null;
+    // Si el reloj del móvil se corrige hacia atrás, (ahora − última) sale
+    // negativo: no es una marca repetida (si no, se perderían todas una hora).
+    const desde = ultimaMarcaTs != null ? ahora - ultimaMarcaTs : null;
+    if (desde != null && desde >= 0 && desde < DEDUPE_MS) return null;
     const hayPos = hayPosicion(pos);
     const enMarcha = hayPos && pos.velocidadKmh != null && pos.velocidadKmh >= VEL_PARADO_KMH;
     return {
@@ -175,6 +187,8 @@
       hora: m.hora || null,
     } : null;
 
+    const pueblosViejos = !!f.ubicacionVieja ||
+      (pueblos.length > 0 && pueblos[0].distKm !== null && pueblos[0].distKm > PUEBLO_LEJOS_KM);
     return {
       municipio,
       provincia: (u && u.provincia) || null,
@@ -183,9 +197,10 @@
       via,
       viaVieja: !!f.viaVieja,
       pueblos,
+      pueblosViejos,
       pois: pois.slice(0, MAX_POIS),
       meteo,
-      pendiente: !municipio || !!f.ubicacionVieja || pueblos.length === 0,
+      pendiente: !municipio || !!f.ubicacionVieja || pueblos.length === 0 || pueblosViejos,
     };
   }
 
@@ -220,8 +235,13 @@
       c.via = { codigo: datos.via.codigo || null, texto: datos.via.textoCrudo || null };
       c.viaVieja = false;
     }
-    if (Array.isArray(datos.pueblos) && datos.pueblos.length && (!c.pueblos || !c.pueblos.length)) {
+    if (Array.isArray(datos.pueblos) && datos.pueblos.length && (!c.pueblos || !c.pueblos.length || c.pueblosViejos)) {
       c.pueblos = construirContexto({ pueblos: datos.pueblos }, pos).pueblos;
+      // Los puntos de interés eran de aquellos pueblos viejos: fuera los lejanos.
+      if (c.pueblosViejos && Array.isArray(c.pois)) {
+        c.pois = c.pois.filter((q) => q.distKm !== null && q.distKm <= PUEBLO_LEJOS_KM);
+      }
+      c.pueblosViejos = false;
     }
     if (Array.isArray(datos.sitios)) {
       c.sitios = datos.sitios
@@ -233,7 +253,7 @@
         .sort(porDistancia)
         .slice(0, MAX_SITIOS);
     }
-    c.pendiente = !c.municipio || !!c.ubicacionVieja || !c.pueblos || c.pueblos.length === 0;
+    c.pendiente = !c.municipio || !!c.ubicacionVieja || !c.pueblos || c.pueblos.length === 0 || !!c.pueblosViejos;
     c.completado = ahora;
     return Object.assign({}, marca, { contexto: c });
   }
@@ -272,15 +292,24 @@
   }
 
   function candidatos(marca) {
-    const c = marca.contexto || {};
+    const c = (marca && marca.contexto) || {};
     const pos = hayPosicion(marca) ? marca : null;
     const lista = [];
-    const vistos = new Set();
     const meter = (item, tipo, fuente) => {
+      if (!item || typeof item.nombre !== 'string') return;
       const clave = normalizarNombre(item.nombre);
-      if (!clave || vistos.has(clave)) return;
-      vistos.add(clave);
+      if (!clave) return;
       const medida = medir(pos, item.lat, item.lon);
+      // Mismo nombre y a menos de MISMO_SITIO_KM: es el mismo; se queda el
+      // primero (el del panel) con lo que traiga el otro (enlace, foto).
+      const igual = lista.find((x) => normalizarNombre(x.nombre) === clave &&
+        (x.lat === null || num(item.lat) === null ||
+          _Geo.distanciaMetros(x.lat, x.lon, item.lat, item.lon) / 1000 < MISMO_SITIO_KM));
+      if (igual) {
+        if (!igual.pageid && item.pageid) igual.pageid = item.pageid;
+        if (!igual.foto && item.foto) igual.foto = item.foto;
+        return;
+      }
       lista.push({
         nombre: item.nombre,
         lat: num(item.lat),
@@ -294,9 +323,10 @@
         lado: lado(medida.rumbo, marca.rumbo),
       });
     };
-    for (const p of c.pueblos || []) meter(p, 'pueblo', 'panel');
-    for (const q of c.pois || []) meter(q, q.tipo || 'sitio', 'panel');
-    for (const s of c.sitios || []) meter(s, 'sitio', 'wikipedia');
+    const comoLista = (v) => (Array.isArray(v) ? v : []);
+    for (const p of comoLista(c.pueblos)) meter(p, 'pueblo', 'panel');
+    for (const q of comoLista(c.pois)) meter(q, (q && q.tipo) || 'sitio', 'panel');
+    for (const s of comoLista(c.sitios)) meter(s, 'sitio', 'wikipedia');
     return lista.sort(porDistancia).slice(0, MAX_CANDIDATOS);
   }
 
@@ -326,13 +356,72 @@
       (m.lon === null || num(m.lon) !== null);
   }
 
+  function texto(v) { return typeof v === 'string' && v ? v : null; }
+  function bool(v) { return v === true; }
+
+  function sanearLugar(x) {
+    if (!x || typeof x !== 'object' || typeof x.nombre !== 'string' || !x.nombre) return null;
+    return {
+      nombre: x.nombre, lat: num(x.lat), lon: num(x.lon),
+      distKm: num(x.distKm), rumbo: num(x.rumbo),
+      tipo: texto(x.tipo), pueblo: texto(x.pueblo), foto: texto(x.foto), pageid: num(x.pageid),
+    };
+  }
+
+  function sanearLugares(v, max) {
+    return (Array.isArray(v) ? v : []).map(sanearLugar).filter(Boolean).slice(0, max);
+  }
+
+  // Deja una marca con la forma exacta que espera el cuaderno, campo a campo.
+  function sanearMarca(m) {
+    if (!esMarcaValida(m)) return null;
+    const limpia = {
+      id: m.id, lat: num(m.lat), lon: num(m.lon),
+      precisionM: num(m.precisionM), rumbo: num(m.rumbo), velocidadKmh: num(m.velocidadKmh),
+      posicionTs: num(m.posicionTs), aproximada: m.aproximada !== false,
+    };
+    const c = m.contexto;
+    if (c && typeof c === 'object') {
+      const met = c.meteo && typeof c.meteo === 'object' ? c.meteo : null;
+      limpia.contexto = {
+        municipio: texto(c.municipio), provincia: texto(c.provincia), ccaa: texto(c.ccaa),
+        ubicacionVieja: bool(c.ubicacionVieja),
+        via: c.via && typeof c.via === 'object' && (texto(c.via.codigo) || texto(c.via.texto))
+          ? { codigo: texto(c.via.codigo), texto: texto(c.via.texto) } : null,
+        viaVieja: bool(c.viaVieja),
+        pueblos: sanearLugares(c.pueblos, MAX_PUEBLOS),
+        pueblosViejos: bool(c.pueblosViejos),
+        pois: sanearLugares(c.pois, MAX_POIS),
+        meteo: met ? {
+          temperatura: num(met.temperatura), descripcion: texto(met.descripcion),
+          categoria: texto(met.categoria), codigo: num(met.codigo), vientoKmh: num(met.vientoKmh),
+          vientoDir: num(met.vientoDir), esDia: typeof met.esDia === 'boolean' ? met.esDia : null,
+          hora: texto(met.hora),
+        } : null,
+        pendiente: bool(c.pendiente),
+      };
+      if (Array.isArray(c.sitios)) limpia.contexto.sitios = sanearLugares(c.sitios, MAX_SITIOS);
+      if (num(c.completado) !== null) limpia.contexto.completado = c.completado;
+    }
+    const r = m.revision;
+    if (r && typeof r === 'object') {
+      const e = sanearLugar(r.elegido);
+      limpia.revision = {
+        elegido: e ? { nombre: e.nombre, lat: e.lat, lon: e.lon, tipo: e.tipo, pageid: e.pageid } : null,
+        nota: typeof r.nota === 'string' ? r.nota.slice(0, MAX_NOTA) : '',
+        editado: num(r.editado),
+      };
+    }
+    return limpia;
+  }
+
   // Acepta la copia que genera exportar() o una lista suelta de marcas.
   function leerCopia(entrada) {
     let datos = entrada;
     if (typeof datos === 'string') datos = JSON.parse(datos);
     const lista = Array.isArray(datos) ? datos : (datos && Array.isArray(datos.marcas) ? datos.marcas : null);
     if (!lista) throw new Error('El archivo no es una copia del cuaderno');
-    return lista.filter(esMarcaValida);
+    return lista.map(sanearMarca).filter(Boolean);
   }
 
   // Solo añade las que no existen: una copia vieja nunca pisa una marca
@@ -374,7 +463,7 @@
       if (lugar) partes.push(lugar);
       const e = m.revision && m.revision.elegido;
       if (e) partes.push('era: ' + e.nombre);
-      if (m.revision && m.revision.nota) partes.push(m.revision.nota.replace(/\s+/g, ' '));
+      if (m.revision && typeof m.revision.nota === 'string' && m.revision.nota) partes.push(m.revision.nota.replace(/\s+/g, ' '));
       const url = e && num(e.lat) !== null ? urlMapa(e.lat, e.lon) : urlMapa(m.lat, m.lon);
       lineas.push('• ' + partes.join(' · ') + (url ? '\n  ' + url : ''));
     }
@@ -416,6 +505,16 @@
   }
 
   // --- Guardado ---
+  //
+  // Las escrituras van con durabilidad "strict": el aviso de guardado llega con
+  // la marca ya en disco. Desde Chrome 121 lo normal es "relaxed", que la deja
+  // un momento en memoria: con un corte de corriente al quitar el contacto se
+  // perdería la última marca.
+  const ESCRITURA = { durability: 'strict' };
+  // Si IndexedDB falla al guardar (móvil lleno, conexión cerrada por Chrome),
+  // la marca va a este respaldo en localStorage y pasa a la base de datos en
+  // cuanto se pueda. Solo se quita de aquí cuando ya está guardada allí.
+  const CLAVE_RESPALDO = 'cuaderno-sin-guardar';
 
   let dbPromise = null;
   let ultimaMarcaTs = null;
@@ -434,12 +533,30 @@
           db.createObjectStore(STORE, { keyPath: 'id' });
         }
       };
-      req.onsuccess = () => resolve(req.result);
+      req.onsuccess = () => {
+        const db = req.result;
+        // Si Chrome cierra la conexión, la siguiente operación abre otra en vez
+        // de fallar hasta recargar la página.
+        db.onclose = () => { dbPromise = null; };
+        db.onversionchange = () => { db.close(); dbPromise = null; };
+        resolve(db);
+      };
       req.onerror = () => reject(req.error || new Error('IndexedDB open falló'));
     });
     // Si falla, que el siguiente intento vuelva a probar en vez de heredar el error.
     dbPromise.catch(() => { dbPromise = null; });
     return dbPromise;
+  }
+
+  // Una operación con la base de datos, con un reintento sobre una conexión
+  // nueva si la primera falla (conexión cerrada, transacción rota).
+  async function conDb(fn) {
+    try {
+      return await fn(await abrirDb());
+    } catch (err) {
+      dbPromise = null;
+      return await fn(await abrirDb());
+    }
   }
 
   function esperarTx(t) {
@@ -450,11 +567,47 @@
     });
   }
 
+  function escribir(db) {
+    return db.transaction(STORE, 'readwrite', ESCRITURA);
+  }
+
   function guardar(db, marcas) {
-    const t = db.transaction(STORE, 'readwrite');
+    const t = escribir(db);
     const s = t.objectStore(STORE);
     for (const m of marcas) s.put(m);
     return esperarTx(t);
+  }
+
+  function leerRespaldo() {
+    try {
+      const v = JSON.parse(localStorage.getItem(CLAVE_RESPALDO) || '[]');
+      return Array.isArray(v) ? v : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function escribirRespaldo(lista) {
+    try {
+      if (lista.length) localStorage.setItem(CLAVE_RESPALDO, JSON.stringify(lista));
+      else localStorage.removeItem(CLAVE_RESPALDO);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // Pasa a la base de datos las marcas que quedaron en el respaldo.
+  async function rescatar() {
+    const pendientes = leerRespaldo();
+    if (!pendientes.length) return 0;
+    await conDb((db) => guardar(db, pendientes));
+    // Solo ahora, ya guardadas, salen del respaldo (y solo esas: puede haber
+    // llegado otra mientras tanto).
+    const ids = new Set(pendientes.map((m) => m.id));
+    escribirRespaldo(leerRespaldo().filter((m) => !ids.has(m.id)));
+    if (typeof debug !== 'undefined') debug.log(`Cuaderno: ${pendientes.length} marcas pasadas del respaldo a la base de datos`);
+    return pendientes.length;
   }
 
   // Sin esto, Chrome puede borrar los datos del sitio si el móvil anda justo de
@@ -480,19 +633,22 @@
     if (contexto) marca.contexto = contexto;
     ultimaMarcaTs = ahora;
     try {
-      const db = await abrirDb();
-      await guardar(db, [marca]);
+      await conDb((db) => guardar(db, [marca]));
       pedirPersistencia();
+      rescatar().catch(() => {});
       return { guardada: true, duplicada: false, marca };
     } catch (err) {
+      const motivo = err && err.message ? err.message : String(err);
+      if (escribirRespaldo(leerRespaldo().concat([marca]))) {
+        return { guardada: true, duplicada: false, marca, respaldo: true, error: motivo };
+      }
       // Que el siguiente intento no se tome por un duplicado de esta.
       ultimaMarcaTs = null;
-      return { guardada: false, duplicada: false, marca, error: err && err.message ? err.message : String(err) };
+      return { guardada: false, duplicada: false, marca, error: motivo };
     }
   }
 
-  async function listar() {
-    const db = await abrirDb();
+  function leerTodas(db) {
     return new Promise((resolve, reject) => {
       const req = db.transaction(STORE, 'readonly').objectStore(STORE).getAll();
       req.onsuccess = () => resolve(req.result);
@@ -500,39 +656,59 @@
     });
   }
 
+  // Las de la base de datos más las que sigan en el respaldo. Si la base de
+  // datos no responde y hay marcas en el respaldo, al menos se ven esas.
+  async function listar() {
+    try { await rescatar(); } catch (e) { /* siguen en el respaldo */ }
+    let enDb;
+    try {
+      enDb = await conDb(leerTodas);
+    } catch (err) {
+      const respaldo = leerRespaldo();
+      if (respaldo.length) return respaldo;
+      throw err;
+    }
+    const ids = new Set(enDb.map((m) => m.id));
+    return enDb.concat(leerRespaldo().filter((m) => !ids.has(m.id)));
+  }
+
   // Lee y reescribe una marca en la misma transacción: si fn devuelve null, no
   // cambia nada. El id no se puede cambiar.
   async function actualizar(id, fn) {
-    const db = await abrirDb();
-    const t = db.transaction(STORE, 'readwrite');
-    const s = t.objectStore(STORE);
-    let resultado = null;
-    const req = s.get(id);
-    req.onsuccess = () => {
-      const actual = req.result;
-      if (!actual) return;
-      const nueva = fn(actual);
-      if (!nueva) return;
-      nueva.id = actual.id;
-      s.put(nueva);
-      resultado = nueva;
-    };
-    await esperarTx(t);
-    return resultado;
+    return conDb(async (db) => {
+      const t = escribir(db);
+      const s = t.objectStore(STORE);
+      let resultado = null;
+      const req = s.get(id);
+      req.onsuccess = () => {
+        const actual = req.result;
+        if (!actual) return;
+        const nueva = fn(actual);
+        if (!nueva) return;
+        nueva.id = actual.id;
+        s.put(nueva);
+        resultado = nueva;
+      };
+      await esperarTx(t);
+      return resultado;
+    });
   }
 
   async function borrar(id) {
-    const db = await abrirDb();
-    const t = db.transaction(STORE, 'readwrite');
-    t.objectStore(STORE).delete(id);
-    await esperarTx(t);
+    await conDb((db) => {
+      const t = escribir(db);
+      t.objectStore(STORE).delete(id);
+      return esperarTx(t);
+    });
+    // Por si estaba también en el respaldo: si no, volvería a aparecer.
+    escribirRespaldo(leerRespaldo().filter((m) => m.id !== id));
   }
 
   async function importar(entrada) {
     const importadas = leerCopia(entrada);
     const nuevas = fusionarImportacion(await listar(), importadas);
     if (nuevas.length) {
-      await guardar(await abrirDb(), nuevas);
+      await conDb((db) => guardar(db, nuevas));
       pedirPersistencia();
     }
     return nuevas.length;
@@ -563,6 +739,7 @@
     lado,
     agruparPorViaje,
     leerCopia,
+    sanearMarca,
     fusionarImportacion,
     textoParaCompartir,
     urlMapa,
