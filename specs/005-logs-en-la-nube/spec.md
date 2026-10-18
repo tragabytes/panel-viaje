@@ -118,3 +118,5 @@ ahora". Ahí mismo se pone la clave la primera vez, y se ve si ha dejado de vale
 - **Qué se sube**: el log tal cual lo descargas hoy en `?logs=1` (resumen y mensajes, con las
   posiciones del recorrido). Las marcas del cuaderno no se suben aparte.
 - **El simulador**: sus viajes se suben marcados como simulación, para poder revisarlos también.
+- **La primera vez**, se suben también los viajes que el móvil ya tiene guardados (hasta 10, unos
+  300 KB una sola vez): así llegan el trayecto de hoy por Las Rozas y la prueba en carretera del 18/10.
