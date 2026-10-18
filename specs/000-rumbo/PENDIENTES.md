@@ -41,6 +41,11 @@ Lo que habrá que resolver en la spec:
 - **Las tres cordilleras de ahora** se quedarían como capas de en medio y de delante; solo la del
   fondo pasa a ser la real.
 
+## En marcha
+
+- **Los logs del viaje en la nube, con borrado a los 30 días**: spec en
+  [`specs/005-logs-en-la-nube/`](../005-logs-en-la-nube/spec.md), espera que la valides.
+
 ## Esperan tu decisión
 
 1. **Dos carpetas de trabajo viejas** (`.claude/worktrees/`) y los **ficheros archivados** del
