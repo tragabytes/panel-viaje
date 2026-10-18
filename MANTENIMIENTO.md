@@ -14,7 +14,10 @@ con el simulador. El móvil del panel es apaisado de **640×360**: conviene prob
 **Ojo con el service worker al probar**: sirve los ficheros desde su caché, así que tras cambiar
 código el navegador de pruebas puede seguir enseñando la versión anterior. Antes de mirar un
 cambio: dar de baja el service worker, borrar sus cachés y volver a pedir los ficheros con
-`cache: 'reload'` (o subir `SW_VERSION` y recargar dos veces).
+`cache: 'reload'` (o subir `SW_VERSION` y recargar dos veces). Si aun así un módulo sale viejo (la
+pestaña guarda copias en memoria: el 18/10 cargó un `cuaderno.js` anterior con el `main.js`
+nuevo), **abrir una pestaña nueva**. Para saber qué versión corre: `Object.keys(Cuaderno)` o
+cualquier función nueva desde la consola.
 
 ## 2. Banderas de la URL
 
@@ -27,7 +30,7 @@ cambio: dar de baja el service worker, borrar sus cachés y volver a pedir los f
 | `?logs=1` | Modo aparte con los viajes guardados, para descargarlos o borrarlos |
 | `?cuaderno=1` | Modo cuaderno: revisar las marcas (también con el atajo del icono de la app) |
 | `?meteo=<tiempo>` | Pinta ese tiempo en vez del real: `despejado`, `nublado`, `cubierto`, `niebla`, `llovizna`, `lluvia`, `chubascos`, `nieve`, `tormenta` |
-| `?hora=HH:MM` | Pinta el paisaje de la vista 2 a esa hora (solo el paisaje) |
+| `?hora=HH:MM` | Pinta el paisaje de la vista 2 y el brillo del modo noche a esa hora (los datos siguen siendo los de ahora). `?hora=23:00`: el panel de noche |
 | `?paisaje=ligero` | Deja el paisaje de la vista 2 quieto (y lo recuerda); `?paisaje=completo` lo vuelve a mover |
 | `?safearea=N` | Simula un recorte de pantalla de N px, para maquetar desde el ordenador |
 
@@ -45,7 +48,13 @@ node --test
 ```
 
 Comprueban las reglas que pueden romperse sin que nadie se entere (ver `CLAUDE.md`) y las cuentas
-de cada pieza: cuaderno, relieve, radar, paisaje y Overpass. Se pasan antes de publicar.
+de cada pieza: cuaderno, relieve, radar, paisaje, modo noche, velocidad y rumbo, textos de cada
+vista, provincia y vía, pueblos de Wikipedia y Overpass. Algunos usan respuestas reales guardadas
+en `tests/datos/`. Se pasan antes de publicar.
+
+El simulador da siempre 100 km/h: la escala de ciudad del radar (6 km) no se ve con él. Para verla,
+desde la consola del navegador, llamar a `RadarV4.posicion({ lat, lon, rumbo, velocidadKmh: 20 })`
+una vez por segundo durante algo más de un minuto.
 
 ## 4. Publicar
 
@@ -90,10 +99,15 @@ Cada cosa en su sitio, para que ninguna limpieza toque lo que no debe:
 | Teselas de relieve | base de datos `panel-viaje-relieve` | Nunca (el relieve no cambia) | Ella misma, al pasar de 300 teselas: las menos usadas |
 | Logs de viaje | base de datos `panel-viaje-trayectos` | Al pasar de 10 viajes | Rotación automática, o tú desde `?logs=1` |
 | Pueblos y puntos de interés | base de datos `panel-viaje-cache` | A los 14 días | Limpieza automática |
+| Marcas ya recordadas («Aquí marcaste») | `localStorage`, clave `cuaderno-recordadas` | Al mes | Él mismo; si se pierde, como mucho se repite un aviso |
 | La app (HTML, JS, fuentes) | caché del service worker | Al cambiar `SW_VERSION` | El service worker |
 
 **Copia de seguridad del cuaderno**: en `?cuaderno=1`, menú "⋯" → "Descargar copia de seguridad".
 Es un `.json`; "Importar una copia" lo vuelve a cargar (solo añade las marcas que falten).
+
+**Ver las marcas en Google Maps**: menú "⋯" → "Llevar a Google Maps (KML)". Se abre en Google My
+Maps (Crear mapa → Importar) o en Google Earth. No es una copia de seguridad: no se puede volver a
+importar en el cuaderno.
 
 ## 7. Si algo falla en un móvil
 

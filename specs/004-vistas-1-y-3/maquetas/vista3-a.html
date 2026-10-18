@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vista 3 · A · Postales</title>
+<link rel="stylesheet" href="../../../css/style.css">
+<link rel="stylesheet" href="comun.css">
+<style>
+  .titulo { position: absolute; left: 14px; right: 14px; top: 52px; display: flex; justify-content: space-between; align-items: baseline; }
+  .titulo b { font-weight: 400; color: var(--phos-300); }
+  .postales { position: absolute; left: 14px; right: 14px; top: 74px; bottom: 18px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .postal { display: flex; flex-direction: column; min-width: 0; }
+  .foto { flex: 1; min-height: 0; border-radius: 4px; overflow: hidden; background: var(--ink-3); position: relative; }
+  .foto img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  /* Degradado abajo, como el horizonte del paisaje: el nombre se lee sobre cualquier foto. */
+  .foto::after { content: ''; position: absolute; inset: 55% 0 0 0; background: linear-gradient(to bottom, transparent, rgba(0,0,0,0.85)); }
+  .nombre { position: absolute; left: 8px; right: 8px; bottom: 6px; z-index: 1; font-family: 'Space Grotesk', system-ui, sans-serif;
+    font-weight: 700; font-size: 17px; line-height: 1.15; text-shadow: 0 1px 4px #000; }
+  .pie { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; font-size: 13px; }
+  .pie .pueblo { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--hud-white-dim); }
+  .pie .km { color: var(--phos-200); display: flex; align-items: center; gap: 4px; }
+</style>
+</head>
+<body>
+<div class="marco">
+  <div class="rotulo">MAQUETA · VISTA 3 · A</div>
+  <header id="cab" class="cab"></header>
+  <div class="titulo"><span class="etiqueta">Puntos de interés · los 3 más cerca</span><span class="etiqueta"><b>6</b> en 15 km</span></div>
+  <div class="postales" id="postales"></div>
+  <div class="puntos"><span></span><span></span><span class="on"></span><span></span></div>
+</div>
+<script src="../../../js/geo.js"></script>
+<script src="datos.js"></script>
+<script>
+  pintarCabecera();
+  const pois = MAQUETA.pois.map(medirDesdeCoche).sort((a, b) => a.km - b.km).slice(0, 3);
+  document.getElementById('postales').innerHTML = pois.map((p) => `
+    <div class="postal">
+      <div class="foto"><img src="${p.foto}" alt=""><div class="nombre">${p.nombre}</div></div>
+      <div class="pie"><span class="pueblo">${p.pueblo}</span><span class="km">${flecha(p.desvio)}${kmTexto(p.km)}</span></div>
+    </div>`).join('');
+</script>
+</body>
+</html>

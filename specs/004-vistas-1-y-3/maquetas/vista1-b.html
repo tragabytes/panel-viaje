@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vista 1 · B · Paisaje</title>
+<link rel="stylesheet" href="../../../css/style.css">
+<link rel="stylesheet" href="comun.css">
+<style>
+  .marco { background: #050a14; }
+  #fondo { position: absolute; inset: 0; }
+  /* Velo arriba para leer el texto sobre el cielo. */
+  .velo { position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(0,0,0,0.62) 0%, rgba(0,0,0,0.30) 45%, rgba(0,0,0,0) 62%); }
+  .izq { position: absolute; left: 14px; top: 53px; width: 380px; display: flex; flex-direction: column; gap: 8px; }
+  .via { display: flex; align-items: baseline; gap: 10px; }
+  .via-nombre { font-size: 17px; font-weight: 500; text-shadow: 0 1px 4px #000; }
+  .der { position: absolute; right: 16px; top: 50px; text-align: right; text-shadow: 0 1px 6px #000; }
+  .temp { font-family: 'Archivo Black', system-ui, sans-serif; font-size: 44px; line-height: 1; }
+  .temp .icono { width: 30px; height: 30px; vertical-align: 4px; }
+  .historia { font-size: 12px; color: var(--hud-white); opacity: 0.85; margin-top: 2px; }
+  .gas { font-size: 12px; margin-top: 6px; } .gas b { color: var(--phos-200); font-weight: 400; }
+  /* Carteles de los pueblos sobre el horizonte, donde quedan de verdad. */
+  .cartel { position: absolute; transform: translate(-50%, -100%); display: flex; flex-direction: column; align-items: center; pointer-events: none; }
+  .cartel-txt { background: rgba(4, 10, 8, 0.78); border: 1px solid rgba(232, 243, 239, 0.35); border-radius: 3px; padding: 2px 7px;
+    font-size: 13px; white-space: nowrap; }
+  .cartel-txt b { color: var(--phos-200); font-weight: 400; margin-left: 6px; }
+  .cartel-palo { width: 1px; background: rgba(232, 243, 239, 0.5); }
+  .detras { position: absolute; bottom: 14px; font-size: 12px; color: var(--hud-white); opacity: 0.85; text-shadow: 0 1px 4px #000; }
+  .detras b { color: var(--phos-200); font-weight: 400; }
+</style>
+</head>
+<body>
+<div class="marco">
+  <canvas id="fondo" width="640" height="360"></canvas>
+  <div class="velo"></div>
+  <div class="rotulo">MAQUETA · VISTA 1 · B</div>
+  <header id="cab" class="cab"></header>
+
+  <section class="izq">
+    <div class="etiqueta" style="color: var(--hud-white)">Vía</div>
+    <div class="via"><span class="escudo" id="escudo"></span><span class="via-nombre" id="viaNombre"></span></div>
+    <div><span class="salida" id="salida"></span></div>
+  </section>
+  <aside class="der">
+    <div class="temp" id="temp"></div>
+    <div class="historia" id="historia"></div>
+    <div class="gas"><span class="etiqueta" style="color: var(--amber)">Gas.</span> <span id="gasMarca"></span> <b id="gasKm"></b></div>
+  </aside>
+  <div id="carteles"></div>
+  <div class="puntos"><span class="on"></span><span></span><span></span><span></span></div>
+</div>
+
+<script src="../../../js/geo.js"></script>
+<script src="../../../js/v2_paisaje.js"></script>
+<script src="datos.js"></script>
+<script>
+  pintarCabecera();
+  const M = MAQUETA;
+  document.getElementById('escudo').textContent = M.via.codigo;
+  document.getElementById('viaNombre').textContent = M.via.nombre;
+  document.getElementById('salida').innerHTML = `<b>${M.salida.ref}</b><span>${M.salida.km} km · ${M.salida.destinos}</span>`;
+  document.getElementById('temp').innerHTML = `${SOL}${M.meteo.temp}°`;
+  document.getElementById('historia').textContent = M.meteo.historia;
+  document.getElementById('gasMarca').textContent = M.gasolinera.marca;
+  document.getElementById('gasKm').textContent = M.gasolinera.km + ' km';
+
+  // El paisaje de la vista 2, quieto, a las 18:30 (cambia con la hora y el tiempo).
+  const W = 640, H = 360, P = PaisajeFX;
+  const d = new Date(); const ahora = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 18, 30).getTime();
+  const sp = P.salidaPuesta(ahora, M.coche.lat, M.coche.lon);
+  const sol = P.posicionSol(ahora, sp.salida, sp.puesta);
+  const p = P.paleta(sol);
+  const rgba = (c, a) => `rgba(${c.map(Math.round).join(',')},${a == null ? 1 : a})`;
+  const ctx = document.getElementById('fondo').getContext('2d');
+  const yH = H * 0.66;
+  const g = ctx.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, rgba(p.arriba)); g.addColorStop(yH / H * 0.55, rgba(p.medio)); g.addColorStop(yH / H, rgba(p.horizonte));
+  g.addColorStop(1, rgba(P.mezclar(p.horizonte, [0, 0, 0], 0.6)));
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  const r = ctx.createRadialGradient(W * 0.7, yH, 10, W * 0.7, yH, W * 0.5);
+  r.addColorStop(0, rgba(p.resplandor, p.resplandorAlfa)); r.addColorStop(1, rgba(p.resplandor, 0));
+  ctx.fillStyle = r; ctx.fillRect(0, 0, W, H);
+  const montes = [
+    { semilla: 101, base: yH - H * 0.07, amp: H * 0.1, color: P.mezclar(p.horizonte, p.monte, 0.42), arm: [[1, 1], [2, 0.7], [3, 0.5], [5, 0.3], [8, 0.18], [13, 0.08], [21, 0.04]] },
+    { semilla: 202, base: yH + H * 0.04, amp: H * 0.07, color: P.mezclar(p.horizonte, p.monte, 0.72), arm: [[2, 1], [3, 0.6], [4, 0.45], [7, 0.3], [11, 0.15], [17, 0.08]] },
+    { semilla: 303, base: yH + H * 0.18, amp: H * 0.045, color: P.mezclar(P.mezclar(p.horizonte, p.monte, 0.9), [0, 0, 0], 0.35), arm: [[3, 1], [5, 0.55], [9, 0.3], [14, 0.15], [23, 0.06]] },
+  ];
+  const crestas = [];
+  for (const m of montes) {
+    const h = P.perfil(m.semilla, m.arm, W);
+    const y = (x) => m.base + m.amp * h(x);
+    crestas.push(y);
+    const gm = ctx.createLinearGradient(0, m.base - m.amp, 0, H);
+    gm.addColorStop(0, rgba(m.color)); gm.addColorStop(1, rgba(P.mezclar(m.color, [0, 0, 0], 0.45)));
+    ctx.fillStyle = gm; ctx.beginPath(); ctx.moveTo(0, H);
+    for (let x = 0; x <= W; x += 3) ctx.lineTo(x, y(x));
+    ctx.lineTo(W, H); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = rgba(P.mezclar(m.color, p.astro, 0.45), 0.18); ctx.beginPath();
+    for (let x = 0; x <= W; x += 3) (x ? ctx.lineTo(x, y(x)) : ctx.moveTo(x, y(x))); ctx.stroke();
+  }
+
+  // Los pueblos de delante, sobre la cresta de la cordillera del fondo, donde
+  // quedan (75° a cada lado); los de detrás, en las esquinas.
+  const ABANICO = 75;
+  const pueblos = M.pueblos.map(medirDesdeCoche).sort((a, b) => a.km - b.km).slice(0, 4);
+  const html = [];
+  let fila = 0;
+  for (const pu of pueblos.filter((x) => Math.abs(x.desvio) <= ABANICO).sort((a, b) => a.desvio - b.desvio)) {
+    const x = W / 2 + (pu.desvio / ABANICO) * (W / 2 - 70);
+    const yCresta = crestas[0](x);
+    const alto = 26 + (fila++ % 2) * 26;
+    html.push(`<div class="cartel" style="left:${x}px; top:${yCresta}px"><div class="cartel-txt">${pu.nombre}<b>${kmTexto(pu.km)}</b></div><div class="cartel-palo" style="height:${alto}px"></div></div>`);
+  }
+  for (const pu of pueblos.filter((x) => Math.abs(x.desvio) > ABANICO)) {
+    const izq = pu.desvio < 0;
+    html.push(`<div class="detras" style="${izq ? 'left:14px' : 'right:14px'}">${izq ? flecha(pu.desvio) + ' ' : ''}${pu.nombre} <b>${kmTexto(pu.km)}</b>${izq ? '' : ' ' + flecha(pu.desvio)}</div>`);
+  }
+  document.getElementById('carteles').innerHTML = html.join('');
+</script>
+</body>
+</html>

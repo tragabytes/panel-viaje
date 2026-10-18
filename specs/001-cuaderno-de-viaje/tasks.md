@@ -33,6 +33,11 @@ Estado del trabajo. Se marca cada casilla al cerrarla. Lo imprevisto se anota aq
 - [x] Exportar todas (copia de seguridad) — y también importar (solo añade) y compartir como texto
 - [ ] **Parar y validar**
 
+## Mejoras (18/10, noche: DECISIONES D31 y D32)
+- [x] «Aquí marcaste»: aviso al volver a pasar junto a una marca de otro momento (una vez al mes por marca)
+- [x] Llevar las marcas a Google My Maps o Google Earth (KML desde el menú ⋯)
+- [ ] Probar en el coche que el aviso salta donde debe y no molesta
+
 ## Cierre
 - [x] `node --test` en verde
 - [ ] Prueba en carretera: al menos 5 marcas, 0 falsas en 30 min (E-002, E-003)

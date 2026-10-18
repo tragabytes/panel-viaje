@@ -146,9 +146,9 @@
       const alpha = (0.4 + intensity * 0.6).toFixed(2);
       const hora = h.hora ? h.hora.slice(11, 13) + 'h' : '';
       const temp = h.temperatura != null ? Math.round(h.temperatura) + '°' : '—';
-      // El verde del sistema (--phos-200), que de noche baja con el modo noche;
-      // el rgba de antes queda para un Chrome sin color-mix().
-      const color = `rgba(125, 255, 160, ${alpha}); color: color-mix(in srgb, var(--phos-200) ${Math.round(alpha * 100)}%, transparent)`;
+      // Sin modo noche: ya es un verde tenue (40-100 %) y de noche, al 70 %,
+      // las horas sin lluvia no se leían.
+      const color = `rgba(125, 255, 160, ${alpha})`;
       const pctText = pct > 0 ? Math.round(pct) + '%' : '';
       // IU-32: icono meteo de la hora a la izquierda de la temperatura.
       // h.icono es el id del symbol del sprite (meteo-sol, meteo-lluvia, ...).

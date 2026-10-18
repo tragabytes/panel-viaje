@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vista 1 · A · Cuadro de mandos</title>
+<link rel="stylesheet" href="../../../css/style.css">
+<link rel="stylesheet" href="comun.css">
+<style>
+  .izq { position: absolute; left: 14px; top: 53px; width: 372px; bottom: 16px; display: flex; flex-direction: column; gap: 9px; }
+  .via { display: flex; align-items: baseline; gap: 10px; }
+  .via-nombre { font-size: 17px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pueblos { margin-top: 6px; display: flex; flex-direction: column; gap: 7px; }
+  .pueblo { display: grid; grid-template-columns: 22px 1fr auto; align-items: baseline; gap: 8px; font-size: 18px; }
+  .pueblo .flecha { width: 18px; height: 18px; }
+  .pueblo .km { color: var(--phos-200); font-variant-numeric: tabular-nums; }
+  .pueblo .nom { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .der { position: absolute; right: 14px; top: 51px; width: 210px; bottom: 16px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .radar { position: relative; width: 176px; height: 176px; border-radius: 50%; overflow: hidden; background: #020805;
+    box-shadow: 0 0 0 1px rgba(61, 255, 110, 0.3), 0 0 18px rgba(61, 255, 110, 0.08), inset 0 0 30px rgba(0,0,0,0.85); }
+  .radar canvas { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) rotate(var(--giro)); }
+  .radar svg { position: absolute; inset: 0; }
+  .eco { position: absolute; width: 7px; height: 7px; margin: -3.5px; border-radius: 50%; background: var(--phos-200); box-shadow: 0 0 6px var(--phos-300); }
+  .coche { position: absolute; left: 50%; top: 50%; width: 0; height: 0; border-left: 5px solid transparent; border-right: 5px solid transparent;
+    border-bottom: 13px solid var(--phos-200); transform: translate(-50%, -62%); }
+  .tiempo { width: 100%; display: flex; align-items: baseline; justify-content: space-between; border-top: 1px solid var(--grid-line-strong); padding-top: 6px; }
+  .tiempo b { font-size: 24px; } .tiempo span { font-size: 12px; color: var(--hud-white-dim); }
+  .gas { width: 100%; display: flex; justify-content: space-between; font-size: 13px; }
+  .gas .km { color: var(--phos-200); }
+</style>
+</head>
+<body>
+<div class="marco">
+  <div class="rotulo">MAQUETA · VISTA 1 · A</div>
+  <header id="cab" class="cab"></header>
+
+  <section class="izq">
+    <div class="etiqueta">Vía</div>
+    <div class="via"><span class="escudo" id="escudo"></span><span class="via-nombre" id="viaNombre"></span></div>
+    <div><span class="salida" id="salida"></span></div>
+    <div class="etiqueta" style="margin-top: 6px">Pueblos cercanos · hacia donde quedan</div>
+    <div class="pueblos" id="pueblos"></div>
+  </section>
+
+  <aside class="der">
+    <div class="radar" id="radar">
+      <svg viewBox="-100 -100 200 200" aria-hidden="true">
+        <circle r="50" fill="none" stroke="rgba(61,255,110,0.22)" stroke-width="0.8"/>
+        <circle r="98.5" fill="none" stroke="rgba(61,255,110,0.38)" stroke-width="1"/>
+      </svg>
+      <div class="coche"></div>
+    </div>
+    <div class="tiempo"><b id="temp"></b><span id="historia"></span></div>
+    <div class="gas"><span><span class="etiqueta" style="color: var(--amber)">Gas.</span> <span id="gasMarca"></span></span><span class="km" id="gasKm"></span></div>
+  </aside>
+
+  <div class="puntos"><span class="on"></span><span></span><span></span><span></span></div>
+</div>
+
+<script src="../../../js/geo.js"></script>
+<script src="../../../js/relieve.js"></script>
+<script src="datos.js"></script>
+<script>
+  pintarCabecera();
+  const M = MAQUETA;
+  document.getElementById('escudo').textContent = M.via.codigo;
+  document.getElementById('viaNombre').textContent = M.via.nombre;
+  document.getElementById('salida').innerHTML = `<b>${M.salida.ref}</b><span>${M.salida.km} km · ${M.salida.destinos}</span>`;
+  const pueblos = M.pueblos.map(medirDesdeCoche).sort((a, b) => a.km - b.km);
+  document.getElementById('pueblos').innerHTML = pueblos.slice(0, 3).map((p) =>
+    `<div class="pueblo">${flecha(p.desvio)}` +
+    `<span class="nom">${p.nombre}</span><span class="km">${kmTexto(p.km)}</span></div>`).join('');
+  document.getElementById('temp').innerHTML = `${SOL} ${M.meteo.temp}°`;
+  document.getElementById('historia').textContent = M.meteo.historia;
+  document.getElementById('gasMarca').textContent = M.gasolinera.marca;
+  document.getElementById('gasKm').textContent = M.gasolinera.km + ' km';
+
+  // Mini radar: el mismo relieve que la vista 4, a 4 km, girado al rumbo.
+  const RADIO_KM = 4, LADO = 176, PX_KM = (LADO / 2) / RADIO_KM;
+  const radar = document.getElementById('radar');
+  radar.style.setProperty('--giro', (-M.coche.rumbo) + 'deg');
+  Relieve.componer({ lat: M.coche.lat, lon: M.coche.lon, radioKm: RADIO_KM * 1.45, pxPorKm: PX_KM, zoom: 11, red: true, circulo: false })
+    .then((r) => { radar.insertBefore(r.canvas, radar.firstChild); });
+  for (const p of pueblos) {
+    if (p.km > RADIO_KM) continue;
+    const a = p.desvio * Math.PI / 180;
+    const e = document.createElement('div');
+    e.className = 'eco';
+    e.style.left = (LADO / 2 + Math.sin(a) * p.km * PX_KM) + 'px';
+    e.style.top = (LADO / 2 - Math.cos(a) * p.km * PX_KM) + 'px';
+    radar.appendChild(e);
+  }
+</script>
+</body>
+</html>

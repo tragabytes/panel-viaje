@@ -312,3 +312,103 @@ Overpass directamente. Siguen abiertas la 4, la 5 y la 6.
   tarjeta entera a 640×360, se cierra, reaparece al reintentar; con GPS (simulador) no sale.
 - **Sin comprobar**: que arranque solo al dar el permiso (el navegador de pruebas no deja cambiarlo).
 - **Cómo se deshace**: el commit "ayuda de ubicación"; quitar `js/ayuda_gps.js` vuelve al aviso pequeño.
+
+## 18/10/2026, última sesión: las mejoras pequeñas
+
+### D26 · El encargo
+- "Vamos con todas las mejoras pequeñas. Además si consideras que es necesario revisar y reorganizar
+  el código hazlo. Apunta como pendiente estas dos funcionalidades que son chulísimas": la **nota de
+  voz al marcar** y **el horizonte de verdad en el paisaje**. Apuntadas en `PENDIENTES.md`, con lo
+  que habrá que resolver en su spec (el permiso del micrófono no puede pedirse conduciendo; el
+  horizonte solo "no gasta datos" si el radar ya bajó ese relieve).
+- "Las mejoras pequeñas" eran las que te propuse: exportar a Google Maps, «Aquí marcaste», radar con
+  zoom según la velocidad, modo noche, las vistas 1 y 3 con el estilo nuevo (con maquetas antes de
+  código) y las seis de `PENDIENTES.md`.
+
+### D27 · Los seis pendientes, hechos
+- **N.º 5, provincia repetida**: miré qué devuelve Nominatim (Astorga, Toledo, Gerona, Galapagar y
+  La Coruña): la provincia viene ahora en `state_district`, y el panel leía `province`, que ya no
+  viene. Por eso en **todas** las comunidades con varias provincias salía la comunidad dos veces
+  (no solo en Astorga). Ahora la cabecera dice "Castilla y León · León · Astorga". `county` no
+  sirve: en Cataluña y Galicia es la comarca.
+- **N.º 3, nombres de vía repetidos**: si el nombre repite el código de la pastilla, no se enseña
+  ("LE-142" a secas); si lo lleva entre paréntesis al final, se quita ("Autovía del Noroeste").
+- **N.º 4, datos del pueblo anterior**: la población y la altitud solo se enseñan si son del
+  municipio en el que estás; al cambiar de pueblo se borran hasta que llegan las nuevas.
+- **N.º 1, el límite sin cobertura** (era decisión tuya): **atenuado con la vía** (cuando la vía
+  lleva 2 km sin confirmar) y, mientras tanto, **sin aviso de exceso**: un aviso rojo calculado con
+  el límite de la carretera de la que venías distrae más de lo que ayuda. Si prefieres que el
+  límite desaparezca, o que el aviso siga, es una línea.
+- **N.º 2, pueblos que no son pueblos**: el log de la prueba en carretera está en tu móvil, así que
+  no pude mirarlo antes, como decía la nota. Lo hice igual porque el arreglo solo toca el plan B
+  (cuando Overpass no contesta) y está probado con respuestas reales: Wikipedia ahora trae, en la
+  misma petición, la **descripción corta** de cada artículo ("municipio de la provincia de León",
+  "localidad del municipio de Astorga", "cofradía católica", "asedio de 1810"...), y solo pasan los
+  que son núcleos de población. Muestreado en nueve zonas de España (Galicia, Asturias, País Vasco,
+  Cataluña, Valencia, Andalucía, Canarias, Madrid, León). Lo mismo para los puntos de interés de
+  Wikipedia: ni pueblos vecinos ("Pedredo" como monumento de Murias) ni asedios. Las listas
+  guardadas con el filtro viejo se olvidan (se volverán a pedir: unos pocos KB por zona).
+- **N.º 6, la próxima salida sin rumbo**: con el móvil viejo (que no da rumbo) la próxima salida
+  **no filtraba por sentido** y podía enseñar la que acababas de dejar atrás. Ahora usa el mismo
+  rumbo calculado que el radar y las marcas.
+- **N.º 7, el simulador en el panel de verdad**: **no lo hago**. Se baja una vez por versión
+  (~7,5 KB) y no hace nada si no hay `?sim=`; cargarlo aparte complicaría el arranque para nada.
+- **Cómo se deshace**: el commit "pendientes 1-6 y reorganización".
+
+### D28 · Reorganización del código: la justa
+- **Qué**: `main.js` pasó de 1.674 a ~1.300 líneas. Salieron a ficheros propios, con tests: la
+  vista `?logs=1` (`logs_vista.js`), la velocidad y el rumbo de cada posición (`movimiento.js`: un
+  solo rumbo para todo el panel) y los textos de cada vista (`formato.js`). Las tres copias del
+  reparto de puntos de interés entre las vistas 1 y 3 son ahora una (antes tenían que casar a mano).
+  Fuera ~25 líneas de estilo de vistas que ya no existen.
+- **Lo que no**: sacar las ~1.800 líneas de estilo de `index.html` a ficheros aparte. No cambia nada
+  que se note y habría hecho ilegible la revisión de lo demás.
+- **De paso**: en el tick del GPS, el radar, el paisaje, el modo noche, las actualizaciones y
+  «Aquí marcaste» van protegidos: **un fallo en uno de ellos ya no deja el panel sin pueblo, vía
+  ni tiempo** (antes, cualquier error ahí cortaba el resto del tick). Lo vigila un test.
+
+### D29 · Modo noche
+- **Qué**: desde la puesta del sol, el brillo de las letras, los verdes, el relieve del radar y las
+  fotos baja poco a poco hasta el **70 %** en 40 minutos (lo que dura el crepúsculo), en escalones
+  de un 1 % que no se notan; vuelve a subir los 40 minutos antes del amanecer. La hora de la puesta
+  se calcula en el móvil con la posición (sin internet). El ámbar baja la mitad (avisa) y **el rojo
+  del exceso no baja**. El paisaje de la vista 2 ya tenía su noche.
+- **Por qué el 70 %**: lo bastante para no deslumbrar en la cabina a oscuras sin perder contraste.
+  Si te parece poco o mucho, es un número.
+- **Para verlo**: `?hora=23:00` (también pinta el paisaje a esa hora).
+- **Cómo se deshace**: quitar `js/modo_noche.js` (los colores vuelven a los de siempre).
+
+### D30 · Radar con escala según la velocidad: 6 o 15 km, no 25
+- **Qué**: 15 km de radio en carretera; **6 km en ciudad**, tras un minuto seguido por debajo de
+  45 km/h (un semáforo no lo cambia); vuelve a 15 km a los 20 s por encima de 55. El cambio se ve
+  como un zum de un segundo; los anillos pasan a decir 2 · 4 · 6 km.
+- **Por qué no 25 km en autovía** (como te propuse): los pueblos se buscan a 15 km; a 25, la mitad
+  exterior del radar saldría vacía. Buscar más lejos gasta datos.
+- **Datos**: en ciudad el relieve va con un nivel más de detalle (a 6 km, el de carretera se veía
+  borroso) y aun así pide las mismas teselas que el de 15 km: casi siempre 4, nunca más de 6
+  (comprobado en toda España con un test). Cambiar de escala sí baja las teselas de la otra escala
+  la primera vez en cada zona.
+- **Cómo se deshace**: el commit "modo noche y radar con escala".
+
+### D31 · «Aquí marcaste»
+- **Qué**: al volver a pasar a menos de 150 m de una marca de hace más de media hora, la píldora
+  de debajo de la cabecera dice, 8 segundos y en ámbar, "◆ Aquí marcaste · 12 sep · Castillo de
+  Turienzo" (lo elegido al revisarla, o el principio de la nota). Sin animación.
+- **Decidido**: cada marca se recuerda **como mucho una vez al mes**: en un trayecto de todos los
+  días sería un aviso diario. Media hora para que no salte con la que acabas de hacer (a la vuelta
+  del mismo viaje, sí).
+- **Comprobado** en el simulador: al pasar por las marcas de la mañana salió "◆ Aquí marcaste · hoy 12:10".
+
+### D32 · Exportar a Google Maps
+- **Qué**: en el cuaderno, menú ⋯ → **"Llevar a Google Maps (KML)"**. Descarga un archivo que se
+  abre en **Google My Maps** (Crear mapa → Importar) o en **Google Earth**: un punto por marca (en
+  el sitio que elegiste al revisarla, o donde estabas), una carpeta por viaje, y la fecha, el
+  pueblo, la vía y tu nota. Sin "qué era", el punto se llama con el pueblo y la hora.
+- **No es la copia de seguridad**: no se puede volver a importar en el cuaderno, y las marcas sin
+  posición no van (lo avisa).
+
+### D33 · ❓ Vistas 1 y 3: maquetas para que elijas
+- En [`specs/004-vistas-1-y-3/propuesta.md`](../004-vistas-1-y-3/propuesta.md): dos opciones para
+  cada vista, con imágenes. **Sin código**: las vistas siguen como estaban hasta que elijas.
+- Mi recomendación: vista 1 **B (paisaje con los pueblos como carteles en su dirección real)** y
+  vista 3 **A (postales)**.

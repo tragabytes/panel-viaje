@@ -1,0 +1,43 @@
+/* Maquetas de las vistas 1 y 3 (spec 004). No es la app: solo para elegir.
+   Mismo tamaño que el móvil del panel (640×360), mismas fuentes y colores. */
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 640px; height: 360px; overflow: hidden; background: #000; color: var(--hud-white); }
+body { font-family: 'JetBrains Mono', ui-monospace, monospace; font-feature-settings: 'tnum' 1, 'zero' 1; }
+
+.marco { position: relative; width: 640px; height: 360px; overflow: hidden;
+  background: radial-gradient(ellipse at 50% 120%, #0a1a12 0%, #000 60%); }
+
+/* Cabecera global, igual que la de ahora. */
+.cab { position: absolute; top: 0; left: 0; right: 0; height: 43px; z-index: 10;
+  display: flex; justify-content: space-between; align-items: baseline; gap: 8px;
+  padding: 8px 40px 6px 14px; background: rgba(8, 12, 14, 0.92);
+  border-bottom: 1px solid var(--grid-line-strong); }
+.cab-migas { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; white-space: nowrap; overflow: hidden; }
+.cab-migas .es { color: var(--phos-300); }
+.cab-migas .sep { color: var(--hud-white-mute); margin: 0 6px; }
+.cab-migas .meta { color: var(--hud-white-dim); text-transform: none; letter-spacing: 0; }
+.cab-vel { display: flex; align-items: baseline; gap: 5px; flex-shrink: 0; }
+.cab-vel b { font-size: 28px; color: var(--phos-200); line-height: 1; }
+.cab-vel small { font-size: 10px; color: var(--phos-200); }
+.cab-vel i { font-style: normal; font-size: 12px; color: var(--hud-white); }
+
+.escudo { font-family: 'Space Grotesk', system-ui, sans-serif; font-weight: 700; font-size: 20px;
+  letter-spacing: 0.04em; padding: 3px 10px; border-radius: 2px; background: var(--phos-300); color: #001d0a; }
+.etiqueta { font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--hud-white-dim); }
+.salida { display: inline-flex; align-items: center; gap: 10px; background: #0b6b35; color: #fff;
+  border: 2px solid #e8f3ef; border-radius: 4px; padding: 4px 10px; font-family: 'Space Grotesk', system-ui, sans-serif; }
+.salida b { font-size: 18px; } .salida span { font-size: 15px; }
+
+/* Flecha de dirección: apunta hacia donde queda el sitio (arriba = de frente). */
+.flecha { display: inline-block; width: 16px; height: 16px; color: var(--phos-300); transform: rotate(var(--giro, 0deg)); vertical-align: -2px; }
+
+.puntos { position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%); display: flex; gap: 6px; z-index: 10; }
+.puntos span { width: 14px; height: 3px; background: rgba(232, 243, 239, 0.18); }
+.puntos span.on { background: var(--phos-300); }
+
+/* Etiqueta «MAQUETA»: oculta en las capturas (tapaba contenido); las imágenes ya lo dicen. */
+.rotulo { display: none; position: absolute; bottom: 4px; left: 6px; z-index: 20; font-size: 9px; letter-spacing: 0.1em;
+  color: #ffb547; background: rgba(0,0,0,0.6); padding: 2px 6px; border: 1px solid rgba(255,181,71,0.4); }
+
+.icono { display: inline-block; width: 22px; height: 22px; vertical-align: -3px; color: var(--phos-300); }

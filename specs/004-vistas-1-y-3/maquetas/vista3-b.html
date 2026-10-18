@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vista 3 · B · Lista con flechas</title>
+<link rel="stylesheet" href="../../../css/style.css">
+<link rel="stylesheet" href="comun.css">
+<style>
+  .titulo { position: absolute; left: 14px; right: 14px; top: 52px; display: flex; justify-content: space-between; align-items: baseline; }
+  .titulo b { font-weight: 400; color: var(--phos-300); }
+  .lista { position: absolute; left: 14px; right: 14px; top: 76px; bottom: 18px; display: grid; grid-template-columns: 1fr 1fr;
+    grid-auto-rows: 1fr; column-gap: 16px; row-gap: 8px; }
+  .fila { display: grid; grid-template-columns: 64px 1fr; gap: 10px; align-items: center; min-width: 0;
+    border-bottom: 1px solid var(--grid-line-strong); padding-bottom: 6px; }
+  .mini { width: 64px; height: 64px; border-radius: 3px; overflow: hidden; background: var(--ink-3); }
+  .mini img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .txt { min-width: 0; }
+  .nombre { font-family: 'Space Grotesk', system-ui, sans-serif; font-weight: 700; font-size: 16px; line-height: 1.15;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .pie { display: flex; gap: 8px; align-items: center; margin-top: 4px; font-size: 13px; }
+  .pie .pueblo { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--hud-white-dim); }
+  .pie .km { color: var(--phos-200); display: flex; align-items: center; gap: 4px; margin-left: auto; }
+</style>
+</head>
+<body>
+<div class="marco">
+  <div class="rotulo">MAQUETA · VISTA 3 · B</div>
+  <header id="cab" class="cab"></header>
+  <div class="titulo"><span class="etiqueta">Puntos de interés · hacia donde quedan</span><span class="etiqueta"><b>6</b> en 15 km</span></div>
+  <div class="lista" id="lista"></div>
+  <div class="puntos"><span></span><span></span><span class="on"></span><span></span></div>
+</div>
+<script src="../../../js/geo.js"></script>
+<script src="datos.js"></script>
+<script>
+  pintarCabecera();
+  const pois = MAQUETA.pois.map(medirDesdeCoche).sort((a, b) => a.km - b.km);
+  document.getElementById('lista').innerHTML = pois.map((p) => `
+    <div class="fila">
+      <div class="mini"><img src="${p.foto.replace('/330px-', '/120px-')}" alt=""></div>
+      <div class="txt"><div class="nombre">${p.nombre}</div>
+        <div class="pie"><span class="pueblo">${p.pueblo}</span><span class="km">${flecha(p.desvio)}${kmTexto(p.km)}</span></div></div>
+    </div>`).join('');
+</script>
+</body>
+</html>

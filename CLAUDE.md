@@ -11,10 +11,11 @@ publica solo).
 | [`specs/000-rumbo/vision.md`](specs/000-rumbo/vision.md) | **Rumbo del proyecto**: qué quiere Laureano que sea y en qué orden. **Punto de entrada** |
 | [`specs/000-rumbo/DECISIONES.md`](specs/000-rumbo/DECISIONES.md) | Decisiones tomadas en ausencia de Laureano, para que las revise |
 | [`specs/000-rumbo/RELEVO.md`](specs/000-rumbo/RELEVO.md) | Mensaje de arranque de la sesión siguiente, con el estado y lo pendiente |
-| [`specs/000-rumbo/PENDIENTES.md`](specs/000-rumbo/PENDIENTES.md) | Mejoras pequeñas apuntadas para no perderlas |
+| [`specs/000-rumbo/PENDIENTES.md`](specs/000-rumbo/PENDIENTES.md) | Lo que queda por hacer: las dos funcionalidades grandes apuntadas y lo que espera decisión |
 | [`specs/001-cuaderno-de-viaje/`](specs/001-cuaderno-de-viaje/) | Marcar un momento sin mirar (H1), lo que había alrededor (H2) y revisarlo en `?cuaderno=1` (H3). Construido, sin probar en el coche |
 | [`specs/002-radar-relieve/`](specs/002-radar-relieve/) | La vista 4 como radar que gira con la marcha, con el relieve debajo. Construido, sin probar en el coche |
 | [`specs/003-meteo-chillout/`](specs/003-meteo-chillout/) | La vista 2 como paisaje lo-fi que respira el tiempo real. Construido, sin probar en el coche |
+| [`specs/004-vistas-1-y-3/`](specs/004-vistas-1-y-3/) | Las vistas 1 y 3 con el estilo nuevo: maquetas con dos opciones cada una. **Espera la elección de Laureano** |
 | [`MANTENIMIENTO.md`](MANTENIMIENTO.md) | Probar en local, simulador, banderas de la URL, publicar, sacar los logs de un viaje, qué guarda el móvil y qué hacer si algo falla en un móvil |
 | `index.html`, `js/`, `css/`, `fonts/`, `service-worker.js` | La app. Vanilla JS, sin compilar: lo que hay en el repo es lo que se publica |
 | `tests/` | Tests (`node --test`): invariantes, cuaderno, relieve, radar, paisaje y Overpass. Y los cuadernos de Colab de la investigación de APIs (fase 1) |

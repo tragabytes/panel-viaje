@@ -13,9 +13,10 @@ Estado del trabajo. Se marca cada casilla al cerrarla. Lo imprevisto se anota aq
 - [x] Rumbo calculado entre posiciones cuando el GPS no lo da
 - [x] Probar en el simulador a 640×360 (giros normales y media vuelta)
 - [x] Revisión de fallos (DECISIONES D22)
+- [x] Escala según la velocidad: 6 km en ciudad, 15 en carretera, con zum (DECISIONES D30)
 
 ## Pendiente
-- [ ] Probar en el móvil del panel: fluidez del giro y del barrido
+- [ ] Probar en el móvil del panel: fluidez del giro y del barrido, y del zum al cambiar de escala
 - [ ] Prueba en carretera: el relieve casa con lo que se ve; contestar las 3 preguntas de la spec
 - [ ] **Parar y validar con Laureano**
 

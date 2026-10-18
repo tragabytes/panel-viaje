@@ -10,45 +10,42 @@ razonamiento y las descripciones de los comandos.
 Lee, por este orden:
 1. `CLAUDE.md` (mapa del proyecto y reglas propias).
 2. `specs/000-rumbo/vision.md` (qué quiero que sea y en qué orden).
-3. `specs/000-rumbo/DECISIONES.md`, sobre todo de D17 en adelante (lo que se hizo el 18/10).
-4. `specs/000-rumbo/PENDIENTES.md` (mejoras pequeñas apuntadas).
-5. Las specs 001, 002 y 003 con sus `tasks.md`.
-6. `MANTENIMIENTO.md` si vas a probar o publicar (y su sección 7 si algo falla en un móvil).
+3. `specs/000-rumbo/DECISIONES.md`, sobre todo de D26 en adelante (lo último que se hizo).
+4. `specs/000-rumbo/PENDIENTES.md` (las dos funcionalidades grandes apuntadas y lo que espera decisión).
+5. `specs/004-vistas-1-y-3/propuesta.md` (maquetas de las vistas 1 y 3, esperan mi elección).
+6. Las specs 001, 002 y 003 con sus `tasks.md`, si vas a tocar el cuaderno, el radar o el paisaje.
+7. `MANTENIMIENTO.md` si vas a probar o publicar (y su sección 7 si algo falla en un móvil).
 
-**Estado (18/10, cierre de sesión).**
-- **Publicado** en https://tragabytes.github.io/panel-viaje/ con `SW_VERSION`
-  `v21-2026-10-18-ayuda-ubicacion`. Todo subido a GitHub; no queda nada en local sin subir.
-- Lo que hay: cuaderno completo (H1 marcar con toque largo, H2 lo que había alrededor, H3 revisar en
-  `?cuaderno=1`), radar con relieve en la vista 4 (spec 002), meteo chillout en la vista 2
-  (spec 003), los 40 arreglos de la revisión (D22), actualizaciones que entran solas con el coche
-  parado (v20, D24) y una tarjeta que explica qué falla cuando no hay permiso de ubicación (v21, D25).
+**Estado (18/10, noche, cierre de sesión).**
+- **Publicado** en https://tragabytes.github.io/panel-viaje/: la v21 (`v21-2026-10-18-ayuda-ubicacion`).
+- **En local, sin subir**: la **v22** (`v22-2026-10-18-mejoras-pequenas`), con las mejoras pequeñas
+  (DECISIONES D26-D34): los seis pendientes arreglados (provincia, nombre de vía, datos del pueblo
+  anterior, límite sin cobertura, pueblos de Wikipedia que no eran pueblos, próxima salida sin
+  rumbo), modo noche, radar que se acerca a 6 km en ciudad, «Aquí marcaste», marcas a Google Maps
+  (KML), el código reorganizado y el tick del GPS a prueba de fallos. Se publica cuando yo diga "sube".
+- Desde la v20 las versiones entran solas en el móvil, con el coche parado (D24).
 - **Ningún móvil tiene confirmada la v21.** Los que tenían una versión anterior a la v20 necesitan
-  una vez la actualización a mano (MANTENIMIENTO, sección 4). Desde la v20, solas.
-- El 18/10 hice una prueba en carretera con la v18. Su log (`?logs=1`) dirá si Overpass responde con
-  los datos del móvil, si Chrome concedió el almacenamiento persistente y cómo fue marcar.
-- Desde casa, Overpass seguía sin funcionar el 18/10 (`overpass-api.de` colgado, `private.coffee`
-  con errores). Antes de medir contra Overpass desde casa, comprobar que responde, y con pocas
-  peticiones.
-- **Dos problemas abiertos en mis móviles** (no son fallos del panel; ver MANTENIMIENTO, sección 7):
-  - **S22 del trabajo**: "permiso de ubicación denegado" con Chrome. Por mirar: el permiso de
-    Chrome, la ubicación del perfil de trabajo y `chrome://policy` (puede que la empresa la bloquee).
-    La prueba rápida: Google Maps en Chrome; si tampoco localiza, es el teléfono.
-  - **Móvil viejo del panel**: Chrome dice "esta aplicación no se puede instalar". La web cumple lo
-    que pide Chrome (comprobado el 18/10); causa probable en el móvil: una copia vieja instalada,
-    poco espacio, Google Play desactualizado o el permiso de instalar apps. **Hacer copia del
-    cuaderno antes de desinstalar nada.**
+  una vez la actualización a mano (MANTENIMIENTO, sección 4).
+- El 18/10 hice una prueba en carretera con la v18. Su log (`?logs=1`) sigue sin leer: dirá si
+  Overpass responde con los datos del móvil, cómo fue marcar y cuántas peticiones por hora.
+- Desde casa, Overpass no funcionaba el 18/10 (`overpass-api.de` colgado, `private.coffee` sin CORS
+  en los errores): los pueblos salen del plan B de Wikipedia, ahora filtrado por la descripción.
+- **Dos problemas abiertos en mis móviles** (no son fallos del panel; MANTENIMIENTO, sección 7): el
+  S22 del trabajo con "permiso de ubicación denegado" y el móvil viejo que dice "esta aplicación no
+  se puede instalar". **Copia del cuaderno antes de desinstalar nada.**
 
 **Por dónde seguir:**
-1. **Leer el log de la prueba en carretera** del 18/10 y sacar conclusiones (Overpass, marcas,
-   peticiones por hora). Con eso, dar por buenas las 15 tarjetas de la sesión 49 (D3).
-2. **Comprobar que el móvil del panel tiene la v21** (vista 2 con montañas, vista 4 con un radar
-   redondo) y probar la fluidez del radar y del paisaje ahí (regla 1).
-3. **Otra prueba en carretera** con la v21: marcas, cuaderno en casa, radar y paisaje. Contestar
-   las preguntas de las specs 002 y 003.
-4. Lo que salga de ahí, y después `PENDIENTES.md`.
+1. Si no lo he hecho, **publicar la v22** (pídeme el "sube").
+2. **Leer el log de la prueba en carretera** del 18/10 y sacar conclusiones.
+3. **Elegir las vistas 1 y 3** (spec 004) y construir lo elegido.
+4. **Otra prueba en carretera** con la v22: marcas, «Aquí marcaste», modo noche al anochecer, radar en
+   ciudad y en autovía, paisaje. Contestar las preguntas de las specs 002 y 003.
+5. Las dos funcionalidades grandes de `PENDIENTES.md` (nota de voz, horizonte de verdad): spec
+   antes de construir.
 
 **Pendiente de mí:**
-- Lo de los dos móviles de arriba (y contarte qué salió).
-- Contestar las preguntas de las specs 002 y 003 tras verlas en el coche (en la 002, también si me
-  vale ~1 MB por hora de relieve o prefiero menos detalle).
+- Elegir las vistas 1 y 3 (y decir si me sirven las flechas de dirección).
+- Decir si el límite atenuado sin cobertura (sin aviso de exceso) me vale (D27, n.º 1) y si el 70 %
+  del modo noche está bien (D29).
+- Lo de los dos móviles y las preguntas de las specs 002 y 003 tras verlas en el coche.
 - Qué hacer con los ficheros archivados y las carpetas viejas (D11, D12).
