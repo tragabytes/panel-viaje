@@ -103,3 +103,26 @@ Overpass directamente. Siguen abiertas la 4, la 5 y la 6.
   siga el bloqueo de D7) y `private.coffee` falla una de cada dos veces. Se verá en la prueba en
   carretera, con los datos del móvil.
 - **Cómo se deshace**: un commit que solo toca `js/overpass.js`, `service-worker.js` y el test.
+
+### D14 · Datos viejos atenuados (D8), hecho
+- **Qué**: el pueblo (con comunidad, provincia y comarca, también en la vista 4) y la vía se pintan
+  en gris y apagados cuando el coche está a más de 2 km de donde Nominatim los confirmó por última
+  vez. En cuanto vuelve a contestar, recuperan su color. Una respuesta de la caché no cuenta como
+  confirmación. `SW_VERSION` pasa a `v16-2026-10-18-datos-viejos`.
+- **Comprobado**: `tests/frescura.test.mjs` (el caso Las Rozas → Galapagar y el umbral de 2 km). En
+  el simulador (ruta `cruce-a6-m505`, red cortada a mano): a ~8 km de Torrelodones, pueblo y vía
+  atenuados; al devolver la red, en su color al segundo.
+- **Lo que no he atenuado**, por si lo quieres: el límite de velocidad (va con la vía, y sin red se
+  queda el de la última vía conocida) y la próxima salida.
+- **En el simulador** puede verse gris un segundo aun con red, porque sus puntos están a kilómetros
+  unos de otros. En carretera no debería: el panel pregunta cada 50 m.
+- **Cómo se deshace**: un commit; quitar la clase `dato-viejo` de `css/style.css` lo desactiva.
+
+### D15 · Encontrado: el service worker puede guardar ficheros viejos al actualizarse
+- **Qué**: al probar D14, la versión nueva del service worker se instaló con los ficheros
+  **anteriores** que el navegador tenía en su caché normal. Pasa porque la precarga no le pide al
+  navegador que los baje de nuevo. En GitHub Pages esa caché dura 10 minutos: si el móvil abrió el
+  panel en los 10 minutos antes de una publicación, puede quedarse con ficheros viejos bajo la
+  versión nueva hasta la siguiente.
+- **No lo he tocado**: el arreglo es de una línea (precargar con "bájalo de nuevo"), pero no era
+  este encargo. Lo propongo como siguiente arreglo.

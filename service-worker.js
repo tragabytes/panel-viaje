@@ -9,7 +9,7 @@
 //
 // Para forzar actualización, subir SW_VERSION.
 
-const SW_VERSION = 'v15-2026-10-18-overpass';
+const SW_VERSION = 'v16-2026-10-18-datos-viejos';
 const APP_CACHE = `panel-viaje-app-${SW_VERSION}`;
 const API_CACHE = `panel-viaje-api-${SW_VERSION}`;
 
@@ -26,6 +26,7 @@ const PRECACHE = [
   './fonts/SpaceGrotesk-Variable.woff2',
   './fonts/ArchivoBlack-Regular.woff2',
   './js/geo.js',
+  './js/frescura.js',
   './js/trayectos.js',
   './js/debug.js',
   './js/wakelock.js',

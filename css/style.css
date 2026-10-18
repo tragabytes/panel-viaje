@@ -79,6 +79,10 @@
 .u-dim   { color: var(--hud-white-dim); }
 .u-phos  { color: var(--phos-300); }
 
+/* D8: pueblo o vía de un sitio del que ya nos hemos alejado más de 2 km sin
+   que internet lo confirme. Sin transición: nada que se mueva en la cabecera. */
+.dato-viejo { opacity: 0.4; filter: grayscale(1); }
+
 /* DT-14: utilidades sin consumidor (.u-sans, .u-black, .u-mute, .u-amber,
    .u-danger) y el placeholder .poi-ph eliminados — grep sin referencias en
    HTML ni JS. Las cards V3 sin foto usan su icono SVG, no .poi-ph. */

@@ -657,6 +657,13 @@
     let meteoEnError            = false;
     let ultimoTickGPS           = null;
     const UMBRAL_GPS_OBSOLETO_MS = 3 * 60 * 1000; // 3 minutos
+    // D8: sin cobertura, pueblo y vía se quedaban los del último sitio con red,
+    // como si fueran actuales. Se atenúan al alejarse 2 km de donde Nominatim
+    // los confirmó (una respuesta de la caché no cuenta como confirmación).
+    const frescuraUbicacion = Frescura.crear();
+    const frescuraCarretera = Frescura.crear();
+    let ubicacionVieja = false;
+    let carreteraVieja = false;
 
     // Fallback de velocidad para móviles cuyo GPS reporta coords.speed=null
     // (común en Android antiguos).
@@ -988,11 +995,34 @@
     let seqUbicacion = 0;
     let seqCarretera = 0;
 
+    // D8: solo toca el DOM cuando cambia el estado, no en cada tick.
+    function marcarDatosViejos(lat, lon) {
+      const u = frescuraUbicacion.esViejo(lat, lon);
+      if (u !== ubicacionVieja) {
+        ubicacionVieja = u;
+        for (const id of ['admin', 'globalPlace', 'globalPlaceMeta', 'v4Placename']) {
+          const el = document.getElementById(id);
+          if (el) el.classList.toggle('dato-viejo', u);
+        }
+        debug.log(u ? 'Ubicación vieja (>2 km sin confirmar): atenuada' : 'Ubicación confirmada de nuevo');
+      }
+      const c = frescuraCarretera.esViejo(lat, lon);
+      if (c !== carreteraVieja) {
+        carreteraVieja = c;
+        $carreteraBloque.classList.toggle('dato-viejo', c);
+        debug.log(c ? 'Vía vieja (>2 km sin confirmar): atenuada' : 'Vía confirmada de nuevo');
+      }
+    }
+
     async function actualizarUbicacionAdministrativa(lat, lon, velKmh) {
       const miSeq = ++seqUbicacion;
       try {
         const info = await LocationModule.obtenerUbicacion(lat, lon, velKmh);
         if (miSeq !== seqUbicacion) return; // DT-13: hay una respuesta más nueva
+        if (info.fuente !== 'cache') {
+          frescuraUbicacion.confirmar(lat, lon);
+          marcarDatosViejos(lat, lon);
+        }
         const clave = `${info.municipio}|${info.provincia}|${info.ccaa}`;
         if (clave === ultimaUbicacionMostrada) return;
         ultimaUbicacionMostrada = clave;
@@ -1061,6 +1091,10 @@
       try {
         const info = await LocationModule.obtenerCarretera(lat, lon, velKmh);
         if (miSeq !== seqCarretera) return; // DT-13: hay una respuesta más nueva
+        if (info.fuente !== 'cache') {
+          frescuraCarretera.confirmar(lat, lon);
+          marcarDatosViejos(lat, lon);
+        }
 
         // Caso A: Nominatim ya dio código. FN-06: lanzamos RoadRef en paralelo
         // para conseguir maxspeed.
@@ -1431,6 +1465,7 @@
 
       ultimoTickGPS = ahora;
       mostrarEstado('GPS activo', 'ok');
+      marcarDatosViejos(c.latitude, c.longitude);
 
       let hayQueActualizar = false;
       if (!ultimaPosicionUbicacion) {
