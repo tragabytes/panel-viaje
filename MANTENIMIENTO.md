@@ -100,6 +100,9 @@ Cada cosa en su sitio, para que ninguna limpieza toque lo que no debe:
 | Logs de viaje | base de datos `panel-viaje-trayectos` | Al pasar de 10 viajes | Rotación automática, o tú desde `?logs=1` |
 | Pueblos y puntos de interés | base de datos `panel-viaje-cache` (solo lo de Overpass: lo de Wikipedia, plan B, solo en memoria) | A los 14 días | Limpieza automática |
 | Marcas ya recordadas («Aquí marcaste») | `localStorage`, clave `cuaderno-recordadas` (con el simulador no se escribe) | Al mes | Él mismo; si se pierde, como mucho se repite un aviso |
+| La clave de los logs en la nube | `localStorage`, clave `nube-clave` | Cuando caduque (1 año) | Tú, en `?logs=1` ("Quitar la clave") |
+| Qué viajes están subidos | `localStorage`, clave `nube-subidos` | Con la rotación de los logs | Él mismo; si se pierde, se resuben (se sustituyen, no se duplican) |
+| **Los logs en la nube** | repositorio privado `tragabytes/panel-viaje-logs` | A los 30 días de llegar | La limpieza de cada noche del repositorio |
 | La app (HTML, JS, fuentes) | caché del service worker | Al cambiar `SW_VERSION` | El service worker |
 
 **Copia de seguridad del cuaderno**: en `?cuaderno=1`, menú "⋯" → "Descargar copia de seguridad".
@@ -134,3 +137,28 @@ sin borrar datos y volver a instalar); poco espacio libre; Chrome o los servicio
 desactualizados; Chrome sin permiso para "instalar aplicaciones desconocidas"; un móvil sin Google
 Play. Si nada funciona, "Crear acceso directo" sirve igual (se abre en Chrome; el botón de pantalla
 completa quita las barras).
+
+## 8. Los logs en la nube (spec 005)
+
+El panel sube el log de cada viaje, comprimido, al repositorio **privado**
+`tragabytes/panel-viaje-logs` de GitHub: al dejar el panel y, al abrirlo, los que falten. Cada
+noche el repositorio borra lo que lleve más de 30 días desde que llegó, también del historial
+(`limpieza.py`; copia de referencia en `infra/repositorio-logs/`).
+
+**Leerlos desde el ordenador** (con la sesión de GitHub de este PC, `gh`):
+
+```
+python infra/leer-logs.py               # lista, del más reciente al más viejo
+python infra/leer-logs.py ultimo        # el último, descomprimido
+python infra/leer-logs.py 2026-10-18    # los de un día
+```
+
+**La clave**: una clave de GitHub "de grano fino", limitada a ese repositorio con permiso
+*Contents: Read and write*. Se crea en github.com → Settings → Developer settings → Personal
+access tokens → Fine-grained tokens, y se pega en `?logs=1` (la guía paso a paso está ahí). Vive
+solo en el móvil. **Para anularla** (móvil perdido, o si `?logs=1` dice que no vale): en esa misma
+página de GitHub, y crear otra.
+
+**Si un viaje no aparece en la nube**: en `?logs=1` del móvil se ve si está "pendiente de subir";
+"Subir ahora" lo intenta en el momento. La limpieza se puede lanzar a mano desde la pestaña
+*Actions* del repositorio.

@@ -27,6 +27,11 @@ Lee, por este orden:
   revisión (D34).
   y, además, la vista 3 con postales, la opción que elegí (D36).
 - Desde la v20 las versiones entran solas en el móvil, con el coche parado (D24).
+- **En local, sin subir**: la **v24** (`v24-2026-10-18-logs-nube`): los logs de cada viaje se suben
+  solos a un repositorio privado de GitHub (`tragabytes/panel-viaje-logs`) que borra lo de más de
+  30 días (spec 005, D38). El repositorio y su limpieza ya existen; **falta que pegue la clave en
+  `?logs=1` del móvil**. Después, "revisa los logs" se hace con `python infra/leer-logs.py`
+  (MANTENIMIENTO, sección 8).
 - **Ningún móvil tiene confirmada la v23 todavía.** Los que tenían una versión anterior a la v20
   necesitan una vez la actualización a mano (MANTENIMIENTO, sección 4).
 - El 18/10 hice una prueba en carretera con la v18. Su log (`?logs=1`) sigue sin leer: dirá si
@@ -38,13 +43,16 @@ Lee, por este orden:
   se puede instalar". **Copia del cuaderno antes de desinstalar nada.**
 
 **Por dónde seguir:**
-1. **Leer el log de la prueba en carretera** del 18/10 y sacar conclusiones.
+1. **Leer los logs** con `python infra/leer-logs.py` en cuanto la clave esté puesta (la primera
+   subida trae los 10 viajes que guarda el móvil: el trayecto por Las Rozas del 18/10 y la prueba
+   en carretera de ese día) y sacar conclusiones.
 2. **Otra prueba en carretera** con la v23: marcas, «Aquí marcaste», modo noche al anochecer, radar
    en ciudad y en autovía, paisaje, postales. Contestar las preguntas de las specs 002 y 003.
 3. Las dos funcionalidades grandes de `PENDIENTES.md` (nota de voz, horizonte de verdad): spec
    antes de construir.
 
 **Pendiente de mí:**
+- Crear la clave de GitHub y pegarla en `?logs=1` del móvil del panel (D38).
 - Decir si el 70 % del modo noche está bien, después de verlo al anochecer (D29).
 - Lo de los dos móviles y las preguntas de las specs 002 y 003 tras verlas en el coche.
 - Qué hacer con los ficheros archivados y las carpetas viejas (D11, D12).

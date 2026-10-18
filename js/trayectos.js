@@ -14,6 +14,8 @@
 //   Trayectos.leer(id)                  → Promise<{id, inicio, mensajes, track} | null>
 //   Trayectos.borrar(id)                → Promise<void>
 //   Trayectos.borrarTodos()             → Promise<void>
+//   Trayectos.idActual()                → id del viaje en curso (o null)
+//   Trayectos.guardarYa()               → Promise: lo que había en memoria, ya en IDB
 //
 // Diseño:
 //   · Tres object stores separados: trayectos (keyPath id), mensajes y track
@@ -496,6 +498,8 @@
     borrar,
     borrarTodos,
     exportarTxt,
+    idActual: () => trayectoActualId,
+    guardarYa: flushAhora, // spec 005: antes de subir el log, que esté entero
     _flushAhora: flushAhora,
   };
 })();

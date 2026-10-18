@@ -73,6 +73,9 @@
     // De noche, el panel baja el brillo poco a poco (js/modo_noche.js).
     if (window.ModoNoche) ModoNoche.iniciar();
 
+    // Spec 005: los logs del viaje se suben solos a GitHub (si hay clave).
+    if (window.Nube) Nube.iniciar();
+
     // Pedir wake lock para que la pantalla no se apague durante el viaje.
     // El módulo se reactiva solo cuando la pestaña vuelve del segundo plano.
     if (window.WakeLock) {

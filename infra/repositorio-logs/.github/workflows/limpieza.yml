@@ -1,0 +1,25 @@
+# Limpieza de los logs del panel de viaje (specs/005-logs-en-la-nube):
+# cada noche, fuera lo que lleve más de 30 días, también del historial.
+name: Limpieza de logs (30 días)
+
+on:
+  schedule:
+    - cron: '17 3 * * *'   # 03:17 UTC, cada noche
+  workflow_dispatch:        # y a mano, desde la pestaña Actions
+
+permissions:
+  contents: write
+
+concurrency:
+  group: limpieza
+  cancel-in-progress: false
+
+jobs:
+  limpiar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Borrar los logs de más de 30 días
+        run: python3 limpieza.py

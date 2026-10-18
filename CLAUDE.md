@@ -16,6 +16,8 @@ publica solo).
 | [`specs/002-radar-relieve/`](specs/002-radar-relieve/) | La vista 4 como radar que gira con la marcha, con el relieve debajo. Construido, sin probar en el coche |
 | [`specs/003-meteo-chillout/`](specs/003-meteo-chillout/) | La vista 2 como paisaje lo-fi que respira el tiempo real. Construido, sin probar en el coche |
 | [`specs/004-vistas-1-y-3/`](specs/004-vistas-1-y-3/) | Las vistas 1 y 3 con el estilo nuevo: maquetas, y lo elegido (la 1 como estaba; la 3 con postales, construida) |
+| [`specs/005-logs-en-la-nube/`](specs/005-logs-en-la-nube/) | Los logs de cada viaje se suben solos a un repositorio privado de GitHub que borra lo de más de 30 días. Construido; falta la clave en el móvil |
+| `infra/` | La limpieza del repositorio de logs (copia de referencia) y `leer-logs.py`, para leerlos desde el ordenador |
 | [`MANTENIMIENTO.md`](MANTENIMIENTO.md) | Probar en local, simulador, banderas de la URL, publicar, sacar los logs de un viaje, qué guarda el móvil y qué hacer si algo falla en un móvil |
 | `index.html`, `js/`, `css/`, `fonts/`, `service-worker.js` | La app. Vanilla JS, sin compilar: lo que hay en el repo es lo que se publica |
 | `tests/` | Tests (`node --test`): invariantes, cuaderno, relieve, radar, paisaje y Overpass. Y los cuadernos de Colab de la investigación de APIs (fase 1) |

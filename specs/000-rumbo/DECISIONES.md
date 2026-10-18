@@ -478,3 +478,36 @@ Overpass directamente. Siguen abiertas la 4, la 5 y la 6.
   digas "sube".
 - **Hecho**: el mismo 18/10 por la noche dijiste "adelante" y se publicó (comprobado: la web sirve
   `v23-2026-10-18-postales` desde las 19:26).
+
+### D38 · Los logs del viaje, en la nube (spec 005)
+- **El encargo**: "hay que hacer algo para que tengas acceso a los logs, guardarlos en alguna
+  infra con una política de housekeeping". Contestaste: repositorio privado de GitHub, 30 días,
+  que se suban solos. Y diste el OK para crear el repositorio.
+- **Qué hay**: el repositorio privado **`tragabytes/panel-viaje-logs`**. El panel sube ahí el log
+  de cada viaje, comprimido, al dejar el panel (pantalla apagada, otra app o cerrarlo) y, al
+  abrirlo, los que falten (la primera vez, los 10 que guarda el móvil). Un fichero por viaje
+  (`logs/AAAA-MM-DD_HH-MM-SS_móvil.txt.gz`; `_sim` si fue con el simulador). Cada noche, el propio
+  repositorio borra lo que lleve más de 30 días desde que llegó y rehace el historial para que no
+  quede ni ahí. En `?logs=1`: la clave, "Subir ahora" y qué viajes están subidos.
+- **Decidido al construirlo**:
+  - El log subido es el mismo texto que descargas en `?logs=1`. Comprimido, un viaje normal son
+    5-30 KB; el más largo posible (8.000 mensajes, ~1 hora), ~55 KB.
+  - Al abrir, la subida espera 30 segundos para no competir con lo que se mira conduciendo.
+  - Solo cuenta como subido lo que GitHub confirma; con la clave mala, lo dice en `?logs=1` y no
+    insiste con los demás viajes.
+  - La clave vive solo en el móvil. **Ojo**: todas tus webs de `tragabytes.github.io` comparten ese
+    almacén; por eso la clave solo puede escribir logs en ese repositorio y nada más.
+  - Copia de referencia de la limpieza en `infra/repositorio-logs/`, y `infra/leer-logs.py` para
+    leerlos desde el ordenador con tu sesión de GitHub.
+- **Comprobado**: tests (14 nuevos, con los de la limpieza); en el navegador con una API de
+  GitHub de mentira (sube los 10 viajes, no reenvía lo que no ha crecido, con la clave mala lo
+  dice); con la API de verdad desde el ordenador (subir, leer con tildes y borrar un log de
+  prueba); y la limpieza lanzada de verdad en GitHub (apuntó la llegada del log de prueba).
+- **Sin comprobar**: la subida desde el móvil con tu clave (no puedo crearla ni escribirla: es la
+  seguridad de tu cuenta).
+- **Cómo se deshace**: quitar la clave en `?logs=1` (deja de subir) o el commit "logs en la nube";
+  el repositorio se borra desde su página de GitHub (Settings → Delete).
+
+### D39 · Sin subir a GitHub
+- **Qué**: la v24 (`v24-2026-10-18-logs-nube`) está en tu ordenador, sin `push`. Se publica cuando
+  digas "sube".

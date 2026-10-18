@@ -174,3 +174,34 @@ test('(control) la comprobación detecta una llamada opcional sin proteger', () 
   const main = "    function alRecibirPosicion(pos) {\n      sinRomper('Radar', () => RadarV4.posicion(p));\n      ModoNoche.posicion(1, 2);\n    }\n";
   assert.deepEqual(opcionalesSinProteger(main), ['ModoNoche.posicion(1, 2);']);
 });
+
+// ---------------------------------------------------------------- spec 005: la clave fuera del código
+
+// Algo con forma de clave de GitHub (las de grano fino y las clásicas).
+const FORMA_DE_CLAVE = /github_pat_[A-Za-z0-9_]{60,}|gh[pousr]_[A-Za-z0-9]{36,}/;
+function ficherosPublicados() {
+  const raiz = ['index.html', 'manifest.webmanifest', 'service-worker.js'].map((f) => join(RAIZ, f));
+  return raiz.concat(ficherosJs(join(RAIZ, 'js')), readdirSync(join(RAIZ, 'css')).map((f) => join(RAIZ, 'css', f)));
+}
+
+// Impide: una clave pegada por error en el código publicado, que sería de
+// cualquiera (R-003). La clave vive solo en el móvil.
+test('ningún fichero publicado contiene algo con forma de clave de GitHub', () => {
+  const con = ficherosPublicados().filter((ruta) => FORMA_DE_CLAVE.test(readFileSync(ruta, 'utf8')));
+  assert.deepEqual(con, []);
+});
+
+test('(control) la comprobación de claves detecta una pegada en el código', () => {
+  assert.equal(FORMA_DE_CLAVE.test("const t = 'ghp_0123456789abcdefghijklmnopqrstuvwxyzAB';"), true);
+  assert.equal(FORMA_DE_CLAVE.test("if (pareceClave(texto)) guardar(texto);"), false);
+});
+
+// Impide: que el service worker guarde en su caché respuestas de la API de
+// GitHub (pedidas con la clave): saldrían viejas o se quedarían en el móvil.
+test('el service worker deja pasar la API de GitHub sin guardarla', () => {
+  const sw = cargarServiceWorker();
+  assert.equal(sw.esNube('https://api.github.com/repos/tragabytes/panel-viaje-logs/contents/logs/x.txt.gz'), true);
+  assert.equal(sw.esNube('https://es.wikipedia.org/w/api.php'), false);
+  const fetchHandler = leer('service-worker.js').slice(leer('service-worker.js').indexOf("addEventListener('fetch'"));
+  assert.ok(fetchHandler.indexOf('esNube(') !== -1 && fetchHandler.indexOf('esNube(') < fetchHandler.indexOf('cacheFirst('));
+});

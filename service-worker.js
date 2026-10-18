@@ -9,7 +9,7 @@
 //
 // Para forzar actualización, subir SW_VERSION.
 
-const SW_VERSION = 'v23-2026-10-18-postales';
+const SW_VERSION = 'v24-2026-10-18-logs-nube';
 const APP_CACHE = `panel-viaje-app-${SW_VERSION}`;
 const API_CACHE = `panel-viaje-api-${SW_VERSION}`;
 
@@ -34,6 +34,7 @@ const PRECACHE = [
   './js/cuaderno_vista.js',
   './js/trayectos.js',
   './js/logs_vista.js',
+  './js/nube.js',
   './js/debug.js',
   './js/actualizacion.js',
   './js/ayuda_gps.js',
@@ -189,11 +190,22 @@ function esTeselaRelieve(url) {
   }
 }
 
+// Spec 005: la API de GitHub (los logs en la nube) va siempre directa a la red:
+// sus respuestas se piden con la clave y no deben quedarse en ninguna caché.
+function esNube(url) {
+  try {
+    return new URL(url).hostname === 'api.github.com';
+  } catch (e) {
+    return false;
+  }
+}
+
 self.addEventListener('fetch', (event) => {
   const req = event.request;
   // Solo interceptamos GET (Overpass usa POST, lo dejamos pasar directo a red).
   if (req.method !== 'GET') return;
   if (esTeselaRelieve(req.url)) return;
+  if (esNube(req.url)) return;
 
   if (esApiExterna(req.url)) {
     event.respondWith(networkFirst(req));
