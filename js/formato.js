@@ -9,12 +9,15 @@
 //   aplanarPOIs(pueblos)                   los POIs de todos los pueblos, sin repetir
 //   metaMunicipio(datos, municipioActual)  ' · comarca · 99.037 hab · 718 m' | ''
 //   claseExceso(velKmh, limite, viejo)     '' | 'exceso' | 'exceso-grave'
+//   postales(pois, pos, rumbo, n)          los n sitios más cercanos, con distancia y desvío
+//   medirPostal(poi, pos, rumbo)           distancia y desvío de uno
 //   formatearAdmin, formatearAdminV1Html, gradosACardinal, formatearCoordsGMS,
 //   calcularMomentoDia, iconoSvgPoi, renderPalabraGigante, renderStoryV2,
 //   renderTimelineV2, renderMetricsV2, renderMiniForecast4h (de main.js)
 
 (function () {
   const __global__ = (typeof window !== 'undefined') ? window : globalThis;
+  const Geo = __global__.Geo || (typeof require !== 'undefined' ? require('./geo.js') : null);
 
   // SVGs temáticos para POIs sin foto (V3 grid). Sustituyen al placeholder
   // de rayas cuando ni Wikipedia ni Wikidata identifican el POI. Heredan
@@ -297,8 +300,28 @@
     return '';
   }
 
+  // Vista 3 (spec 004, opción A «Postales»): los n puntos de interés más
+  // cercanos a ti por su propia posición (sin ella, la de su pueblo: todos los
+  // de Astorga tienen la misma), con su distancia y su desvío respecto a hacia
+  // dónde vas (−180…180°, negativo a la izquierda; null sin rumbo o sin posición).
+  function medirPostal(poi, pos, rumbo) {
+    const conPos = pos && pos.lat != null && poi.lat != null && poi.lon != null;
+    if (!conPos) return Object.assign({}, poi, { desvio: null });
+    const distKm = Geo.distanciaMetros(pos.lat, pos.lon, poi.lat, poi.lon) / 1000;
+    const desvio = rumbo == null ? null
+      : ((Geo.rumboHacia(pos.lat, pos.lon, poi.lat, poi.lon) - rumbo + 540) % 360) - 180;
+    return Object.assign({}, poi, { distKm, desvio });
+  }
+
+  function postales(pois, pos, rumbo, n) {
+    return (pois || [])
+      .map((p) => medirPostal(p, pos, rumbo))
+      .sort((a, b) => (a.distKm == null ? Infinity : a.distKm) - (b.distKm == null ? Infinity : b.distKm))
+      .slice(0, n);
+  }
+
   __global__.Formato = {
-    escapar, distanciaKm, aplanarPOIs, metaMunicipio, claseExceso,
+    escapar, distanciaKm, aplanarPOIs, metaMunicipio, claseExceso, postales, medirPostal,
     formatearAdmin, formatearAdminV1Html, gradosACardinal, formatearCoordsGMS,
     calcularMomentoDia, iconoSvgPoi, renderPalabraGigante, renderStoryV2,
     renderTimelineV2, renderMetricsV2, renderMiniForecast4h,

@@ -145,7 +145,7 @@ test('las búsquedas de Wikipedia por coordenadas no se guardan en la caché', (
 
 // Las llamadas opcionales del tick que no van protegidas por sinRomper().
 const OPCIONALES_TICK = ['RadarV4.posicion(', 'PaisajeFX.setVelocidad(', 'PaisajeFX.setPosicion(',
-  'ModoNoche.posicion(', 'Actualizacion.gps(', 'comprobarAquiMarcaste('];
+  'ModoNoche.posicion(', 'Actualizacion.gps(', 'comprobarAquiMarcaste(', 'actualizarPostales('];
 function opcionalesSinProteger(main) {
   const ini = main.indexOf('function alRecibirPosicion(');
   const fin = main.indexOf('\n    }\n', ini);

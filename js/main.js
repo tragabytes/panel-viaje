@@ -160,6 +160,7 @@
       calcularMomentoDia, escapar, formatearAdmin, formatearAdminV1Html, gradosACardinal,
       renderPalabraGigante, renderStoryV2, renderTimelineV2, renderMetricsV2,
       formatearCoordsGMS, renderMiniForecast4h, iconoSvgPoi, distanciaKm, aplanarPOIs,
+      postales, medirPostal,
     } = Formato;
 
 
@@ -303,6 +304,13 @@
     // solo se actualizan las distancias por textContent.
     let clavePOIsUI = null;
     let claveGasUI = null;
+    // Vista 3 (spec 004, «Postales»): los sitios pintados, para actualizar su
+    // distancia y su flecha en cada tick sin repintar las fotos.
+    const POSTALES = 3;
+    let poisV3 = [];
+    // Las flechas se quedan con el último rumbo conocido (parado en un
+    // semáforo, el rumbo caduca, pero los sitios siguen donde estaban).
+    let ultimoRumboConocido = null;
 
     // --- Pintado ---
 
@@ -427,13 +435,14 @@
         }
       }
 
-      // V3 HUD (IU-21): grid 3x2 de POIs, con foto si la hay y el pueblo como
-      // meta para dar contexto geográfico.
-      const top6 = pois.slice(0, 6);
-      if (top6.length === 0) {
+      // V3 (spec 004, opción A «Postales»): los 3 sitios más cercanos, con la
+      // foto grande, el nombre encima, el pueblo y hacia dónde quedan. Menos
+      // datos que la cuadrícula de 6 de antes: 3 fotos.
+      poisV3 = postales(pois, ultimaPosicionMarca, ultimoRumboConocido, POSTALES);
+      if (poisV3.length === 0) {
         $v3Grid.innerHTML = '<div class="poi-cargando">Sin puntos de interés cerca</div>';
       } else {
-        $v3Grid.innerHTML = top6.map(poi => {
+        $v3Grid.innerHTML = poisV3.map(poi => {
           // Wikidata P18 devuelve URLs gigantes en HTTP; normalizamos a HTTPS+thumbnail.
           // También cubrimos POIs cacheados en IDB antes del fix.
           const fotoSrc = POIFuentes.normalizarFotoCommons(poi.foto, 400);
@@ -445,18 +454,20 @@
           // Regla dura "minimiza peticiones" > instantaneidad de vista secundaria.
           // El data-tipo permite al onerror swap a icono temático si la foto falla.
           const tipoAttr = `data-tipo="${escapar(poi.tipo || '')}"`;
-          const thumb = fotoSrc
-            ? `<div class="p3-v3-thumb" ${tipoAttr}><img src="${escapar(fotoSrc)}" alt="" loading="lazy" draggable="false"></div>`
-            : `<div class="p3-v3-thumb p3-v3-icon" ${tipoAttr}>${iconoSvgPoi(poi.tipo)}</div>`;
-          return `<div class="p3-v3-card">
-            ${thumb}
-            <div class="p3-v3-name">${escapar(poi.nombre)}</div>
-            <div class="p3-v3-meta">
-              <span class="p3-v3-meta-pueblo u-caps">${escapar(poi.pueblo)}</span>
-              <span class="p3-v3-meta-dist u-tab">${escapar(distanciaKm(poi.distKm))}</span>
+          const imagen = fotoSrc
+            ? `<img src="${escapar(fotoSrc)}" alt="" loading="lazy" draggable="false">`
+            : iconoSvgPoi(poi.tipo);
+          return `<div class="p3-postal">
+            <div class="p3-v3-thumb${fotoSrc ? '' : ' p3-v3-icon'}" ${tipoAttr}>${imagen}
+              <div class="p3-postal-nombre">${escapar(poi.nombre)}</div>
+            </div>
+            <div class="p3-postal-pie">
+              <span class="p3-postal-pueblo">${escapar(poi.pueblo)}</span>
+              <span class="p3-postal-dist u-tab"><svg class="p3-postal-flecha" viewBox="-10 -10 20 20" aria-hidden="true"><path d="M0 -8 L6.5 6 L0 2.5 L-6.5 6 Z" fill="currentColor"/></svg><span class="p3-postal-km"></span></span>
             </div>
           </div>`;
         }).join('');
+        actualizarPostales();
         // Si una foto falla (404, mixed content, archivo borrado), hacemos swap
         // al icono SVG temático del tipo de POI en vez de dejar hueco vacío.
         $v3Grid.querySelectorAll('.p3-v3-thumb img').forEach(img => {
@@ -464,15 +475,15 @@
             const div = img.parentElement;
             if (div) {
               div.classList.add('p3-v3-icon');
-              div.innerHTML = iconoSvgPoi(div.dataset.tipo || '');
+              img.replaceWith(document.createRange().createContextualFragment(iconoSvgPoi(div.dataset.tipo || '')));
             }
           }, { once: true });
         });
       }
-      // Contador del head: "6 · RADIO 15 KM" (el radio sale de POIFuentes)
+      // Contador del head: "8 EN 15 KM", todos los encontrados (el radio sale de POIFuentes)
       if ($v3PoiCounter) {
         $v3PoiCounter.innerHTML =
-          `<span class="u-phos">${top6.length}</span> · RADIO ${RADIO_PUEBLOS_KM_TXT} KM`;
+          `<span class="u-phos">${pois.length}</span> EN ${RADIO_PUEBLOS_KM_TXT} KM`;
       }
       // V4 (spec 002): ecos del radar. Las distancias las recalcula el radar
       // en cada tick desde la posición actual.
@@ -480,16 +491,38 @@
     }
 
     // DT-18: camino rápido de pintarPOIs — la estructura no cambió, solo las
-    // distancias. Sale de la misma aplanarPOIs que el pintado, así que el
-    // orden de las cards coincide por construcción.
+    // distancias. Las de la vista 3 van aparte (actualizarPostales, cada tick).
     function actualizarDistanciasPOIs(pueblos) {
       const nodosNear = $poiScroll.querySelectorAll('.p1-near-dist');
       pueblos.slice(0, 3).forEach((p, i) => {
         if (nodosNear[i] && p.distKm != null) nodosNear[i].textContent = distanciaKm(p.distKm);
       });
-      const nodosCard = $v3Grid.querySelectorAll('.p3-v3-meta-dist');
-      aplanarPOIs(pueblos).slice(0, nodosCard.length).forEach((poi, i) => {
-        if (poi.distKm != null) nodosCard[i].textContent = distanciaKm(poi.distKm);
+    }
+
+    // Vista 3: distancia y flecha de cada postal desde donde estás ahora. Va en
+    // cada tick (son tres textos y tres giros); las postales no se reordenan
+    // hasta el siguiente repintado (cambia la lista de pueblos).
+    function actualizarPostales() {
+      const postalesDom = $v3Grid.querySelectorAll('.p3-postal');
+      poisV3.forEach((poi, i) => {
+        const el = postalesDom[i];
+        if (!el) return;
+        const m = medirPostal(poi, ultimaPosicionMarca, ultimoRumboConocido);
+        const km = el.querySelector('.p3-postal-km');
+        const texto = m.distKm != null ? distanciaKm(m.distKm) : '';
+        if (km && km.textContent !== texto) km.textContent = texto;
+        const flecha = el.querySelector('.p3-postal-flecha');
+        if (flecha) {
+          flecha.style.visibility = m.desvio == null ? 'hidden' : '';
+          if (m.desvio != null) {
+            // Por el camino corto: con el sitio justo detrás, el desvío salta
+            // entre +179 y −179 y, con la transición, la flecha daba la vuelta entera.
+            const previo = flecha.dataset.giro != null ? Number(flecha.dataset.giro) : m.desvio;
+            const giro = previo + ((((m.desvio - previo) % 360) + 540) % 360 - 180);
+            flecha.dataset.giro = giro.toFixed(1);
+            flecha.style.transform = `rotate(${Math.round(giro)}deg)`;
+          }
+        }
       });
     }
 
@@ -1049,6 +1082,8 @@
         sinRomper('Radar', () => RadarV4.posicion({ lat: c.latitude, lon: c.longitude, rumbo: rumboEfectivo, velocidadKmh: velEfectivaKmh }));
       }
       sinRomper('Aquí marcaste', () => comprobarAquiMarcaste(ultimaPosicionMarca, ahora));
+      if (rumboEfectivo != null) ultimoRumboConocido = rumboEfectivo;
+      sinRomper('Postales', () => actualizarPostales());
       // D24: una versión nueva solo entra con el coche parado.
       if (window.Actualizacion) sinRomper('Actualización', () => Actualizacion.gps(velEfectivaKmh));
       // Spec 003: las montañas de la vista 2 se deslizan solo en marcha; la

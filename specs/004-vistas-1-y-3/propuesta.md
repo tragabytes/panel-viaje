@@ -1,7 +1,11 @@
 # Propuesta: las vistas 1 y 3 con el estilo nuevo
 
-**Carpeta**: `specs/004-vistas-1-y-3/` · **Fecha**: 2026-10-18 · **Estado**: maquetas para que elijas.
-Sin código todavía: hasta que digas cuál, las vistas siguen como están.
+**Carpeta**: `specs/004-vistas-1-y-3/` · **Fecha**: 2026-10-18 · **Estado**: elegido y construido.
+
+> **Elegido (Laureano, 18/10, noche)**: la vista 1 **se queda como está**; la vista 3, **A ·
+> Postales**, construida en la v23 (DECISIONES D36). Así ha quedado:
+>
+> ![Vista 3 construida](maquetas/vista3-construida.jpg)
 
 **De dónde sale**: en la lista de mejoras pequeñas iba "las vistas 1 y 3 con el estilo nuevo del
 paisaje y el radar, con maquetas antes de código". Estas son las maquetas: dos opciones para cada
@@ -88,6 +92,6 @@ Los seis sitios en lista: foto pequeña, nombre grande, flecha y distancia.
 
 ## Preguntas para ti
 
-1. Vista 1: ¿A, B o como está?
-2. Vista 3: ¿A, B o como está?
-3. Las flechas de dirección (salen en las dos), ¿te sirven?
+1. Vista 1: ¿A, B o como está? — **Como está** (18/10).
+2. Vista 3: ¿A, B o como está? — **A · Postales** (18/10).
+3. Las flechas de dirección, ¿te sirven? — Van en las postales que elegiste.

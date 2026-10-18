@@ -79,3 +79,37 @@ test('el mismo sitio con dos nombres casi iguales sale una vez', () => {
   assert.deepEqual(Formato.aplanarPOIs(pueblos).map((p) => p.nombre + '@' + p.lat),
     ['Ermita Ecce Homo@42.4501', 'Ermita del Ecce Homo@42.6', 'Ermita de San Roque@42.4502']);
 });
+
+// ---------------------------------------------------------------- vista 3: postales (spec 004, opción A)
+
+// En la A-6 llegando a Astorga hacia el oeste (rumbo 250°), como en la maqueta.
+const COCHE = { lat: 42.4640, lon: -6.0240 };
+const sitio = (nombre, lat, lon, distKmPueblo) => ({ nombre, lat, lon, distKm: distKmPueblo, pueblo: 'Astorga' });
+
+// Impide: elegir los sitios por la distancia de su pueblo (la de todos los de
+// Astorga es la misma) en vez de por la suya.
+test('postales: los 3 sitios más cercanos por su propia posición', () => {
+  const pois = [
+    sitio('Castrillo de los Polvazares', 42.465, -6.12833333, 0.5),
+    sitio('Catedral de Astorga', 42.45777778, -6.05694444, 2.8),
+    sitio('Muralla de Astorga', 42.4575, -6.055, 2.8),
+    sitio('Termas romanas', 42.456001, -6.055226, 2.8),
+  ];
+  const r = Formato.postales(pois, COCHE, 250, 3);
+  assert.deepEqual(r.map((p) => p.nombre), ['Muralla de Astorga', 'Termas romanas', 'Catedral de Astorga']);
+  assert.ok(Math.abs(r[0].distKm - 2.64) < 0.02, `${r[0].distKm}`);
+});
+
+test('postales: el desvío dice hacia dónde queda (negativo, a la izquierda)', () => {
+  const norte = sitio('Al norte', COCHE.lat + 0.02, COCHE.lon, 9);
+  assert.ok(Math.abs(Formato.postales([norte], COCHE, 90, 3)[0].desvio + 90) < 0.5, 'yendo al este, el norte queda a la izquierda');
+  assert.ok(Math.abs(Formato.postales([norte], COCHE, 0, 3)[0].desvio) < 0.5, 'yendo al norte, de frente');
+  assert.equal(Formato.postales([norte], COCHE, null, 3)[0].desvio, null, 'sin rumbo, sin flecha');
+});
+
+test('postales: un sitio sin posición usa la distancia de su pueblo y va sin flecha', () => {
+  const r = Formato.postales([{ nombre: 'X', distKm: 1.5 }], COCHE, 250, 3);
+  assert.equal(r[0].distKm, 1.5);
+  assert.equal(r[0].desvio, null);
+  assert.deepEqual(Formato.postales(null, COCHE, 250, 3), []);
+});

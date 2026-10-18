@@ -43,10 +43,7 @@ Lo que habrá que resolver en la spec:
 
 ## Esperan tu decisión
 
-1. **Las vistas 1 y 3 con el estilo nuevo**: maquetas con dos opciones para cada una en
-   [`specs/004-vistas-1-y-3/propuesta.md`](../004-vistas-1-y-3/propuesta.md). Sin código hasta que
-   elijas (DECISIONES D33).
-2. **Dos carpetas de trabajo viejas** (`.claude/worktrees/`) y los **ficheros archivados** del
+1. **Dos carpetas de trabajo viejas** (`.claude/worktrees/`) y los **ficheros archivados** del
    método anterior (tablero Kanvas, su herramienta, las skills de Obsidian, el generador del Word).
    Esperan tu decisión (DECISIONES D11 y D12).
 

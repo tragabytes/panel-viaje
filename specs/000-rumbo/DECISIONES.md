@@ -428,6 +428,8 @@ Overpass directamente. Siguen abiertas la 4, la 5 y la 6.
   cada vista, con imágenes. **Sin código**: las vistas siguen como estaban hasta que elijas.
 - Mi recomendación: vista 1 **B (paisaje con los pueblos como carteles en su dirección real)** y
   vista 3 **A (postales)**.
+- **Respuesta (18/10, noche)**: vista 1, **como está**; vista 3, **A (postales)** (D36). Y el
+  límite sin cobertura, **en gris y sin aviso**, como lo había dejado (D27, n.º 1).
 
 ### D34 · Revisión de lo de hoy: lo que se encontró y se arregló
 - **Cómo**: tres revisiones por separado (radar y modo noche; la reorganización; cuaderno y
@@ -454,3 +456,23 @@ Overpass directamente. Siguen abiertas la 4, la 5 y la 6.
 ### D35 · Sin subir a GitHub
 - **Qué**: todo esto está en commits en tu ordenador, con `SW_VERSION`
   `v22-2026-10-18-mejoras-pequenas`, sin `push`. Se publica cuando digas "sube".
+- **Hecho**: el mismo 18/10 por la noche dijiste "sube" y se publicó (comprobado: la web sirve
+  `v22-2026-10-18-mejoras-pequenas`).
+
+### D36 · La vista 3 con postales
+- **Qué**: la opción que elegiste (spec 004): los **tres sitios más cercanos**, con la foto grande y
+  el nombre encima; debajo, el pueblo, la distancia y una **flecha hacia donde quedan** (arriba, de
+  frente; abajo, detrás). La cuadrícula de seis se va: **3 fotos en vez de 6**, menos datos.
+- **Decidido al construirla**:
+  - "Más cercanos" por la posición de cada sitio, no por la de su pueblo (todos los de Astorga
+    tenían la misma distancia).
+  - Distancia y flecha se actualizan en cada tick; las postales no cambian de orden hasta que
+    cambia la lista de pueblos (para que no bailen las fotos).
+  - Parado, la flecha se queda con el último rumbo conocido; sin ninguno todavía, no sale.
+  - El contador dice cuántos sitios hay en total ("4 EN 15 KM") y las gasolineras siguen abajo.
+- **Comprobado**: tests (3 nuevos) y en el navegador con el simulador a 640×360.
+- **Cómo se deshace**: el commit "vista 3 con postales".
+
+### D37 · Sin subir a GitHub
+- **Qué**: la v23 (`v23-2026-10-18-postales`) está en tu ordenador, sin `push`. Se publica cuando
+  digas "sube".
