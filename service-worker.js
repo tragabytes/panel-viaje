@@ -30,6 +30,7 @@ const PRECACHE = [
   './js/cuaderno.js',
   './js/relieve.js',
   './js/v4_radar.js',
+  './js/cuaderno_vista.js',
   './js/trayectos.js',
   './js/debug.js',
   './js/wakelock.js',

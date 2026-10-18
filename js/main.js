@@ -1607,8 +1607,12 @@
   function arrancar() {
     configurarBotonFullscreen();
     configurarSafeAreaDev();
-    if (new URLSearchParams(location.search).get('logs') === '1') {
+    const params = new URLSearchParams(location.search);
+    if (params.get('logs') === '1') {
       arrancarVistaLogs();
+    } else if (params.get('cuaderno') === '1' && window.CuadernoVista) {
+      // Spec 001, H3: el cuaderno es un modo aparte; el panel no enlaza aquí.
+      CuadernoVista.arrancar();
     } else {
       arrancarPanel();
     }

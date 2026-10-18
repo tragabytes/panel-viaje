@@ -1656,6 +1656,349 @@
       opacity: 0.8;
       z-index: 9998;
     }
+
+    /* =========================================================
+       Cuaderno de viaje (spec 001, H3): ?cuaderno=1. Se usa
+       parado o en casa: letra normal y botones cómodos para el
+       dedo. Apaisado, lista a la izquierda y detalle a la
+       derecha; en estrecho, una cosa cada vez (.cu--detalle).
+       ========================================================= */
+    body.modo-cuaderno { overflow: auto; background: #030605; }
+    .cu[hidden] { display: none !important; }
+    .cu {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      background: radial-gradient(ellipse at 20% 0%, #071810 0%, #030605 55%);
+      color: var(--hud-white);
+      font-family: 'JetBrains Mono', ui-monospace, monospace;
+      font-size: 13px;
+      padding-left: var(--safe-left);
+      padding-right: calc(var(--safe-right) + var(--safe-extra));
+      z-index: 6000;
+    }
+    .cu-cab {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: calc(8px + var(--safe-top)) 14px 8px;
+      border-bottom: 1px solid var(--grid-line-strong);
+      flex-shrink: 0;
+    }
+    .cu-volver {
+      color: var(--phos-200);
+      text-decoration: none;
+      font-size: 12px;
+      padding: 8px 4px;
+      white-space: nowrap;
+    }
+    .cu-titulo {
+      font-family: 'Archivo Black', 'Space Grotesk', sans-serif;
+      font-size: 16px;
+      font-weight: 400;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+    .cu-cuenta { color: var(--hud-white-dim); font-size: 11px; white-space: nowrap; }
+    .cu-acciones { margin-left: auto; display: flex; gap: 8px; position: relative; flex-shrink: 0; }
+    .cu-boton {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 36px;
+      padding: 0 14px;
+      border: 1px solid rgba(61, 255, 110, 0.35);
+      border-radius: 6px;
+      background: rgba(61, 255, 110, 0.06);
+      color: var(--phos-100);
+      font: inherit;
+      font-size: 12px;
+      text-decoration: none;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .cu-boton:active { background: rgba(61, 255, 110, 0.16); }
+    .cu-boton--icono { padding: 0 12px; font-size: 16px; }
+    .cu-boton--peligro { border-color: rgba(255, 90, 90, 0.4); background: rgba(255, 90, 90, 0.06); color: #ffb3b3; }
+    .cu-menu {
+      position: absolute;
+      top: calc(100% + 6px);
+      right: 0;
+      display: flex;
+      flex-direction: column;
+      min-width: 240px;
+      background: #0b1410;
+      border: 1px solid var(--grid-line-strong);
+      border-radius: 8px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+      overflow: hidden;
+      z-index: 2;
+    }
+    .cu-menu[hidden] { display: none; }
+    .cu-menu button {
+      text-align: left;
+      padding: 13px 16px;
+      background: none;
+      border: none;
+      border-bottom: 1px solid var(--grid-line);
+      color: var(--hud-white);
+      font: inherit;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .cu-menu button:last-child { border-bottom: none; }
+    .cu-menu button:active { background: rgba(61, 255, 110, 0.1); }
+    .cu-estado {
+      padding: 7px 14px;
+      font-size: 12px;
+      color: var(--phos-100);
+      background: rgba(61, 255, 110, 0.08);
+      border-bottom: 1px solid var(--grid-line);
+      flex-shrink: 0;
+    }
+    .cu-estado[hidden] { display: none; }
+
+    .cu-cuerpo { flex: 1; min-height: 0; display: flex; }
+    .cu-cuerpo[hidden] { display: none; }
+    .cu-lista {
+      width: 34%;
+      max-width: 340px;
+      flex-shrink: 0;
+      overflow-y: auto;
+      border-right: 1px solid var(--grid-line-strong);
+      padding-bottom: calc(16px + var(--safe-bottom));
+    }
+    .cu-viaje-cab {
+      position: sticky;
+      top: 0;
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 10px 14px 6px;
+      background: #040906;
+      font-size: 10px;
+      font-weight: 400;
+      letter-spacing: 0.12em;
+      color: var(--phos-200);
+      z-index: 1;
+    }
+    .cu-viaje-ruta {
+      color: var(--hud-white-dim);
+      letter-spacing: 0.02em;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .cu-fila {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      width: 100%;
+      min-height: 52px;
+      padding: 8px 14px;
+      background: none;
+      border: none;
+      border-left: 3px solid transparent;
+      color: inherit;
+      font: inherit;
+      text-align: left;
+      cursor: pointer;
+    }
+    .cu-fila + .cu-fila { border-top: 1px solid var(--grid-line); }
+    .cu-fila--activa { background: rgba(61, 255, 110, 0.08); border-left-color: var(--phos-300); }
+    .cu-fila-hora { color: var(--phos-200); font-size: 12px; flex-shrink: 0; }
+    .cu-fila-txt { display: flex; flex-direction: column; min-width: 0; gap: 2px; flex: 1; }
+    .cu-fila-lugar {
+      font-family: 'Space Grotesk', system-ui, sans-serif;
+      font-size: 14px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .cu-fila-sub {
+      font-size: 11px;
+      color: var(--hud-white-dim);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .cu-check { color: var(--amber); }
+    .cu-fila-pend { color: var(--amber); font-size: 20px; line-height: 1; }
+
+    .cu-detalle {
+      flex: 1;
+      min-width: 0;
+      overflow-y: auto;
+      padding: 14px 18px calc(24px + var(--safe-bottom));
+      container-type: inline-size;
+    }
+    .cu-elige { color: var(--hud-white-dim); margin-top: 30px; text-align: center; }
+    .cu-atras { display: none; }
+    .cu-det-hora { font-size: 11px; color: var(--phos-200); letter-spacing: 0.1em; }
+    .cu-det-lugar {
+      font-family: 'Archivo Black', 'Space Grotesk', sans-serif;
+      font-size: 22px;
+      font-weight: 400;
+      letter-spacing: 0.03em;
+      line-height: 1.15;
+      margin: 3px 0 4px;
+    }
+    .cu-det-meta { font-size: 12px; color: var(--hud-white-dim); }
+    .cu-det-era { margin-top: 8px; font-size: 13px; color: var(--amber); }
+    .cu-det-era b { font-family: 'Space Grotesk', system-ui, sans-serif; font-size: 15px; }
+    .cu-quitar {
+      background: none;
+      border: none;
+      color: var(--hud-white-dim);
+      font: inherit;
+      font-size: 11px;
+      text-decoration: underline;
+      cursor: pointer;
+      padding: 4px;
+    }
+    .cu-aviso {
+      margin-top: 6px;
+      font-size: 11px;
+      color: #ffd08a;
+      padding-left: 10px;
+      border-left: 2px solid var(--amber);
+    }
+    .cu-det-cuerpo { display: flex; gap: 16px; margin-top: 14px; align-items: flex-start; }
+    .cu-mapa { flex-shrink: 0; width: min(46%, 240px); margin: 0; }
+    .cu-mapa-lienzo {
+      display: block;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      border-radius: 8px;
+      border: 1px solid var(--grid-line-strong);
+      background: #020805;
+    }
+    .cu-mapa-pie { font-size: 10px; color: var(--hud-white-dim); margin-top: 4px; text-align: center; }
+    .cu-cands { flex: 1; min-width: 0; }
+    .cu-sec {
+      display: block;
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--hud-white-dim);
+      margin: 0 0 6px;
+    }
+    label.cu-sec { margin-top: 16px; }
+    .cu-cands-lista { list-style: none; display: flex; flex-direction: column; }
+    .cu-cand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 7px 4px;
+      border-bottom: 1px solid var(--grid-line);
+      cursor: pointer;
+    }
+    .cu-cand--resaltado { background: rgba(61, 255, 110, 0.07); }
+    .cu-cand--elegido { background: rgba(255, 181, 71, 0.10); }
+    .cu-cand-foto { width: 34px; height: 34px; border-radius: 4px; object-fit: cover; flex-shrink: 0; background: var(--ink-3); }
+    .cu-ico { width: 34px; height: 34px; flex-shrink: 0; position: relative; }
+    .cu-ico::after {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 9px;
+      height: 9px;
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
+      background: var(--phos-300);
+      box-shadow: 0 0 8px rgba(61, 255, 110, 0.6);
+    }
+    .cu-ico--sitio::after { border-radius: 1px; transform: translate(-50%, -50%) rotate(45deg); background: var(--phos-100); box-shadow: none; }
+    .cu-cand-txt { display: flex; flex-direction: column; min-width: 0; flex: 1; gap: 1px; }
+    .cu-cand-nombre {
+      font-family: 'Space Grotesk', system-ui, sans-serif;
+      font-size: 14px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .cu-cand-donde { font-size: 11px; color: var(--hud-white-dim); }
+    .cu-era {
+      flex-shrink: 0;
+      min-height: 34px;
+      padding: 0 10px;
+      border: 1px solid rgba(255, 181, 71, 0.35);
+      border-radius: 6px;
+      background: none;
+      color: #ffd08a;
+      font: inherit;
+      font-size: 11px;
+      cursor: pointer;
+    }
+    .cu-cand--elegido .cu-era { background: rgba(255, 181, 71, 0.18); color: #ffe2b0; }
+    .cu-nada { color: var(--hud-white-dim); font-size: 12px; }
+    .cu-nota {
+      width: 100%;
+      min-height: 70px;
+      padding: 10px 12px;
+      border: 1px solid var(--grid-line-strong);
+      border-radius: 8px;
+      background: rgba(0, 0, 0, 0.35);
+      color: var(--hud-white);
+      font-family: 'Space Grotesk', system-ui, sans-serif;
+      font-size: 14px;
+      line-height: 1.4;
+      resize: vertical;
+    }
+    .cu-nota:focus { outline: none; border-color: rgba(61, 255, 110, 0.5); }
+    .cu-enlaces { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+    .cu-borrar { margin-left: auto; }
+
+    .cu-vacio {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 24px;
+      text-align: center;
+      font-size: 15px;
+    }
+    .cu-vacio[hidden] { display: none; }
+    .cu-vacio-rombo { font-size: 30px; color: var(--phos-300); text-shadow: 0 0 14px rgba(61, 255, 110, 0.6); }
+    .cu-vacio-como { max-width: 420px; color: var(--hud-white-dim); font-size: 13px; line-height: 1.5; }
+    .cu-vacio-como b { color: var(--phos-100); font-weight: 600; }
+
+    /* Detalle estrecho (el móvil apaisado, con la lista al lado): mapa arriba
+       y candidatos debajo, a todo el ancho, para que los nombres quepan. */
+    @container (max-width: 520px) {
+      .cu-det-cuerpo { flex-direction: column; align-items: stretch; }
+      .cu-mapa { width: 100%; max-width: 300px; align-self: center; }
+    }
+
+    /* Estrecho: una cosa cada vez. */
+    @media (max-width: 559px) {
+      .cu-cab { gap: 8px; padding-left: 10px; padding-right: 10px; }
+      .cu-titulo { font-size: 12px; letter-spacing: 0.04em; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+      .cu-cuenta { display: none; }
+      .cu-boton { padding: 0 10px; }
+      .cu-lista { width: 100%; max-width: none; border-right: none; }
+      .cu-detalle { display: none; }
+      .cu--detalle .cu-lista { display: none; }
+      .cu--detalle .cu-detalle { display: block; }
+      .cu-atras {
+        display: inline-block;
+        margin-bottom: 8px;
+        padding: 8px 0;
+        background: none;
+        border: none;
+        color: var(--phos-200);
+        font: inherit;
+        font-size: 12px;
+        cursor: pointer;
+      }
+      .cu-det-cuerpo { flex-direction: column; }
+      .cu-mapa { width: 100%; max-width: 360px; align-self: center; }
+    }
   </style>
 </head>
 <body>
@@ -1707,13 +2050,47 @@
 <section id="vistaLogs" style="display:none; position:fixed; inset:0; background:#0f1117; color:#fff; z-index:5000; overflow:auto; padding:16px 20px; font-family:-apple-system,system-ui,sans-serif;">
   <header style="display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:16px;">
     <h1 style="font-size:20px; margin:0;">Trayectos guardados</h1>
-    <a href="./" id="logsVolver" style="color:#93c5fd; text-decoration:none; font-size:14px;">← Volver al panel</a>
+    <span style="display:flex; gap:16px;">
+      <a href="./?cuaderno=1" style="color:#7dffa0; text-decoration:none; font-size:14px;">◆ Cuaderno de viaje</a>
+      <a href="./" id="logsVolver" style="color:#93c5fd; text-decoration:none; font-size:14px;">← Volver al panel</a>
+    </span>
   </header>
   <div id="logsLista" style="display:flex; flex-direction:column; gap:10px;"></div>
   <div id="logsVacio" style="display:none; color:#94a3b8; font-size:14px; margin-top:20px;">No hay trayectos guardados.</div>
   <footer style="margin-top:20px; display:flex; justify-content:flex-end;">
     <button id="logsBorrarTodos" type="button" style="background:#7f1d1d; color:#fff; border:none; border-radius:6px; padding:8px 14px; font-size:13px; cursor:pointer;">Borrar todos los trayectos</button>
   </footer>
+</section>
+
+<!-- Cuaderno de viaje (spec 001, H3): modo aparte con ?cuaderno=1. Lo pinta
+     js/cuaderno_vista.js. Nunca aparece en marcha: el panel no enlaza aquí. -->
+<section id="vistaCuaderno" class="cu" hidden>
+  <header class="cu-cab">
+    <a href="./" class="cu-volver" aria-label="Volver al panel">← Panel</a>
+    <h1 class="cu-titulo">Cuaderno de viaje</h1>
+    <span id="cuCuenta" class="cu-cuenta"></span>
+    <div class="cu-acciones">
+      <button id="cuCompartir" type="button" class="cu-boton">Compartir</button>
+      <button id="cuMas" type="button" class="cu-boton cu-boton--icono" aria-haspopup="true" aria-label="Más opciones">⋯</button>
+      <div id="cuMenu" class="cu-menu" hidden>
+        <button id="cuExportar" type="button">Descargar copia de seguridad</button>
+        <button id="cuImportar" type="button">Importar una copia</button>
+        <button id="cuCompletar" type="button">Completar con internet</button>
+      </div>
+      <input id="cuArchivo" type="file" accept="application/json,.json" hidden>
+    </div>
+  </header>
+  <div id="cuEstado" class="cu-estado" role="status" hidden></div>
+  <div id="cuCuerpo" class="cu-cuerpo">
+    <nav id="cuLista" class="cu-lista" aria-label="Marcas por viaje"></nav>
+    <article id="cuDetalle" class="cu-detalle"></article>
+  </div>
+  <div id="cuVacio" class="cu-vacio" hidden>
+    <div class="cu-vacio-rombo">◆</div>
+    <p>Todavía no hay marcas.</p>
+    <p class="cu-vacio-como">En el panel, mantén el dedo <b>un segundo</b> en cualquier sitio de la pantalla
+      cuando pases por algo que te llame. Aquí lo verás después, con lo que había alrededor.</p>
+  </div>
 </section>
 
 <!-- IU-09: botón Fullscreen. Posicionado fixed en la esquina superior derecha,
@@ -2031,6 +2408,7 @@
   <script src="js/cuaderno.js"></script>
   <script src="js/relieve.js"></script>
   <script src="js/v4_radar.js"></script>
+  <script src="js/cuaderno_vista.js"></script>
   <script src="js/trayectos.js"></script>
   <script src="js/debug.js"></script>
   <script src="js/wakelock.js"></script>

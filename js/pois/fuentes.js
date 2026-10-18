@@ -78,6 +78,34 @@
     );
   }
 
+  // BPC-18: de la respuesta de Overpass, los pueblos de verdad, del más cercano
+  // al más lejano. Descarta los "hamlet" falsos (urbanizaciones, fincas,
+  // microparajes...) en tres pasadas por orden de confianza:
+  //  1) place=village/town/city → pueblo real por definición OSM. Pasa.
+  //  2) hamlet con población/wikidata/wikipedia → señal extra de núcleo. Pasa.
+  //  3) hamlet sin señal: última red por regex EXCLUIR_PUEBLOS_OSM.
+  // La usan el panel (core.js) y el cuaderno, para que ambos cuenten lo mismo.
+  function parsearPueblos(datos, lat, lon) {
+    const crudo = ((datos && datos.elements) || [])
+      .filter(el => el.tags && el.tags.name && typeof el.lat === 'number');
+    const filtrados = crudo.filter(el => {
+      const place = el.tags.place;
+      if (place && place !== 'hamlet') return true;
+      if (el.tags.population || el.tags.wikidata || el.tags.wikipedia) return true;
+      return !POIMatch.EXCLUIR_PUEBLOS_OSM.test(el.tags.name);
+    });
+    const pueblos = filtrados
+      .map(el => ({
+        nombre: el.tags.name,
+        lat: el.lat,
+        lon: el.lon,
+        distKm: Overpass.distanciaMetros(lat, lon, el.lat, el.lon) / 1000,
+      }))
+      .sort((a, b) => a.distKm - b.distKm)
+      .slice(0, MAX_PUEBLOS);
+    return { pueblos, descartados: crudo.length - filtrados.length };
+  }
+
   // RA-01: Wikipedia geosearch para pueblos como fallback de Overpass.
   // BPC-16: filtrar también con EXCLUIR_PUEBLOS_GEOSEARCH (estricta) para
   // descartar palacios, conventos, ayuntamientos, etc. que Wikipedia devuelve
@@ -298,6 +326,7 @@
   __global__.POIFuentes = {
     // Overpass QL
     construirQueryPueblos,
+    parsearPueblos,
     construirQueryPOIs,
     parsearPOIs,
     // fallbacks externos

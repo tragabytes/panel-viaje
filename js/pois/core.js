@@ -78,34 +78,11 @@
     let pueblos;
     try {
       const { datos, dt } = await Overpass.query(POIFuentes.construirQueryPueblos(lat, lon), 'POI-pueblos');
-      const crudo = (datos.elements || [])
-        .filter(el => el.tags && el.tags.name && typeof el.lat === 'number');
-      // BPC-18: descartar fakes que OSM etiqueta como hamlet (urbanizaciones,
-      // fincas, microparajes...). Tres pasadas en orden de confianza:
-      //  1) place=village/town/city → pueblo real por definición OSM. Pasa.
-      //  2) hamlet con población/wikidata/wikipedia → señal extra de núcleo.
-      //     Pasa. Esto rescata pueblos como "Cerro Muriano" cuando OSM los
-      //     marca village con tags ricos pero también si están como hamlet
-      //     bien documentado.
-      //  3) hamlet sin señal: última red por regex EXCLUIR_PUEBLOS_OSM.
-      //     Si el nombre arranca con Urbanización/Finca/Canto/etc. fuera.
-      const filtrados = crudo.filter(el => {
-        const place = el.tags.place;
-        if (place && place !== 'hamlet') return true;
-        if (el.tags.population || el.tags.wikidata || el.tags.wikipedia) return true;
-        return !POIMatch.EXCLUIR_PUEBLOS_OSM.test(el.tags.name);
-      });
-      pueblos = filtrados
-        .map(el => ({
-          nombre: el.tags.name,
-          lat: el.lat,
-          lon: el.lon,
-          distKm: Overpass.distanciaMetros(lat, lon, el.lat, el.lon) / 1000,
-        }))
-        .sort((a, b) => a.distKm - b.distKm)
-        .slice(0, POIFuentes.MAX_PUEBLOS);
+      // BPC-18: el filtro de pueblos falsos vive en POIFuentes.parsearPueblos.
+      const parseado = POIFuentes.parsearPueblos(datos, lat, lon);
+      pueblos = parseado.pueblos;
       if (typeof debug !== 'undefined') {
-        const descartados = crudo.length - filtrados.length;
+        const descartados = parseado.descartados;
         debug.log(`POI pueblos: ${pueblos.length} en ${dt}ms (${descartados} descartados por BPC-18) · más cercano: ${pueblos[0] ? pueblos[0].nombre + ' (' + pueblos[0].distKm.toFixed(1) + 'km)' : 'ninguno'}`);
       }
       // BPC-18: si el filtro dejó la lista vacía, caer al fallback Wikipedia
