@@ -49,7 +49,6 @@ Lee, por este orden:
 
 **Pendiente de mí:**
 - Lo de los dos móviles de arriba (y contarte qué salió).
-- Decir si el paisaje de la vista 2 es mi idea de "chillout" (si no, dos o tres referencias).
 - Contestar las preguntas de las specs 002 y 003 tras verlas en el coche (en la 002, también si me
   vale ~1 MB por hora de relieve o prefiero menos detalle).
 - Qué hacer con los ficheros archivados y las carpetas viejas (D11, D12).

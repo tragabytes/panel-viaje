@@ -211,6 +211,7 @@ Overpass directamente. Siguen abiertas la 4, la 5 y la 6.
 - **Si el móvil no llega a 24 fps**, el paisaje se queda quieto; se recuerda tras dos medidas malas.
 - **Cómo se deshace**: el commit "meteo chillout" se puede revertir solo (vuelven los efectos
   anteriores).
+- **Respuesta (18/10, noche)**: "El paisaje es mi idea de chillout, sí".
 
 ### D22 · Revisión a fondo: lo que se encontró y se arregló
 - **Cómo**: tres revisores independientes, uno por bloque (cuaderno, radar, paisaje), con el

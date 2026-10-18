@@ -17,7 +17,7 @@ Estado del trabajo. Se marca cada casilla al cerrarla. Lo imprevisto se anota aq
 
 ## Pendiente
 - [ ] Probar en el móvil del panel: fluidez (si el vigilante lo deja quieto, saldrá en el log)
-- [ ] Que Laureano diga si es su idea de chillout (si no, referencias y rehacer el estilo)
+- [x] Que Laureano diga si es su idea de chillout — sí, 18/10
 - [ ] **Parar y validar con Laureano**
 
 ## Aprendido

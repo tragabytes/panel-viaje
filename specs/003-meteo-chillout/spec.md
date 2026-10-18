@@ -77,6 +77,6 @@ velo oscuro detrás para que se lea sobre cualquier cielo.
 
 ## Preguntas para ti
 
-1. ¿Es chillout para ti? Si no, dos o tres referencias y lo rehago.
+1. ¿Es chillout para ti? Si no, dos o tres referencias y lo rehago. — **Sí** (Laureano, 18/10/2026).
 2. ¿Te gusta que las montañas se muevan con el coche, o lo prefieres quieto?
 3. ¿Echas de menos los rayos de la tormenta? Se pueden volver a poner, suaves.

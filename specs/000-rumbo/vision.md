@@ -15,7 +15,7 @@ de vista del diseño y la usabilidad, quiero que cargue rápido. Su posición no
 |---|---|
 | 1. Marcar sitios y guardarlos para investigarlos | **Hecho** (spec 001): toque largo de 1 s, la marca guarda lo que había alrededor, y el cuaderno (`?cuaderno=1`) para revisarlas en un mapa, elegir "era esto", anotar y compartir |
 | 2. Pueblos cercanos como un radar, con relieve | **Hecho** (spec 002): gira con la marcha, anillos, barrido, relieve con curvas de nivel |
-| 3. Animaciones del tiempo detallistas y chillout | **Hecho** (spec 003), **sin tus referencias**: paisaje lo-fi que cambia con la hora y el tiempo reales. Dime si es tu idea de chillout |
+| 3. Animaciones del tiempo detallistas y chillout | **Hecho** (spec 003): paisaje lo-fi que cambia con la hora y el tiempo reales. Es tu idea de chillout (18/10) |
 | 4. Excelente en diseño y usabilidad | Arreglados los dos fallos de uso que más pesaban (Overpass lento, datos viejos como actuales) y dos de la vista 2 (palabra cortada, previsión que se salía). Lo demás, en la prueba en carretera |
 | 5. Que cargue rápido | La app ya cargaba rápido; la vía ya no se queda esperando a un servidor caído (D13) |
 | 6. Apaisado | Sigue siéndolo; el cuaderno también funciona en vertical |
