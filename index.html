@@ -165,6 +165,21 @@
     .p1-estado.aviso { color: var(--amber); }
     .p1-estado.ok    { display: none; }
 
+    /* Cuaderno (spec 001, H1): confirmación de una marca, 2 s en el centro de
+       la cabecera. Aparece y se va sin animación: nada que destelle. */
+    .marca-aviso {
+      font-size: 11px;
+      color: var(--phos-300);
+    }
+    .marca-aviso.error { color: var(--amber); }
+    /* Mantener el dedo 1 s es el gesto de marcar: que el navegador no lo
+       tome por "seleccionar texto" ni saque su menú. */
+    .visor, .app-header {
+      -webkit-user-select: none;
+      user-select: none;
+      -webkit-touch-callout: none;
+    }
+
     .p1-speed {
       display: flex;
       align-items: baseline;
@@ -1646,6 +1661,7 @@
     <span id="globalPlaceMeta" class="app-header-meta u-caps"></span>
     <span id="estado" class="p1-estado"></span>
   </div>
+  <span id="marcaAviso" class="marca-aviso u-caps" hidden></span>
   <div class="p1-speed">
     <span id="v1Velocidad" class="p1-speed-num u-tab">—</span>
     <span class="p1-speed-unit u-caps">km/h</span>
@@ -1938,6 +1954,7 @@
        arranque offline roto tras actualizar. -->
   <script src="js/geo.js"></script>
   <script src="js/frescura.js"></script>
+  <script src="js/cuaderno.js"></script>
   <script src="js/trayectos.js"></script>
   <script src="js/debug.js"></script>
   <script src="js/wakelock.js"></script>

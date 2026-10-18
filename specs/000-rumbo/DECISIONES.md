@@ -128,3 +128,21 @@ Overpass directamente. Siguen abiertas la 4, la 5 y la 6.
   (`cache: 'reload'`). Lo vigila un test de `tests/invariantes.test.mjs`. Comprobado en el
   navegador: con el panel cargado, se cambia un fichero y la versión, y la versión nueva guarda el
   fichero nuevo. `SW_VERSION` pasa a `v17-2026-10-18-precarga-fresca`.
+
+### D16 · Cuaderno H1: decisiones menores tomadas al construirlo
+- **Base de datos propia** (`panel-viaje-cuaderno`), separada de logs y cachés. Ningún otro módulo
+  la nombra, y lo vigila un test.
+- **El toque largo salta al segundo, sin soltar.** Se cancela si el dedo se mueve más de 10 px,
+  si entra un segundo dedo o si el navegador empieza a desplazar la vista. Los botones (pantalla
+  completa, copiar del debug) no marcan. En el panel y la cabecera ya no se puede seleccionar
+  texto, y Chrome no saca su menú al mantener el dedo.
+- **Confirmación**: "◆ MARCADO" en verde, en el centro de la cabecera, 2 s, sin animación. Un
+  doble toque en menos de 10 s también enseña "MARCADO", pero guarda una sola marca. Si no se pudo
+  guardar: "✕ SIN GUARDAR" en ámbar, para que nunca parezca guardada una marca que no lo está.
+- **Sin GPS todavía** (recién arrancado), la marca se guarda igual: la hora, sin posición y como
+  "aproximada". Con la última posición de hace más de 30 s (túnel), también "aproximada". Por
+  debajo de 3 km/h, el sentido de la marcha queda como desconocido.
+- **Sin vibración** (lo dice la spec). Si en el coche no notas la confirmación de reojo, es lo
+  primero que cambiaría.
+- **Aún no hay forma de ver las marcas** en el panel: eso es H3. En la prueba en carretera se ven
+  en el log del viaje (`?logs=1`), con hora y posición.

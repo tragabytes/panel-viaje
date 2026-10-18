@@ -664,6 +664,9 @@
     const frescuraCarretera = Frescura.crear();
     let ubicacionVieja = false;
     let carreteraVieja = false;
+    // Cuaderno (spec 001, H1): lo que se guarda al marcar. Se actualiza en
+    // cada tick de GPS; marcar no pide nada a internet.
+    let ultimaPosicionMarca = null;
 
     // Fallback de velocidad para móviles cuyo GPS reporta coords.speed=null
     // (común en Android antiguos).
@@ -1466,6 +1469,14 @@
       ultimoTickGPS = ahora;
       mostrarEstado('GPS activo', 'ok');
       marcarDatosViejos(c.latitude, c.longitude);
+      ultimaPosicionMarca = {
+        lat: c.latitude,
+        lon: c.longitude,
+        precision: c.accuracy,
+        rumbo: (c.heading != null && !isNaN(c.heading)) ? c.heading : null,
+        velocidadKmh: velEfectivaKmh,
+        ts: ahora,
+      };
 
       let hayQueActualizar = false;
       if (!ultimaPosicionUbicacion) {
@@ -1575,6 +1586,53 @@
         mostrarEstado(texto, 'aviso');
       }
     }, 30000);
+
+    // --- Cuaderno: marcar con un toque largo (spec 001, H1) ---
+    //
+    // Funciona igual en las 4 vistas: los eventos se escuchan en todo el
+    // documento. Deslizar entre vistas lo descarta el detector (se mueve más
+    // de 10 px, o el navegador manda pointercancel al empezar a desplazar).
+
+    const $marcaAviso = document.getElementById('marcaAviso');
+    let marcaAvisoTimer = null;
+    function avisarMarca(texto, clase) {
+      $marcaAviso.textContent = texto;
+      $marcaAviso.className = 'marca-aviso u-caps' + (clase ? ' ' + clase : '');
+      $marcaAviso.hidden = false;
+      clearTimeout(marcaAvisoTimer);
+      marcaAvisoTimer = setTimeout(() => { $marcaAviso.hidden = true; }, 2000);
+    }
+
+    const detectorMarca = Cuaderno.crearDetectorToqueLargo(() => {
+      Cuaderno.marcar(ultimaPosicionMarca).then((r) => {
+        if (!r.guardada) {
+          avisarMarca('✕ Sin guardar', 'error');
+          debug.error(`Cuaderno: marca NO guardada (${r.error})`);
+          return;
+        }
+        avisarMarca('◆ Marcado');
+        if (r.duplicada) {
+          debug.log('Cuaderno: marca repetida en menos de 10 s, se queda la anterior');
+        } else {
+          const m = r.marca;
+          debug.log(`Cuaderno: marca guardada · ${m.lat != null ? m.lat.toFixed(5) + ', ' + m.lon.toFixed(5) : 'sin posición'}${m.aproximada ? ' (aproximada)' : ''}`);
+        }
+      });
+    });
+
+    // Los botones (pantalla completa, copiar del debug) siguen siendo botones.
+    const esControl = (e) => !!(e.target.closest && e.target.closest('button, a, input, select, textarea'));
+    document.addEventListener('pointerdown', (e) => {
+      if (esControl(e)) return;
+      detectorMarca.down(e.pointerId, e.clientX, e.clientY, e.isPrimary);
+    }, { passive: true });
+    document.addEventListener('pointermove', (e) => {
+      detectorMarca.move(e.pointerId, e.clientX, e.clientY);
+    }, { passive: true });
+    document.addEventListener('pointerup', (e) => detectorMarca.up(e.pointerId), { passive: true });
+    document.addEventListener('pointercancel', (e) => detectorMarca.up(e.pointerId), { passive: true });
+    // Chrome en Android abre un menú al mantener el dedo: aquí es el gesto de marcar.
+    document.addEventListener('contextmenu', (e) => e.preventDefault());
 
     // --- Arranque: simulador o GPS real ---
 

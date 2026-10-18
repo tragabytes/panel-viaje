@@ -9,7 +9,7 @@
 //
 // Para forzar actualización, subir SW_VERSION.
 
-const SW_VERSION = 'v17-2026-10-18-precarga-fresca';
+const SW_VERSION = 'v18-2026-10-18-cuaderno-h1';
 const APP_CACHE = `panel-viaje-app-${SW_VERSION}`;
 const API_CACHE = `panel-viaje-api-${SW_VERSION}`;
 
@@ -27,6 +27,7 @@ const PRECACHE = [
   './fonts/ArchivoBlack-Regular.woff2',
   './js/geo.js',
   './js/frescura.js',
+  './js/cuaderno.js',
   './js/trayectos.js',
   './js/debug.js',
   './js/wakelock.js',
