@@ -17,11 +17,10 @@ Lee, por este orden:
 6. `MANTENIMIENTO.md` si vas a probar o publicar.
 
 **Estado (18/10, noche).**
-- **Publicado** en https://tragabytes.github.io/panel-viaje/: `SW_VERSION` `v18-2026-10-18-cuaderno-h1`
-  (Overpass arreglado, datos viejos en gris, precarga del service worker y marcar con toque largo).
-- **En commits locales, sin subir** (D23), con `SW_VERSION` `v19-2026-10-18-cuaderno-radar-paisaje`:
-  cuaderno H2 y H3, radar con relieve (spec 002), meteo chillout (spec 003), los arreglos de la
-  revisión (D22) y la documentación. Se publica con un "sube".
+- **Publicado** en https://tragabytes.github.io/panel-viaje/ el 18/10 por la noche, con
+  `SW_VERSION` `v19-2026-10-18-cuaderno-radar-paisaje`: cuaderno H1, H2 y H3, radar con relieve
+  (spec 002), meteo chillout (spec 003), los arreglos de la revisión (D22) y los de antes (Overpass,
+  datos viejos en gris, precarga del service worker).
 - El 18/10 hice una prueba en carretera con la v18. Su log (`?logs=1`) dirá si Overpass responde con
   los datos del móvil, si Chrome concedió el almacenamiento persistente y cómo fue marcar.
 - El 18/10, desde casa, Overpass seguía sin funcionar (`overpass-api.de` colgado, `private.coffee`
@@ -31,8 +30,8 @@ Lee, por este orden:
 **Por dónde seguir:**
 1. **Leer el log de la prueba en carretera** del 18/10 y sacar conclusiones (Overpass, marcas,
    peticiones por hora). Con eso, dar por buenas las 15 tarjetas de la sesión 49 (D3).
-2. **Publicar la v19** cuando yo diga "sube", y probarla en el móvil del panel: fluidez del radar y
-   del paisaje (regla 1), que el toque largo no choca con nada nuevo.
+2. **Probar la v19 en el móvil del panel**: fluidez del radar y del paisaje (regla 1), que el
+   toque largo no choca con nada nuevo, que el cuaderno abre desde el icono.
 3. **Otra prueba en carretera** con la v19: marcas, cuaderno en casa, radar y paisaje. Contestar
    las preguntas de las specs 002 y 003.
 4. Lo que salga de ahí, y después `PENDIENTES.md`.

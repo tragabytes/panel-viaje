@@ -274,4 +274,5 @@ Overpass directamente. Siguen abiertas la 4, la 5 y la 6.
 - **Por qué**: (1) estabas probando la v18 en el coche: si publicaba a mitad de viaje, el panel
   podía cambiar al recargarlo y la prueba dejaba de valer; (2) publicar es de las decisiones que,
   según tus reglas, se preguntan aunque el resto lo decida yo.
-- **Cómo se hace**: dime "sube".
+- **Hecho**: el mismo 18/10, al volver, dijiste "sube la v19" y se publicó (comprobado: la web
+  sirve `v19-2026-10-18-cuaderno-radar-paisaje`).
