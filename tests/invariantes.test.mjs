@@ -11,6 +11,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, readdirSync, existsSync, statSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import vm from 'node:vm';
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), '..');
 const leer = (ruta) => readFileSync(join(RAIZ, ruta), 'utf8');
@@ -116,4 +117,25 @@ test('ningún módulo pide nada por http://', () => {
 
 test('(control) la comprobación de HTTPS detecta una URL insegura', () => {
   assert.deepEqual(urlsSinHttps("fetch('http://api.ejemplo.es/x')"), ['http://api.ejemplo.es/x']);
+});
+
+// ---------------------------------------------------------------- DT-11
+
+// El service worker cargado tal cual, con un `self` de mentira: sus funciones
+// quedan a mano para probarlas.
+function cargarServiceWorker() {
+  const ctx = { self: { addEventListener() {} }, URL, console };
+  vm.createContext(ctx);
+  vm.runInContext(leer('service-worker.js'), ctx);
+  return ctx;
+}
+
+// Impide: que cada búsqueda de Wikipedia por coordenadas (una URL distinta por
+// sitio) se guarde en la caché del service worker y la llene sin servir nunca.
+// La de pueblos cambió de forma el 18/10 (list= → generator=) y se colaba.
+test('las búsquedas de Wikipedia por coordenadas no se guardan en la caché', () => {
+  const sw = cargarServiceWorker();
+  assert.equal(sw.esApiCacheable('https://es.wikipedia.org/w/api.php?action=query&generator=geosearch&ggscoord=40|-4'), false);
+  assert.equal(sw.esApiCacheable('https://es.wikipedia.org/w/api.php?action=query&list=geosearch&gscoord=40|-4'), false);
+  assert.equal(sw.esApiCacheable('https://es.wikipedia.org/api/rest_v1/page/summary/Astorga'), true);
 });

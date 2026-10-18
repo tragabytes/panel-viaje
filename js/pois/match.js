@@ -68,6 +68,43 @@
     'i'
   );
 
+  // PENDIENTES n.º 2: la descripción corta de un artículo de Wikipedia (viene
+  // de Wikidata) dice qué es. Es un pueblo si empieza así; si no (cofradía,
+  // edificio, río, barrio, estación, batalla...), no. Muestreadas el 18/10/2026
+  // en nueve zonas de España: así se describen municipios, localidades,
+  // parroquias gallegas y asturianas, anteiglesias vascas y entidades de población.
+  const DESCRIPCION_PUEBLO = new RegExp(
+    '^(municipio|localidad|pedan[ií]a|aldea|pueblo|concejo|despoblado|anteiglesia|barrio y anteiglesia' +
+    '|n[uú]cleo de poblaci[oó]n|poblaci[oó]n|entidad (singular de|de|local)\\b' +
+    '|parroquia(?! cat[oó]lica)|lugar (de la parroquia|del (municipio|concejo|concello))' +
+    '|villa (de|del|y|espa[ñn]ola)\\b|ciudad (de|del|y|espa[ñn]ola|aut[oó]noma)\\b|capital (de|del)\\b)',
+    'i'
+  );
+
+  // Sin descripción, el título. Además de los filtros de arriba, lo que nunca
+  // es un pueblo al principio de un título (sitios y batallas, calles, barrios,
+  // estadios, cofradías...). Solo se aplica a artículos sin descripción, así
+  // que "Torre Pacheco" (que la tiene) no se pierde.
+  const NO_PUEBLO_TITULO = new RegExp(
+    '^(Sitios?|Asedio|Batalla|Combate|Bombardeo|Toma|Estadio|Pabell[oó]n|Teatro|Partido judicial' +
+    '|[ÁA]rea (urbana|metropolitana)|Comarca|Monumento|Edificio|Calle|Paseo|Avenida|Plaza|Mina|Muralla' +
+    '|Sacrist[ií]a|Patio|[ÍI]dolo|Distrito|Barrio|Cofrad[ií]a|Archicofrad[ií]a|Hermandad|Real Cofrad[ií]a' +
+    '|Instituto|Colegio|Biblioteca|Hotel|Antigu[oa]|Casas?|Torre|Atalaya|Puerta|Puerto de|Pueblo|Sierra|Monte)\\b',
+    'i'
+  );
+
+  // Lo mismo para los POIs de un pueblo sacados de Wikipedia: ni un pueblo
+  // vecino (DESCRIPCION_PUEBLO) ni algo que no se puede visitar (un asedio, una
+  // cofradía, una comarca, una estación, un río...).
+  const NO_POI_DESCRIPCION = new RegExp(
+    '^(asedio|batalla|combate|bombardeo|toma de|cofrad[ií]a|archicofrad[ií]a|hermandad|club|equipo|empresa' +
+    '|organismo|instituci[oó]n|partido judicial|comarca|territorio|regi[oó]n|distrito|barrio|urbanizaci[oó]n' +
+    '|estaci[oó]n|apeadero|l[ií]nea|carretera|autov[ií]a|autopista|calle|avenida|ayuntamiento de' +
+    '|curso de agua|r[ií]o|arroyo|centro (educativo|de salud|comercial)|colegio|instituto|universidad' +
+    '|facultad|hospital|estadio|pabell[oó]n|polideportivo|complejo deportivo)',
+    'i'
+  );
+
   const JACCARD_MIN_POI = 0.5;
   const JACCARD_MIN_MUNICIPIO = 0.3;
   const JACCARD_MIN_PEDANIA = 0.5;
@@ -115,6 +152,9 @@
     EXCLUIR_GEOSEARCH,
     EXCLUIR_PUEBLOS_GEOSEARCH,
     EXCLUIR_PUEBLOS_OSM,
+    DESCRIPCION_PUEBLO,
+    NO_PUEBLO_TITULO,
+    NO_POI_DESCRIPCION,
     JACCARD_MIN_POI,
     JACCARD_MIN_MUNICIPIO,
     JACCARD_MIN_PEDANIA,

@@ -332,10 +332,6 @@
       text-overflow: ellipsis;
       min-width: 0;
     }
-    .p1-road-dir {
-      font-size: 10px;
-      margin-top: 2px;
-    }
 
     /* IU-33: el bloque .p1-place de V1 (#municipio + #datosMunicipio) se
        eliminó porque duplicaba al crumb de la cabecera global. La meta
@@ -567,7 +563,6 @@
       flex: 1;
       min-width: 0;
     }
-    .p1-fuel-price { margin-left: auto; color: var(--amber); }
 
     /* -------- Elementos ocultos en V1 -------- */
     .p1-off { display: none !important; }
@@ -747,14 +742,13 @@
 
     /* IU-24: bloques .v2-ubicacion/-municipio/-admin, .v2-meteo*, .v2-temp*,
        .v2-icono, .v2-desc, .v2-sub*, .v2-prevision* y .v2-velocidad
-       eliminados. Reemplazados por .p2-caption, .p2-word, .p2-temp,
-       .p2-story, .p2-metrics y .p2-timeline (IU-20). */
+       eliminados. Reemplazados por .p2-word, .p2-temp, .p2-story,
+       .p2-metrics y .p2-timeline (IU-20). */
     /* =========================================================
        V2 HUD expresivo (IU-20): tipografía dominante + timeline
        reactiva. El contenedor p2-inner se posiciona encima de las
        capas del paisaje (.v2p, spec 003).
        ========================================================= */
-    .p2-off { display: none !important; }
 
     /* Garantiza que el inset:0 de .p2-inner se ancle a la sección de V2
        y no suba hasta el body cuando busca ancestor positioned.
@@ -784,24 +778,6 @@
       overflow: hidden;
     }
 
-    /* Caption: municipio + admin en lo alto, discreto. Se usa block con
-       spans inline en lugar de flex para que la línea respete line-height
-       y no colapse su altura en el flex column del .p2-inner. */
-    .p2-caption {
-      font-size: 10px;
-      line-height: 1.2;
-      color: var(--hud-white);
-      letter-spacing: 0.12em;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      flex-shrink: 0;
-    }
-    .p2-caption > span { white-space: nowrap; }
-    .p2-caption .p2-caption-sep { margin: 0 6px; }
-    .p2-caption .p2-caption-place { color: var(--phos-300); }
-    .p2-caption-sep { color: var(--hud-white-mute); }
-    .p2-caption-admin { font-size: 10px; }
 
     /* Palabra gigante: una letra por span, wobble suave. Archivo Black con
        tracking negativo (-0.03em) para empaquetarla fuerte.
@@ -2230,12 +2206,14 @@
        jamás servía: doble descarga de todo el JS en cada bump y ventana de
        arranque offline roto tras actualizar. -->
   <script src="js/geo.js"></script>
+  <script src="js/movimiento.js"></script>
   <script src="js/frescura.js"></script>
   <script src="js/cuaderno.js"></script>
   <script src="js/relieve.js"></script>
   <script src="js/v4_radar.js"></script>
   <script src="js/cuaderno_vista.js"></script>
   <script src="js/trayectos.js"></script>
+  <script src="js/logs_vista.js"></script>
   <script src="js/debug.js"></script>
   <script src="js/actualizacion.js"></script>
   <script src="js/ayuda_gps.js"></script>
@@ -2258,6 +2236,7 @@
   <script src="js/v2_paisaje.js"></script>
   <script src="js/v2_rainfx.js"></script>
   <script src="js/v2_snowfx.js"></script>
+  <script src="js/formato.js"></script>
   <script src="js/main.js"></script>
 
 </body>

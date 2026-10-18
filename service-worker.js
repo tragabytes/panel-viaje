@@ -26,12 +26,14 @@ const PRECACHE = [
   './fonts/SpaceGrotesk-Variable.woff2',
   './fonts/ArchivoBlack-Regular.woff2',
   './js/geo.js',
+  './js/movimiento.js',
   './js/frescura.js',
   './js/cuaderno.js',
   './js/relieve.js',
   './js/v4_radar.js',
   './js/cuaderno_vista.js',
   './js/trayectos.js',
+  './js/logs_vista.js',
   './js/debug.js',
   './js/actualizacion.js',
   './js/ayuda_gps.js',
@@ -53,6 +55,7 @@ const PRECACHE = [
   './js/v2_paisaje.js',
   './js/v2_rainfx.js',
   './js/v2_snowfx.js',
+  './js/formato.js',
   './js/main.js',
 ];
 
@@ -73,7 +76,7 @@ const API_HOSTS = [
 // Point(lon lat)). Cachear sus respuestas llenaba API_CACHE sin que el
 // fallback offline acertara nunca: cada petición era una clave nueva.
 // Wikipedia REST (por título) y las queries por pageids sí se cachean; su
-// geosearch (por coordenada) no.
+// geosearch (por coordenada, sea list= o generator=) no.
 const API_NO_CACHEAR_HOSTS = [
   'nominatim.openstreetmap.org',
   'api.open-meteo.com',
@@ -85,7 +88,7 @@ function esApiCacheable(url) {
   try {
     const u = new URL(url);
     if (API_NO_CACHEAR_HOSTS.some((h) => u.hostname === h)) return false;
-    if (u.hostname === 'es.wikipedia.org' && u.search.includes('list=geosearch')) return false;
+    if (u.hostname === 'es.wikipedia.org' && u.search.includes('geosearch')) return false;
     return true;
   } catch (e) {
     return false;

@@ -1,0 +1,473 @@
+{
+ "query": {
+  "pages": [
+   {
+    "pageid": 170626,
+    "title": "Las Matas",
+    "index": -1,
+    "coordinates": [
+     {
+      "lat": 40.55055556,
+      "lon": -3.89027778
+     }
+    ]
+   },
+   {
+    "pageid": 175690,
+    "title": "Hoyo de Manzanares",
+    "index": 0,
+    "description": "municipio de la Comunidad de Madrid‎, España",
+    "coordinates": [
+     {
+      "lat": 40.6216115,
+      "lon": -3.9091317
+     }
+    ]
+   },
+   {
+    "pageid": 211751,
+    "title": "Alpedrete",
+    "index": 1,
+    "description": "municipio de la comunidad de Madrid, España",
+    "coordinates": [
+     {
+      "lat": 40.65833333,
+      "lon": -4.03222222
+     }
+    ]
+   },
+   {
+    "pageid": 245483,
+    "title": "Collado Villalba",
+    "index": 2,
+    "description": "municipio español en la Comunidad de Madrid",
+    "coordinates": [
+     {
+      "lat": 40.64527778,
+      "lon": -3.99138889
+     }
+    ]
+   },
+   {
+    "pageid": 308653,
+    "title": "Los Negrales",
+    "index": 3,
+    "description": "localidad de Guadarrama",
+    "coordinates": [
+     {
+      "lat": 40.638525,
+      "lon": -4.02721944
+     }
+    ]
+   },
+   {
+    "pageid": 317804,
+    "title": "Galapagar",
+    "index": 4,
+    "description": "municipio de la Comunidad de Madrid, España",
+    "coordinates": [
+     {
+      "lat": 40.57638889,
+      "lon": -4.00194444
+     }
+    ]
+   },
+   {
+    "pageid": 333560,
+    "title": "Torrelodones",
+    "index": 5,
+    "description": "municipio de la Comunidad de Madrid, España",
+    "coordinates": [
+     {
+      "lat": 40.57638889,
+      "lon": -3.93
+     }
+    ]
+   },
+   {
+    "pageid": 368741,
+    "title": "Sierra de Hoyo de Manzanares",
+    "index": 6,
+    "description": "cadena montañosa en España",
+    "coordinates": [
+     {
+      "lat": 40.63333333,
+      "lon": -3.93333333
+     }
+    ]
+   },
+   {
+    "pageid": 476215,
+    "title": "Colmenarejo",
+    "index": 7,
+    "description": "municipio de la Comunidad de Madrid‎, España",
+    "coordinates": [
+     {
+      "lat": 40.55972222,
+      "lon": -4.01166667
+     }
+    ]
+   },
+   {
+    "pageid": 495100,
+    "title": "Cuenca del Guadarrama",
+    "index": 8,
+    "description": "comarca de la comunidad de Madrid, España",
+    "coordinates": [
+     {
+      "lat": 40.60759305,
+      "lon": -4.02201921
+     }
+    ]
+   },
+   {
+    "pageid": 663773,
+    "title": "Atalaya de Torrelodones",
+    "index": 9,
+    "coordinates": [
+     {
+      "lat": 40.5739,
+      "lon": -3.9325
+     }
+    ]
+   },
+   {
+    "pageid": 802607,
+    "title": "Navalquejigo",
+    "index": 10,
+    "description": "localidad de El Escorial, España",
+    "coordinates": [
+     {
+      "lat": 40.60527222,
+      "lon": -4.04979167
+     }
+    ]
+   },
+   {
+    "pageid": 914238,
+    "title": "La Granjilla de La Fresneda",
+    "index": 11,
+    "description": "bien de interés cultural",
+    "coordinates": [
+     {
+      "lat": 40.576797,
+      "lon": -4.104932
+     }
+    ]
+   },
+   {
+    "pageid": 955275,
+    "title": "Los Peñascales",
+    "index": 12,
+    "coordinates": [
+     {
+      "lat": 40.56833333,
+      "lon": -3.89638889
+     }
+    ]
+   },
+   {
+    "pageid": 958396,
+    "title": "Presa de El Gasco",
+    "index": 13,
+    "description": "proyecto de ingeniería civil del siglo XVIII sobre el río Guadarrama, en Madrid, España",
+    "coordinates": [
+     {
+      "lat": 40.55055556,
+      "lon": -3.94527778
+     }
+    ]
+   },
+   {
+    "pageid": 1012712,
+    "title": "Embalse de Valmayor",
+    "index": 14,
+    "description": "embalse en el río Aulencia",
+    "coordinates": [
+     {
+      "lat": 40.53638889,
+      "lon": -4.04694444
+     }
+    ]
+   },
+   {
+    "pageid": 1039387,
+    "title": "Universidad a Distancia de Madrid",
+    "index": 15,
+    "description": "universidad privada española",
+    "coordinates": [
+     {
+      "lat": 40.63158333,
+      "lon": -3.99875
+     }
+    ]
+   },
+   {
+    "pageid": 1052696,
+    "title": "Puerto de Galapagar",
+    "index": 16,
+    "coordinates": [
+     {
+      "lat": 40.555135,
+      "lon": -3.961794
+     }
+    ]
+   },
+   {
+    "pageid": 1139026,
+    "title": "Estación de Las Matas",
+    "index": 17,
+    "coordinates": [
+     {
+      "lat": 40.55236111,
+      "lon": -3.89675
+     }
+    ]
+   },
+   {
+    "pageid": 1139030,
+    "title": "Estación de Torrelodones",
+    "index": 18,
+    "coordinates": [
+     {
+      "lat": 40.57455556,
+      "lon": -3.95655556
+     }
+    ]
+   },
+   {
+    "pageid": 1139038,
+    "title": "Estación de Galapagar-La Navata",
+    "index": 19,
+    "coordinates": [
+     {
+      "lat": 40.60027778,
+      "lon": -3.98225
+     }
+    ]
+   },
+   {
+    "pageid": 1139047,
+    "title": "Estación de Villalba",
+    "index": 20,
+    "description": "estación ferroviaria española",
+    "coordinates": [
+     {
+      "lat": 40.62647222,
+      "lon": -4.00808333
+     }
+    ]
+   },
+   {
+    "pageid": 1139061,
+    "title": "Estación de San Yago",
+    "index": 21,
+    "coordinates": [
+     {
+      "lat": 40.61783333,
+      "lon": -4.03108333
+     }
+    ]
+   },
+   {
+    "pageid": 1139065,
+    "title": "Estación de Las Zorreras",
+    "index": 22,
+    "coordinates": [
+     {
+      "lat": 40.6093,
+      "lon": -4.04636
+     }
+    ]
+   },
+   {
+    "pageid": 1139070,
+    "title": "Estación de Los Negrales",
+    "index": 23,
+    "coordinates": [
+     {
+      "lat": 40.6385,
+      "lon": -4.02187
+     }
+    ]
+   },
+   {
+    "pageid": 1139149,
+    "title": "Estación de Alpedrete",
+    "index": 24,
+    "coordinates": [
+     {
+      "lat": 40.65825,
+      "lon": -4.03511111
+     }
+    ]
+   },
+   {
+    "pageid": 1248188,
+    "title": "Palacio del Canto del Pico",
+    "index": 25,
+    "description": "Propiedad de interés cultural en Torrelodones, Madrid, España",
+    "coordinates": [
+     {
+      "lat": 40.589191,
+      "lon": -3.925533
+     }
+    ]
+   },
+   {
+    "pageid": 1509745,
+    "title": "Puente Nuevo (Galapagar)",
+    "index": 26,
+    "description": "puente sobre el río Guadarrama, en España",
+    "coordinates": [
+     {
+      "lat": 40.58379364,
+      "lon": -3.96628308
+     }
+    ]
+   },
+   {
+    "pageid": 1514700,
+    "title": "Puente de la Alcanzorla (Galapagar)",
+    "index": 27,
+    "description": "puente sobre el río Guadarrama, en España",
+    "coordinates": [
+     {
+      "lat": 40.587837,
+      "lon": -3.9713216
+     }
+    ]
+   },
+   {
+    "pageid": 1956300,
+    "title": "Casa-fuerte de El Campillo",
+    "index": 28,
+    "description": "residencia palaciega que se halla  dentro del municipio español de El Escorial. Se considera bien de interés cultural",
+    "coordinates": [
+     {
+      "lat": 40.63076667,
+      "lon": -4.09353889
+     }
+    ]
+   },
+   {
+    "pageid": 2010999,
+    "title": "Embalse de Gabriel Enríquez de la Orden",
+    "index": 29,
+    "coordinates": [
+     {
+      "lat": 40.57413889,
+      "lon": -3.89924444
+     }
+    ]
+   },
+   {
+    "pageid": 2011377,
+    "title": "Embalse de Los Arroyos",
+    "index": 30,
+    "description": "embalse en el arroyo Ladrón, afluente del Aulencia",
+    "coordinates": [
+     {
+      "lat": 40.59119,
+      "lon": -4.05117
+     }
+    ]
+   },
+   {
+    "pageid": 2455977,
+    "title": "Hospital de Madrid Torrelodones",
+    "index": 31,
+    "description": "hospital en España",
+    "coordinates": [
+     {
+      "lat": 40.56972222,
+      "lon": -3.92361111
+     }
+    ]
+   },
+   {
+    "pageid": 3605680,
+    "title": "La Berzosa",
+    "index": 32,
+    "description": "urbanización del municipio de Hoyo de Manzanares",
+    "coordinates": [
+     {
+      "lat": 40.60903,
+      "lon": -3.939122
+     }
+    ]
+   },
+   {
+    "pageid": 4814365,
+    "title": "M-505",
+    "index": 33,
+    "description": "carretera de la Comunidad de Madrid",
+    "coordinates": [
+     {
+      "lat": 40.57868611,
+      "lon": -4.073375
+     }
+    ]
+   },
+   {
+    "pageid": 9391363,
+    "title": "Estación de Los Peñascales",
+    "index": 34,
+    "description": "Antigua estación ferroviaria en la Comunidad de Madrid",
+    "coordinates": [
+     {
+      "lat": 40.56183333,
+      "lon": -3.90430556
+     }
+    ]
+   },
+   {
+    "pageid": 10490003,
+    "title": "Casa real de Monesterio",
+    "index": 35,
+    "description": "Residencia real con origen en el siglo XVI",
+    "coordinates": [
+     {
+      "lat": 40.638757,
+      "lon": -4.04947
+     }
+    ]
+   },
+   {
+    "pageid": 10962429,
+    "title": "Hospital Universitario General de Villalba",
+    "index": 36,
+    "description": "hospital en España",
+    "coordinates": [
+     {
+      "lat": 40.65483056,
+      "lon": -4.0008
+     }
+    ]
+   },
+   {
+    "pageid": 11065160,
+    "title": "Ayuntamiento de Galapagar",
+    "index": 37,
+    "description": "ayuntamiento de España",
+    "coordinates": [
+     {
+      "lat": 40.58050629,
+      "lon": -4.00612045
+     }
+    ]
+   },
+   {
+    "pageid": 11564190,
+    "title": "Partido judicial de Collado Villalba",
+    "index": 38,
+    "coordinates": [
+     {
+      "lat": 40.64527778,
+      "lon": -3.99138889
+     }
+    ]
+   }
+  ]
+ }
+}

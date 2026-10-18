@@ -198,9 +198,27 @@ const Carreteras = (() => {
     return { codigo, tipo: clasificarTipo(codigo) };
   }
 
+  // PENDIENTES n.º 3: el nombre que acompaña a la pastilla. OpenStreetMap da a
+  // veces nombres que repiten el código ("Carretera de LE-142 por El Ganso a
+  // LE-142 (Rabanal del Camino)"), y como la etiqueta va en una línea se cortaba
+  // a media frase. La pastilla ya dice el código: se quita si va entre
+  // paréntesis al final y, si el nombre lo sigue repitiendo, no se enseña.
+  function etiquetaVia(codigo, texto) {
+    const limpio = texto ? String(texto).trim() : '';
+    if (!limpio || !codigo) return limpio;
+    const partes = /^([A-Z]+)-?(\d+)$/i.exec(codigo);
+    if (!partes) return limpio === codigo ? '' : limpio;
+    // Con o sin guion, y sin confundir A-6 con A-60 o con LA-6.
+    const cod = `${partes[1]}[-\\s]?${partes[2]}`;
+    const repite = new RegExp(`(?<![A-Z0-9])${cod}(?!\\d)`, 'i');
+    const sinParentesis = limpio.replace(new RegExp(`\\s*\\(\\s*${cod}\\s*\\)$`, 'i'), '').trim();
+    return (!sinParentesis || repite.test(sinParentesis)) ? '' : sinParentesis;
+  }
+
   return {
     extraerCodigo,
     clasificarTipo,
+    etiquetaVia,
     // Se exponen para poder testearlas desde consola si hiciera falta:
     _buscarCodigoEnTexto: buscarCodigoEnTexto,
     _normalizarTexto: normalizarTexto,

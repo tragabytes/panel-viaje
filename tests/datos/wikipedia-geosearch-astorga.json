@@ -1,0 +1,602 @@
+{
+ "query": {
+  "pages": [
+   {
+    "pageid": 269,
+    "title": "Astorga",
+    "index": -1,
+    "description": "municipio de la provincia de León, España",
+    "coordinates": [
+     {
+      "lat": 42.4575,
+      "lon": -6.05694444
+     }
+    ]
+   },
+   {
+    "pageid": 19015,
+    "title": "Villaobispo de Otero",
+    "index": 0,
+    "description": "municipio de la provincia de León, España",
+    "coordinates": [
+     {
+      "lat": 42.49972222,
+      "lon": -6.05833333
+     }
+    ]
+   },
+   {
+    "pageid": 19196,
+    "title": "Palacio Episcopal de Astorga",
+    "index": 1,
+    "description": "edificio en Astorga, España",
+    "coordinates": [
+     {
+      "lat": 42.4578,
+      "lon": -6.056
+     }
+    ]
+   },
+   {
+    "pageid": 95391,
+    "title": "Catedral de Astorga",
+    "index": 2,
+    "description": "catedral en Astorga, España",
+    "coordinates": [
+     {
+      "lat": 42.45777778,
+      "lon": -6.05694444
+     }
+    ]
+   },
+   {
+    "pageid": 210469,
+    "title": "Asturica Augusta",
+    "index": 3,
+    "description": "ciudad romana en España",
+    "coordinates": [
+     {
+      "lat": 42.4589,
+      "lon": -6.06333
+     }
+    ]
+   },
+   {
+    "pageid": 419637,
+    "title": "Río Jerga",
+    "index": 4,
+    "description": "río de España",
+    "coordinates": [
+     {
+      "lat": 42.42755,
+      "lon": -6.02075
+     }
+    ]
+   },
+   {
+    "pageid": 527940,
+    "title": "San Justo de la Vega",
+    "index": 5,
+    "description": "municipio de la provincia de León, España",
+    "coordinates": [
+     {
+      "lat": 42.45416667,
+      "lon": -6.01472222
+     }
+    ]
+   },
+   {
+    "pageid": 531691,
+    "title": "Castrillo de los Polvazares",
+    "index": 6,
+    "description": "localidad del municipio de Astorga, provincia de León, España",
+    "coordinates": [
+     {
+      "lat": 42.465,
+      "lon": -6.12833333
+     }
+    ]
+   },
+   {
+    "pageid": 896934,
+    "title": "Carneros",
+    "index": 7,
+    "description": "localidad de la provincia de León, España",
+    "coordinates": [
+     {
+      "lat": 42.47583333,
+      "lon": -6.04777778
+     }
+    ]
+   },
+   {
+    "pageid": 1032092,
+    "title": "País Leonés",
+    "index": 8,
+    "description": "territorio donde se extienden la cultura y la lengua leonesas",
+    "coordinates": [
+     {
+      "lat": 42.46349,
+      "lon": -6.06171
+     }
+    ]
+   },
+   {
+    "pageid": 1151359,
+    "title": "Celada (San Justo de la Vega)",
+    "index": 9,
+    "description": "localidad del municipio de San Justo de la Vega, provincia de León, España",
+    "coordinates": [
+     {
+      "lat": 42.42815833,
+      "lon": -6.03029167
+     }
+    ]
+   },
+   {
+    "pageid": 1974961,
+    "title": "Fontoria de Cepeda",
+    "index": 10,
+    "coordinates": [
+     {
+      "lat": 42.51761667,
+      "lon": -6.04121389
+     }
+    ]
+   },
+   {
+    "pageid": 2117525,
+    "title": "Sopeña de Carneros",
+    "index": 11,
+    "description": "localidad de la provincia de León, España",
+    "coordinates": [
+     {
+      "lat": 42.48805556,
+      "lon": -6.045
+     }
+    ]
+   },
+   {
+    "pageid": 2193609,
+    "title": "Valdeviejas",
+    "index": 12,
+    "description": "localidad del municipio de Astorga, provincia de León, España",
+    "coordinates": [
+     {
+      "lat": 42.46138889,
+      "lon": -6.07888889
+     }
+    ]
+   },
+   {
+    "pageid": 2193630,
+    "title": "Murias de Rechivaldo",
+    "index": 13,
+    "description": "localidad del municipio de Astorga, provincia de León, España",
+    "coordinates": [
+     {
+      "lat": 42.46027778,
+      "lon": -6.10416667
+     }
+    ]
+   },
+   {
+    "pageid": 2295529,
+    "title": "Muralla de Astorga",
+    "index": 14,
+    "description": "muralla en Astorga, España",
+    "coordinates": [
+     {
+      "lat": 42.4575,
+      "lon": -6.055
+     }
+    ]
+   },
+   {
+    "pageid": 3351358,
+    "title": "Sitios de Astorga",
+    "index": 15,
+    "description": "asedio de la guerra de la Independencia española (1810)",
+    "coordinates": [
+     {
+      "lat": 42.4575,
+      "lon": -6.05694444
+     }
+    ]
+   },
+   {
+    "pageid": 4538231,
+    "title": "Hermandad de la Santa Cena (Astorga)",
+    "index": 16,
+    "description": "cofradía católica de Astorga, España",
+    "coordinates": [
+     {
+      "lat": 42.45443889,
+      "lon": -6.05174444
+     }
+    ]
+   },
+   {
+    "pageid": 4545305,
+    "title": "Hermandad de Caballeros del Silencio de Nuestro Padre Jesús Nazareno",
+    "index": 17,
+    "description": "cofradía católica de Astorga, España",
+    "coordinates": [
+     {
+      "lat": 42.45443889,
+      "lon": -6.05174444
+     }
+    ]
+   },
+   {
+    "pageid": 4931519,
+    "title": "Hospital de San Juan Bautista (Astorga)",
+    "index": 18,
+    "description": "edificio en Astorga, España",
+    "coordinates": [
+     {
+      "lat": 42.45765833,
+      "lon": -6.0576
+     }
+    ]
+   },
+   {
+    "pageid": 4982855,
+    "title": "Santuario de la Virgen de Fátima (Astorga)",
+    "index": 19,
+    "description": "edificio en Astorga, España",
+    "coordinates": [
+     {
+      "lat": 42.45375,
+      "lon": -6.0535
+     }
+    ]
+   },
+   {
+    "pageid": 5061312,
+    "title": "Bonillos",
+    "index": 20,
+    "description": "localidad del municipio de Brazuelo, provincia de León, España",
+    "coordinates": [
+     {
+      "lat": 42.48944444,
+      "lon": -6.09055556
+     }
+    ]
+   },
+   {
+    "pageid": 5063425,
+    "title": "San Román de la Vega",
+    "index": 21,
+    "description": "localidad del municipio de San Justo de la Vega, provincia de León, España",
+    "coordinates": [
+     {
+      "lat": 42.47194444,
+      "lon": -6.02444444
+     }
+    ]
+   },
+   {
+    "pageid": 5064727,
+    "title": "Brimeda",
+    "index": 22,
+    "description": "localidad de la provincia de León, España",
+    "coordinates": [
+     {
+      "lat": 42.48833333,
+      "lon": -6.06638889
+     }
+    ]
+   },
+   {
+    "pageid": 5107783,
+    "title": "Estación de Astorga",
+    "index": 23,
+    "description": "estación de ferrocarril en Astorga, España",
+    "coordinates": [
+     {
+      "lat": 42.45941667,
+      "lon": -6.04722222
+     }
+    ]
+   },
+   {
+    "pageid": 5123868,
+    "title": "Estación de Nistal",
+    "index": 24,
+    "coordinates": [
+     {
+      "lat": 42.42444444,
+      "lon": -6.008
+     }
+    ]
+   },
+   {
+    "pageid": 5124077,
+    "title": "Estación de Otero de Escarpizo",
+    "index": 25,
+    "coordinates": [
+     {
+      "lat": 42.51380556,
+      "lon": -6.05516667
+     }
+    ]
+   },
+   {
+    "pageid": 5981298,
+    "title": "Oteruelo de la Valduerna",
+    "index": 26,
+    "description": "localidad del municipio de Santiago Millas, provincia de León, España",
+    "coordinates": [
+     {
+      "lat": 42.41944444,
+      "lon": -6.08833333
+     }
+    ]
+   },
+   {
+    "pageid": 6205356,
+    "title": "Batalla de las Babias",
+    "index": 27,
+    "description": "Batalla de la Reconquista",
+    "coordinates": [
+     {
+      "lat": 42.45805556,
+      "lon": -6.05444444
+     }
+    ]
+   },
+   {
+    "pageid": 7923142,
+    "title": "Museo de los Caminos",
+    "index": 28,
+    "description": "museo en Astorga, España",
+    "coordinates": [
+     {
+      "lat": 42.4578,
+      "lon": -6.056
+     }
+    ]
+   },
+   {
+    "pageid": 8173425,
+    "title": "Termas romanas de Asturica Augusta",
+    "index": 29,
+    "description": "termas romanas",
+    "coordinates": [
+     {
+      "lat": 42.456001,
+      "lon": -6.055226
+     }
+    ]
+   },
+   {
+    "pageid": 8297579,
+    "title": "Requejo de Pradorrey",
+    "index": 30,
+    "description": "localidad del municipio de Brazuelo, provincia de León, España",
+    "coordinates": [
+     {
+      "lat": 42.49277778,
+      "lon": -6.10666667
+     }
+    ]
+   },
+   {
+    "pageid": 8461160,
+    "title": "Otero de Escarpizo",
+    "index": 31,
+    "description": "localidad del municipio leonés de Villaobispo de Otero, provincia de León, España",
+    "coordinates": [
+     {
+      "lat": 42.51619722,
+      "lon": -6.06043889
+     }
+    ]
+   },
+   {
+    "pageid": 8461164,
+    "title": "La Carrera (León)",
+    "index": 32,
+    "coordinates": [
+     {
+      "lat": 42.50925833,
+      "lon": -6.0431
+     }
+    ]
+   },
+   {
+    "pageid": 8461169,
+    "title": "Nistal",
+    "index": 33,
+    "description": "localidad del municipio de San Justo de la Vega, provincia de León, España",
+    "coordinates": [
+     {
+      "lat": 42.42368889,
+      "lon": -6.00750278
+     }
+    ]
+   },
+   {
+    "pageid": 8466948,
+    "title": "Morales del Arcediano",
+    "index": 34,
+    "description": "localidad española de la provincia de León",
+    "coordinates": [
+     {
+      "lat": 42.42079444,
+      "lon": -6.09760556
+     }
+    ]
+   },
+   {
+    "pageid": 8466953,
+    "title": "Piedralba",
+    "index": 35,
+    "description": "localidad del municipio de Santiago Millas",
+    "coordinates": [
+     {
+      "lat": 42.42455,
+      "lon": -6.072275
+     }
+    ]
+   },
+   {
+    "pageid": 8472059,
+    "title": "Cuevas (Valderrey)",
+    "index": 36,
+    "description": "localidad de la provincia de León, España",
+    "coordinates": [
+     {
+      "lat": 42.41789722,
+      "lon": -6.03447778
+     }
+    ]
+   },
+   {
+    "pageid": 8929988,
+    "title": "Museo Romano (Astorga)",
+    "index": 37,
+    "description": "museo arqueológico en Astorga, España",
+    "coordinates": [
+     {
+      "lat": 42.45422778,
+      "lon": -6.05243889
+     }
+    ]
+   },
+   {
+    "pageid": 9236358,
+    "title": "Río Turienzo",
+    "index": 38,
+    "description": "curso de agua de España",
+    "coordinates": [
+     {
+      "lat": 42.41805556,
+      "lon": -6.00666667
+     }
+    ]
+   },
+   {
+    "pageid": 9460877,
+    "title": "Museo del Chocolate de Astorga",
+    "index": 39,
+    "description": "museo en Astorga, España",
+    "coordinates": [
+     {
+      "lat": 42.45861111,
+      "lon": -6.04988889
+     }
+    ]
+   },
+   {
+    "pageid": 9512378,
+    "title": "Estación de Astorga-Clasificación",
+    "index": 40,
+    "description": "estación de ferrocarril en Astorga, España",
+    "coordinates": [
+     {
+      "lat": 42.44777778,
+      "lon": -6.04375
+     }
+    ]
+   },
+   {
+    "pageid": 9830823,
+    "title": "Real Cofradía de Nuestro Padre Jesús Nazareno y María Santísima de la Soledad (Astorga)",
+    "index": 41,
+    "description": "cofradía católica de Astorga, España",
+    "coordinates": [
+     {
+      "lat": 42.45880556,
+      "lon": -6.05127778
+     }
+    ]
+   },
+   {
+    "pageid": 9835766,
+    "title": "Cofradía de las Damas de la Virgen de la Piedad",
+    "index": 42,
+    "description": "cofradía católica de Astorga, España",
+    "coordinates": [
+     {
+      "lat": 42.45377778,
+      "lon": -6.05347222
+     }
+    ]
+   },
+   {
+    "pageid": 9836208,
+    "title": "Cofradía del Bendito Cristo de los Afligidos",
+    "index": 43,
+    "description": "cofradía católica de Astorga, España",
+    "coordinates": [
+     {
+      "lat": 42.45152778,
+      "lon": -6.04975
+     }
+    ]
+   },
+   {
+    "pageid": 9836386,
+    "title": "Cofradía de la Entrada de Jesús en Jerusalén (Astorga)",
+    "index": 44,
+    "description": "cofradía católica de Astorga, España",
+    "coordinates": [
+     {
+      "lat": 42.45902778,
+      "lon": -6.06258333
+     }
+    ]
+   },
+   {
+    "pageid": 9837064,
+    "title": "Archicofradía de Nuestra Señora de los Dolores",
+    "index": 45,
+    "description": "cofradía católica de Astorga, España",
+    "coordinates": [
+     {
+      "lat": 42.45436111,
+      "lon": -6.05169444
+     }
+    ]
+   },
+   {
+    "pageid": 9837109,
+    "title": "Cofradía de la Santa Vera Cruz y Confalón",
+    "index": 46,
+    "description": "cofradía católica de Astorga, España",
+    "coordinates": [
+     {
+      "lat": 42.45322222,
+      "lon": -6.05122222
+     }
+    ]
+   },
+   {
+    "pageid": 10408793,
+    "title": "Río Porcos",
+    "index": 47,
+    "description": "curso de agua de España",
+    "coordinates": [
+     {
+      "lat": 42.51222222,
+      "lon": -6.05138889
+     }
+    ]
+   },
+   {
+    "pageid": 10409057,
+    "title": "Río Argañoso",
+    "index": 48,
+    "description": "curso de agua de España",
+    "coordinates": [
+     {
+      "lat": 42.48805556,
+      "lon": -6.07222222
+     }
+    ]
+   }
+  ]
+ }
+}

@@ -118,8 +118,12 @@ const LocationModule = (() => {
       addr.city || addr.town || addr.village ||
       addr.hamlet || addr.municipality || null;
     const ccaa = addr.state || null;
-    // Uniprovinciales (Madrid, Asturias, etc.): no hay province, usamos CCAA.
-    const provincia = addr.province || ccaa || null;
+    // PENDIENTES n.º 5: Nominatim da la provincia en state_district (comprobado
+    // el 18/10/2026 en Astorga, Toledo, Gerona y La Coruña); province ya no
+    // viene, y el panel ponía la comunidad como provincia ("Castilla y León").
+    // county no sirve: en Cataluña y Galicia es la comarca (Gironés).
+    // Uniprovinciales (Madrid, Asturias, etc.): no hay ninguna, usamos CCAA.
+    const provincia = addr.province || addr.state_district || ccaa || null;
     return { municipio, provincia, ccaa };
   }
 
@@ -201,5 +205,15 @@ const LocationModule = (() => {
     return peticionCarretera;
   }
 
-  return { obtenerUbicacion, obtenerCarretera };
+  return {
+    obtenerUbicacion,
+    obtenerCarretera,
+    // Expuesto para los tests:
+    _normalizarUbicacion: normalizarUbicacion,
+  };
 })();
+
+// Compat Node: require() en los tests sin afectar al navegador.
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = LocationModule;
+}

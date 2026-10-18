@@ -60,8 +60,11 @@
       }
     }
 
-    // IDB: buscar por coordenadas redondeadas a 2 decimales (~1km)
-    const idbKey = `pueblos:${lat.toFixed(2)}:${lon.toFixed(2)}`;
+    // IDB: buscar por coordenadas redondeadas a 2 decimales (~1km).
+    // "-v2" (18/10/2026, PENDIENTES n.º 2): las listas guardadas antes podían
+    // traer cofradías o asedios de Wikipedia; así no se vuelven a leer (se
+    // borran solas a los 14 días, como todo lo de esta caché).
+    const idbKey = `pueblos-v2:${lat.toFixed(2)}:${lon.toFixed(2)}`;
     const idbDatos = await POIIdb.leer(idbKey);
     if (idbDatos) {
       const pueblosIdb = idbDatos.map(p => ({
@@ -116,7 +119,9 @@
       return cached;
     }
 
-    const idbKey = `pois:${nombre}`;
+    // "-v2" (18/10/2026): las listas guardadas antes podían traer pueblos
+    // vecinos o cofradías sacados de Wikipedia como si fueran monumentos.
+    const idbKey = `pois-v2:${nombre}`;
     const idbDatos = await POIIdb.leer(idbKey);
     if (idbDatos) {
       cachePOIs.set(nombre, idbDatos);
@@ -424,6 +429,9 @@
       if (municipioActual) {
         try {
           datosMunicipio = await obtenerDatosMunicipio(municipioActual, lat, lon);
+          // PENDIENTES n.º 4: de quién son, para que la cabecera no enseñe los
+          // del pueblo anterior mientras llegan los del nuevo.
+          if (datosMunicipio) datosMunicipio = { ...datosMunicipio, municipio: municipioActual };
           parcial.datosMunicipio = datosMunicipio;
         } catch (e) {
           if (typeof debug !== 'undefined') {

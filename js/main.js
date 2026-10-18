@@ -54,124 +54,6 @@
     }
   }
 
-  // SVGs temáticos para POIs sin foto (V3 grid). Sustituyen al placeholder
-  // de rayas cuando ni Wikipedia ni Wikidata identifican el POI. Heredan
-  // currentColor del CSS (fósforo dim). viewBox 24x24 para todos.
-  const SVG_CASTLE   = '<svg viewBox="0 0 24 24"><path d="M3 22V8l3 1V5l3 1V3l3-1 3 1v3l3-1v4l3-1v14z"/><path d="M9 22v-6h6v6"/></svg>';
-  const SVG_CHURCH   = '<svg viewBox="0 0 24 24"><path d="M12 2v5"/><path d="M10 4h4"/><path d="M12 7l-7 5v10h14V12z"/><path d="M10 22v-5a2 2 0 0 1 4 0v5"/></svg>';
-  const SVG_MONUMENT = '<svg viewBox="0 0 24 24"><path d="M9 22V8l3-6 3 6v14z"/><path d="M6 22h12"/></svg>';
-  const SVG_RUINS    = '<svg viewBox="0 0 24 24"><path d="M3 22h18"/><path d="M5 22V9M10 22v-7M14 22v-9M19 22V11"/><path d="M3 6h18l-2 3H5z"/></svg>';
-  const SVG_VIEW     = '<svg viewBox="0 0 24 24"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
-  const SVG_STAR     = '<svg viewBox="0 0 24 24"><path d="M12 2l3 6 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z"/></svg>';
-  const SVG_PEAK     = '<svg viewBox="0 0 24 24"><path d="M2 22l7-12 4 6 3-4 6 10z"/></svg>';
-  const SVG_PIN      = '<svg viewBox="0 0 24 24"><path d="M12 22s8-7 8-13a8 8 0 0 0-16 0c0 6 8 13 8 13z"/><circle cx="12" cy="9" r="3"/></svg>';
-  const ICONOS_SVG_POI = {
-    castle: SVG_CASTLE, fort: SVG_CASTLE, city_gate: SVG_CASTLE,
-    cathedral: SVG_CHURCH, monastery: SVG_CHURCH, church: SVG_CHURCH, chapel: SVG_CHURCH,
-    monument: SVG_MONUMENT, memorial: SVG_MONUMENT,
-    ruins: SVG_RUINS, archaeological_site: SVG_RUINS,
-    viewpoint: SVG_VIEW,
-    attraction: SVG_STAR,
-    peak: SVG_PEAK,
-  };
-  function iconoSvgPoi(tipo) {
-    return ICONOS_SVG_POI[tipo] || SVG_PIN;
-  }
-
-  // ===== Vista logs (?logs=1): administración de trayectos persistidos =====
-
-  function arrancarVistaLogs() {
-    document.getElementById('visor').style.display = 'none';
-    document.getElementById('vistaLogs').style.display = '';
-    document.body.style.overflow = 'auto';
-
-    const $lista = document.getElementById('logsLista');
-    const $vacio = document.getElementById('logsVacio');
-    const $borrarTodos = document.getElementById('logsBorrarTodos');
-
-    function pad2(n){return n<10?'0'+n:''+n;}
-    function fmtFecha(ms){
-      const d = new Date(ms);
-      return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate())+
-             ' '+pad2(d.getHours())+':'+pad2(d.getMinutes());
-    }
-    function fmtDuracion(ms){
-      const s = Math.max(0, Math.floor(ms/1000));
-      const h = Math.floor(s/3600), m = Math.floor((s%3600)/60), sec = s%60;
-      if (h) return h+'h '+pad2(m)+'m';
-      if (m) return m+'m '+pad2(sec)+'s';
-      return sec+'s';
-    }
-
-    async function pintarLista() {
-      $lista.innerHTML = '';
-      const trayectos = await Trayectos.listar();
-      if (!trayectos.length) {
-        $vacio.style.display = '';
-        return;
-      }
-      $vacio.style.display = 'none';
-      for (const t of trayectos) {
-        const card = document.createElement('div');
-        card.style.cssText = 'background:#1a1f2e; border:1px solid #2a3142; border-radius:8px; padding:12px 14px; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;';
-        const info = document.createElement('div');
-        info.style.cssText = 'flex:1; min-width:220px;';
-        const duracionMs = t.fin ? (new Date(t.fin) - t.id) : 0; // fin no se marca; queda 0 por ahora
-        info.innerHTML =
-          '<div style="font-size:15px; font-weight:600;">'+fmtFecha(t.id)+'</div>'+
-          '<div style="font-size:12px; color:#94a3b8; margin-top:2px;">'+
-            t.nMensajes+' mensajes · '+t.nTrack+' puntos de track'+
-          '</div>';
-        const acciones = document.createElement('div');
-        acciones.style.cssText = 'display:flex; gap:8px;';
-        const btnDescargar = document.createElement('button');
-        btnDescargar.type = 'button';
-        btnDescargar.textContent = 'Descargar';
-        btnDescargar.style.cssText = 'background:#1d4ed8; color:#fff; border:none; border-radius:6px; padding:6px 12px; font-size:13px; cursor:pointer;';
-        btnDescargar.addEventListener('click', () => descargar(t.id));
-        const btnBorrar = document.createElement('button');
-        btnBorrar.type = 'button';
-        btnBorrar.textContent = 'Borrar';
-        btnBorrar.style.cssText = 'background:#7f1d1d; color:#fff; border:none; border-radius:6px; padding:6px 12px; font-size:13px; cursor:pointer;';
-        btnBorrar.addEventListener('click', async () => {
-          if (!confirm('¿Borrar este trayecto? No se puede deshacer.')) return;
-          await Trayectos.borrar(t.id);
-          await pintarLista();
-        });
-        acciones.appendChild(btnDescargar);
-        acciones.appendChild(btnBorrar);
-        card.appendChild(info);
-        card.appendChild(acciones);
-        $lista.appendChild(card);
-      }
-    }
-
-    async function descargar(id) {
-      const texto = await Trayectos.exportarTxt(id);
-      if (!texto) { alert('No se pudo generar el archivo.'); return; }
-      const blob = new Blob([texto], { type: 'text/plain;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      const d = new Date(id);
-      const nombre = 'panel-viaje-'+d.getFullYear()+pad2(d.getMonth()+1)+pad2(d.getDate())+'-'+
-                     pad2(d.getHours())+pad2(d.getMinutes())+pad2(d.getSeconds())+'.txt';
-      a.href = url;
-      a.download = nombre;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-    }
-
-    $borrarTodos.addEventListener('click', async () => {
-      if (!confirm('¿Borrar TODOS los trayectos? No se puede deshacer.')) return;
-      await Trayectos.borrarTodos();
-      await pintarLista();
-    });
-
-    pintarLista();
-  }
-
   // ===== Panel normal (modo por defecto) =====
 
   function arrancarPanel() {
@@ -270,27 +152,14 @@
 
     // --- Helpers ---
 
-    // IU-12: estado del cielo (noche | amanecer | dia | atardecer).
-    // amanecer y atardecer: ventanas de 45 min antes y 15 min después del
-    // evento solar, para cubrir la hora azul + primer/último sol bajo.
-    function calcularMomentoDia(sunriseISO, sunsetISO, nowMs) {
-      if (!sunriseISO || !sunsetISO) return 'dia';
-      const sunrise = new Date(sunriseISO).getTime();
-      const sunset  = new Date(sunsetISO).getTime();
-      if (isNaN(sunrise) || isNaN(sunset)) return 'dia';
-      const m45 = 45 * 60 * 1000;
-      const m15 = 15 * 60 * 1000;
-      if (nowMs >= sunrise - m45 && nowMs <= sunrise + m15) return 'amanecer';
-      if (nowMs >= sunset  - m45 && nowMs <= sunset  + m15) return 'atardecer';
-      if (nowMs >  sunrise + m15 && nowMs <  sunset  - m45) return 'dia';
-      return 'noche';
-    }
+    // Textos y trozos de HTML de cada vista: js/formato.js (puras, con tests).
+    const {
+      calcularMomentoDia, escapar, formatearAdmin, formatearAdminV1Html, gradosACardinal,
+      renderPalabraGigante, renderStoryV2, renderTimelineV2, renderMetricsV2,
+      formatearCoordsGMS, renderMiniForecast4h, iconoSvgPoi, distanciaKm, aplanarPOIs,
+    } = Formato;
 
-    function escapar(texto) {
-      const div = document.createElement('div');
-      div.textContent = texto;
-      return div.innerHTML;
-    }
+
 
     // DT-02 (sesión 33): distanciaMetros vive en js/geo.js.
     const distanciaMetros = Geo.distanciaMetros;
@@ -302,139 +171,12 @@
       $estado.className = 'p1-estado ' + (clase || '');
     }
 
-    function formatearAdmin(info) {
-      if (!info.ccaa && !info.provincia) return '—';
-      if (info.provincia && info.ccaa && info.provincia !== info.ccaa) {
-        return `${info.provincia} · ${info.ccaa}`;
-      }
-      return info.provincia || info.ccaa;
-    }
 
-    // V1 HUD (IU-19): crumbs territoriales con separador fósforo intermedio.
-    // Usa HTML mínimo en lugar de textContent para poder atenuar el "·".
-    function formatearAdminV1Html(info) {
-      if (!info.ccaa && !info.provincia) return '';
-      const partes = [];
-      if (info.ccaa) partes.push(escapar(info.ccaa));
-      if (info.provincia && info.provincia !== info.ccaa) partes.push(escapar(info.provincia));
-      return partes.join(' <span class="p1-sep">·</span> ');
-    }
 
-    // Convierte grados (0-360) a punto cardinal castellano para V1.
-    function gradosACardinal(deg) {
-      if (deg == null || isNaN(deg)) return '';
-      const puntos = ['N','NE','E','SE','S','SO','O','NO'];
-      return puntos[Math.round(deg / 45) % 8];
-    }
 
-    // IU-20 V2: renderiza la palabra gigante letra a letra (una <span> por
-    // carácter) para que el CSS .p2-word span pueda animar cada letra con un
-    // wobble suave escalonado. Si etiqueta viene vacía o null, devuelve "".
-    function renderPalabraGigante(etiqueta) {
-      if (!etiqueta) return '';
-      return String(etiqueta).split('').map(ch =>
-        `<span>${escapar(ch)}</span>`
-      ).join('');
-    }
 
-    // IU-20 V2: construye la "story line" debajo de la temperatura grande.
-    // Prioriza el dato más útil al conducir:
-    //   - si NO llueve ahora y hay lluvia >=30% en las próximas 6h: "Va a llover a las HH:00"
-    //   - si SÍ llueve ahora: "Para hacia las HH:00" (primera hora con <30%)
-    //   - si nada: "Sin lluvia prevista"
-    // Añade "· ráfagas N km/h" cuando el viento actual es notable (>15 km/h).
-    function renderStoryV2(meteo, horas) {
-      const partes = [];
-      const esAhoraLluvia = meteo.categoria === 'lluvia' || meteo.categoria === 'tormenta';
-      const finestras = horas || [];
-      if (esAhoraLluvia) {
-        const paraEn = finestras.find(h => (h.precipProbabilidad || 0) < 30);
-        if (paraEn && paraEn.hora) {
-          partes.push(`Para hacia las <span class="u-phos u-tab">${escapar(paraEn.hora.slice(11, 16))}</span>`);
-        } else {
-          partes.push('Lluvia persistente');
-        }
-      } else {
-        const empiezaEn = finestras.find(h => (h.precipProbabilidad || 0) >= 30);
-        if (empiezaEn && empiezaEn.hora) {
-          partes.push(`Va a llover a las <span class="u-phos u-tab">${escapar(empiezaEn.hora.slice(11, 16))}</span>`);
-        } else {
-          partes.push('Sin lluvia prevista');
-        }
-      }
-      if (meteo.vientoVelocidad != null && Math.round(meteo.vientoVelocidad) > 15) {
-        partes.push(
-          `<span class="u-dim"> · ráfagas </span>` +
-          `<span class="u-tab">${Math.round(meteo.vientoVelocidad)} ${escapar(meteo.vientoUnidad || 'km/h')}</span>`
-        );
-      }
-      return partes.join('');
-    }
 
-    // IU-20 V2: timeline vertical de 6 horas. Cada fila tiene hora, temp,
-    // una barra horizontal (ancho = precipProbabilidad 0-100%) y, si hay
-    // lluvia, el valor numérico al final. El peso tipográfico crece con la
-    // intensidad (300 en seco → 800 a 100%) y el fósforo gana alpha — así
-    // la tormenta salta a la vista sin depender de leer el número.
-    function renderTimelineV2(horas) {
-      if (!horas || horas.length === 0) return '';
-      const n = Math.min(6, horas.length);
-      return horas.slice(0, n).map(h => {
-        const pct = Math.min(100, Math.max(0, h.precipProbabilidad || 0));
-        const intensity = pct / 100;
-        const fontWeight = Math.round(300 + intensity * 500);
-        const alpha = (0.4 + intensity * 0.6).toFixed(2);
-        const hora = h.hora ? h.hora.slice(11, 13) + 'h' : '';
-        const temp = h.temperatura != null ? Math.round(h.temperatura) + '°' : '—';
-        const color = `rgba(125, 255, 160, ${alpha})`;
-        const pctText = pct > 0 ? Math.round(pct) + '%' : '';
-        // IU-32: icono meteo de la hora a la izquierda de la temperatura.
-        // h.icono es el id del symbol del sprite (meteo-sol, meteo-lluvia, ...).
-        const iconoHora = h.icono || 'meteo-desconocido';
-        return `<div class="p2-hr" style="font-weight:${fontWeight}; color:${color}">
-          <span class="p2-hr-hour">${escapar(hora)}</span>
-          <span class="p2-hr-icon" aria-hidden="true">${MeteoCodigos.iconoSVG(iconoHora)}</span>
-          <span class="p2-hr-temp">${escapar(temp)}</span>
-          <div class="p2-hr-bar" style="width:${Math.round(pct)}%"></div>
-          <span class="p2-hr-pct">${escapar(pctText)}</span>
-        </div>`;
-      }).join('');
-    }
 
-    // IU-20 V2 (ajuste): fila de métricas meteo complementarias — viento con
-    // punto cardinal, humedad, visibilidad en km. Discretas, en una sola línea.
-    function renderMetricsV2(meteo) {
-      if (!meteo) return '';
-      const partes = [];
-      if (meteo.vientoVelocidad != null) {
-        const cardinal = gradosACardinal(meteo.vientoDireccion);
-        const vel = Math.round(meteo.vientoVelocidad);
-        partes.push(
-          `<span class="p2-metric">
-            <span class="p2-metric-label u-caps">VIENTO</span>
-            <span class="p2-metric-value">${vel} ${escapar(meteo.vientoUnidad || 'km/h')}${cardinal ? ' ' + cardinal : ''}</span>
-          </span>`
-        );
-      }
-      if (meteo.humedad != null) {
-        partes.push(
-          `<span class="p2-metric">
-            <span class="p2-metric-label u-caps">HUMEDAD</span>
-            <span class="p2-metric-value">${meteo.humedad}${escapar(meteo.humedadUnidad || '%')}</span>
-          </span>`
-        );
-      }
-      if (meteo.visibilidad != null) {
-        const km = Math.round(meteo.visibilidad / 1000);
-        partes.push(
-          `<span class="p2-metric">
-            <span class="p2-metric-label u-caps">VISIB.</span>
-            <span class="p2-metric-value">${km} km</span>
-          </span>`
-        );
-      }
-      return partes.join('');
-    }
 
     // Spec 003: en el móvil apaisado no siempre caben las 6 horas (depende de
     // si la cabecera o la línea del viento ocupan una línea o dos). Se
@@ -451,48 +193,7 @@
       }
     }
 
-    // IU-22 V4: formatea coordenadas GPS a formato grados-minutos con
-    // hemisferio (ej. "40°34′N · 3°54′O"). Se muestra en la esquina superior
-    // derecha del mapa como cartografía.
-    function formatearCoordsGMS(lat, lon) {
-      const fmt = (v, pos, neg) => {
-        const deg = Math.abs(Math.trunc(v));
-        const min = Math.round(Math.abs(v - Math.trunc(v)) * 60);
-        const m = (min === 60) ? 0 : min;
-        const d = (min === 60) ? deg + 1 : deg;
-        const h = v >= 0 ? pos : neg;
-        return `${d}°${String(m).padStart(2, '0')}′${h}`;
-      };
-      return `${fmt(lat, 'N', 'S')} · ${fmt(lon, 'E', 'O')}`;
-    }
 
-    // Mini-forecast 4 horas para V1 (IU-19): columna con hora, barra proporcional
-    // a la temperatura, temperatura numérica, marca si se esperan ≥0.1 mm de lluvia.
-    function renderMiniForecast4h(horas) {
-      if (!horas || horas.length === 0) return '';
-      const n = Math.min(4, horas.length);
-      const subset = horas.slice(0, n);
-      const temps = subset.map(h => h.temperatura).filter(t => t != null);
-      if (!temps.length) return '';
-      const max = Math.max(...temps);
-      const min = Math.min(...temps);
-      const rango = max - min || 1;
-      return subset.map(h => {
-        const hora = h.hora ? h.hora.slice(11, 13) + 'h' : '';
-        const temp = h.temperatura != null ? Math.round(h.temperatura) + '°' : '—';
-        const pctBarra = h.temperatura != null ? 30 + ((h.temperatura - min) / rango) * 70 : 40;
-        const pLluvia = h.precipProbabilidad;
-        const marcaLluvia = (pLluvia != null && pLluvia >= 30)
-          ? `<div class="p1-wx-fc-rain">${pLluvia}%</div>`
-          : '';
-        return `<div class="p1-wx-fc">
-          <div class="p1-wx-fc-temp u-tab">${escapar(temp)}</div>
-          <div class="p1-wx-fc-bar" style="height:${pctBarra.toFixed(0)}%"></div>
-          ${marcaLluvia}
-          <div class="p1-wx-fc-hour u-tab">${escapar(hora)}</div>
-        </div>`;
-      }).join('');
-    }
 
     // --- Efectos visuales de V2 ---
 
@@ -575,22 +276,9 @@
     // apunta aquí; al marcar se copia en la marca tal cual se veía.
     const contextoPanel = { ubicacion: null, via: null, pueblos: [], meteo: null };
 
-    // Fallback de velocidad para móviles cuyo GPS reporta coords.speed=null
-    // (común en Android antiguos).
-    let ultimoFixVelocidad = null; // { lat, lon, ts }
-    // Igual con el rumbo: los Android viejos suelen dar heading=null. Se
-    // calcula entre fixes separados al menos RUMBO_MIN_M (por debajo, el
-    // ruido del GPS da rumbos al azar). Lo usan el radar y las marcas.
-    let ultimoFixRumbo = null;     // { lat, lon }
-    let rumboCalculado = null;
-    let rumboCalculadoTs = 0;
-    const RUMBO_MIN_M = 25;
-    // Un rumbo calculado de hace más de esto ya no dice hacia dónde vas: parado
-    // en un semáforo, la marca no debe llevar el sentido del último tramo.
-    const RUMBO_CALCULADO_MS = 15000;
-    // Con peor precisión que esto, la deriva del GPS parado supera los 25 m y
-    // daría un rumbo al azar (el radar giraría en un semáforo).
-    const RUMBO_PRECISION_MAX_M = 20;
+    // Velocidad y rumbo de cada posición, también en los Android viejos que
+    // los dan a null (js/movimiento.js). Un solo rumbo para todo el panel.
+    const movimiento = Movimiento.crear();
     let logueadoPrimerFixSpeed = false;
     let logueadoFallbackVelocidad = false;
 
@@ -619,8 +307,10 @@
       // #v1VelocidadLimite en la cabecera (se escribe en cada tick GPS).
       if (info && info.codigo) {
         const claseShield = info.tipo === 'autonomica' ? ' p1-road-shield--autonomica' : '';
-        const label = info.textoCrudo && info.textoCrudo !== info.codigo
-          ? `<span class="p1-road-label">${escapar(info.textoCrudo)}</span>`
+        // PENDIENTES n.º 3: sin repetir el código que ya dice la pastilla.
+        const etiqueta = Carreteras.etiquetaVia(info.codigo, info.textoCrudo);
+        const label = etiqueta
+          ? `<span class="p1-road-label">${escapar(etiqueta)}</span>`
           : '';
         $carreteraBloque.innerHTML =
           `<div class="p1-road-tag u-caps u-dim">VÍA</div>
@@ -658,15 +348,12 @@
       // IU-33: comarca · población · altitud van a la cabecera global, en gris,
       // tras el nombre del municipio. El prefijo " · " forma parte del valor
       // para que :empty oculte el span y su separador a la vez.
-      const dm = resultado.datosMunicipio;
+      // PENDIENTES n.º 4: solo si son del municipio en el que estás (mientras
+      // llegan los del pueblo nuevo, POIModule devuelve los del anterior).
+      const dm = resultado.datosMunicipio && resultado.datosMunicipio.municipio === municipioActual
+        ? resultado.datosMunicipio : null;
       if (dm) {
-        const partes = [];
-        if (dm.comarca   != null) partes.push(dm.comarca);
-        if (dm.poblacion != null) partes.push(dm.poblacion.toLocaleString('es') + ' hab');
-        if (dm.altitud   != null) partes.push(dm.altitud + ' m');
-        if ($globalPlaceMeta) {
-          $globalPlaceMeta.textContent = partes.length ? ' · ' + partes.join(' · ') : '';
-        }
+        if ($globalPlaceMeta) $globalPlaceMeta.textContent = Formato.metaMunicipio(dm, municipioActual);
         // DT-14: el bloque #municipioInfo (foto + descripción) se eliminó — era
         // invisible en todas las vistas (.p1-off !important desde IU-33) pero el
         // src de la foto seguía descargando un thumbnail de Commons por municipio.
@@ -698,44 +385,23 @@
         return;
       }
       clavePOIsUI = claveUI;
+      // BPC-17: los POIs de todos los pueblos, sin repetir los compartidos.
+      const pois = aplanarPOIs(pueblos);
       if (pueblos.length === 0) {
         $poiScroll.innerHTML = '';
         $poiBloque.style.display = 'none';
-        $v3Grid.innerHTML = '<div class="poi-cargando">Sin puntos de interés cerca</div>';
-        if ($v3PoiCounter) $v3PoiCounter.innerHTML = `<span class="u-phos">0</span> · RADIO ${RADIO_PUEBLOS_KM_TXT} KM`;
       } else {
         // V1 HUD: lista plana "distancia + nombre", 3 pueblos máximo (IU-19).
         $poiScroll.innerHTML = pueblos.slice(0, 3).map(pueblo => {
-          const dist = pueblo.distKm < 1
-            ? Math.round(pueblo.distKm * 1000) + ' m'
-            : pueblo.distKm.toFixed(1) + ' km';
           return `<li>
-            <span class="p1-near-dist u-tab u-phos">${escapar(dist)}</span>
+            <span class="p1-near-dist u-tab u-phos">${escapar(distanciaKm(pueblo.distKm))}</span>
             <span class="p1-near-name">${escapar(pueblo.nombre)}</span>
           </li>`;
         }).join('');
 
-        // V1 HUD: strip inferior con 3 POIs primeros entre todos los pueblos.
-        // Se guarda el nombre del pueblo junto con el POI para mostrarlo como
-        // pie atenuado (IU-19 ajuste).
-        // BPC-17: dedupe por nombre + coords. Cuando dos pueblos cercanos
-        // comparten un POI cuya geometría cae cerca de ambos, solo quiero
-        // verlo una vez en el strip.
-        const todosPois = [];
-        const vistosV1 = new Set();
-        for (const p of pueblos) {
-          for (const poi of (p.pois || [])) {
-            const key = (poi.nombre || '').toLowerCase() + '|' +
-                        (poi.lat != null ? poi.lat.toFixed(4) : '') + ',' +
-                        (poi.lon != null ? poi.lon.toFixed(4) : '');
-            if (vistosV1.has(key)) continue;
-            vistosV1.add(key);
-            todosPois.push({ nombre: poi.nombre, pueblo: p.nombre });
-            if (todosPois.length >= 3) break;
-          }
-          if (todosPois.length >= 3) break;
-        }
-        const top3 = todosPois;
+        // V1 HUD: strip inferior con los 3 primeros POIs, con el nombre del
+        // pueblo como pie atenuado (IU-19 ajuste).
+        const top3 = pois.slice(0, 3);
         if (top3.length) {
           // IU-19 (ajuste): sin miniatura — el ancho del strip se usa para
           // mostrar el nombre del POI (2 líneas) + pueblo al que pertenece.
@@ -752,38 +418,13 @@
         }
       }
 
-      // V3 HUD (IU-21): grid 3x2 flat de POIs individuales. Se aplana la
-      // jerarquía pueblo → pois, se toma foto del POI si existe y se usa el
-      // nombre del pueblo como meta para dar contexto geográfico.
-      // BPC-17: dedupe por nombre + coords (igual que V1 strip). El primer
-      // pueblo gana — por convención el más cercano, dado que `pueblos` viene
-      // ordenado por distancia.
-      const poisV3 = [];
-      const vistosV3 = new Set();
-      for (const p of pueblos) {
-        for (const poi of (p.pois || [])) {
-          const key = (poi.nombre || '').toLowerCase() + '|' +
-                      (poi.lat != null ? poi.lat.toFixed(4) : '') + ',' +
-                      (poi.lon != null ? poi.lon.toFixed(4) : '');
-          if (vistosV3.has(key)) continue;
-          vistosV3.add(key);
-          poisV3.push({
-            nombre: poi.nombre,
-            foto: poi.foto,
-            tipo: poi.tipo,
-            pueblo: p.nombre,
-            distKm: p.distKm,
-          });
-        }
-      }
-      const top6 = poisV3.slice(0, 6);
+      // V3 HUD (IU-21): grid 3x2 de POIs, con foto si la hay y el pueblo como
+      // meta para dar contexto geográfico.
+      const top6 = pois.slice(0, 6);
       if (top6.length === 0) {
         $v3Grid.innerHTML = '<div class="poi-cargando">Sin puntos de interés cerca</div>';
       } else {
         $v3Grid.innerHTML = top6.map(poi => {
-          const dist = poi.distKm < 1
-            ? Math.round(poi.distKm * 1000) + ' m'
-            : poi.distKm.toFixed(1) + ' km';
           // Wikidata P18 devuelve URLs gigantes en HTTP; normalizamos a HTTPS+thumbnail.
           // También cubrimos POIs cacheados en IDB antes del fix.
           const fotoSrc = POIFuentes.normalizarFotoCommons(poi.foto, 400);
@@ -803,7 +444,7 @@
             <div class="p3-v3-name">${escapar(poi.nombre)}</div>
             <div class="p3-v3-meta">
               <span class="p3-v3-meta-pueblo u-caps">${escapar(poi.pueblo)}</span>
-              <span class="p3-v3-meta-dist u-tab">${escapar(dist)}</span>
+              <span class="p3-v3-meta-dist u-tab">${escapar(distanciaKm(poi.distKm))}</span>
             </div>
           </div>`;
         }).join('');
@@ -830,36 +471,17 @@
     }
 
     // DT-18: camino rápido de pintarPOIs — la estructura no cambió, solo las
-    // distancias. El re-aplanado de V3 replica el dedupe del pintado, así que
-    // el orden de las cards coincide por construcción.
+    // distancias. Sale de la misma aplanarPOIs que el pintado, así que el
+    // orden de las cards coincide por construcción.
     function actualizarDistanciasPOIs(pueblos) {
-      const fmtKm = km => km < 1
-        ? Math.round(km * 1000) + ' m'
-        : km.toFixed(1) + ' km';
       const nodosNear = $poiScroll.querySelectorAll('.p1-near-dist');
       pueblos.slice(0, 3).forEach((p, i) => {
-        if (nodosNear[i] && p.distKm != null) nodosNear[i].textContent = fmtKm(p.distKm);
+        if (nodosNear[i] && p.distKm != null) nodosNear[i].textContent = distanciaKm(p.distKm);
       });
       const nodosCard = $v3Grid.querySelectorAll('.p3-v3-meta-dist');
-      if (nodosCard.length) {
-        const vistos = new Set();
-        const dists = [];
-        for (const p of pueblos) {
-          for (const poi of (p.pois || [])) {
-            const key = (poi.nombre || '').toLowerCase() + '|' +
-                        (poi.lat != null ? poi.lat.toFixed(4) : '') + ',' +
-                        (poi.lon != null ? poi.lon.toFixed(4) : '');
-            if (vistos.has(key)) continue;
-            vistos.add(key);
-            dists.push(p.distKm);
-            if (dists.length >= 6) break;
-          }
-          if (dists.length >= 6) break;
-        }
-        dists.forEach((d, i) => {
-          if (nodosCard[i] && d != null) nodosCard[i].textContent = fmtKm(d);
-        });
-      }
+      aplanarPOIs(pueblos).slice(0, nodosCard.length).forEach((poi, i) => {
+        if (poi.distKm != null) nodosCard[i].textContent = distanciaKm(poi.distKm);
+      });
     }
 
     // FN-01: pinta lista de gasolineras en V3. FN-09 / IU-19: 3 primeras en V1
@@ -874,7 +496,7 @@
         if ($v1FuelList) $v1FuelList.innerHTML = '';
         return;
       }
-      const fmtDist = d => d < 1000 ? Math.round(d) + ' m' : (d / 1000).toFixed(1) + ' km';
+      const fmtDist = d => distanciaKm(d / 1000);
       // DT-18: mismas gasolineras en el mismo orden → solo distancias.
       const claveGas = lista.map(g => g.id).join(',');
       if (claveGas === claveGasUI) {
@@ -931,6 +553,8 @@
       if (c !== carreteraVieja) {
         carreteraVieja = c;
         $carreteraBloque.classList.toggle('dato-viejo', c);
+        // PENDIENTES n.º 1: el límite es de esa vía; sin confirmarla, también se atenúa.
+        $v1VelocidadLimite.classList.toggle('dato-viejo', c);
         debug.log(c ? 'Vía vieja (>2 km sin confirmar): atenuada' : 'Vía confirmada de nuevo');
       }
     }
@@ -949,6 +573,8 @@
         if (clave === ultimaUbicacionMostrada) return;
         ultimaUbicacionMostrada = clave;
 
+        // PENDIENTES n.º 4: los datos del pueblo anterior se van con él.
+        if ((info.municipio || null) !== municipioActual && $globalPlaceMeta) $globalPlaceMeta.textContent = '';
         municipioActual = info.municipio || null;
         // IU-33: el span #municipio dentro de V1 se eliminó; el nombre del
         // municipio se escribe únicamente en #globalPlace (cabecera global).
@@ -1327,40 +953,16 @@
         logueadoPrimerFixSpeed = true;
       }
 
-      // Velocidad efectiva: si el GPS no la reporta (Android viejos devuelven
-      // null), estimamos km/h desde distancia/tiempo entre fixes consecutivos.
-      const velGpsKmh = (c.speed != null && !isNaN(c.speed)) ? c.speed * 3.6 : null;
-      let velEfectivaKmh = velGpsKmh;
-      let fuenteVelocidad = 'gps';
-      if (velGpsKmh == null && ultimoFixVelocidad) {
-        const dtS = (ahora - ultimoFixVelocidad.ts) / 1000;
-        if (dtS >= 1 && dtS <= 60) {
-          const distM = distanciaMetros(
-            c.latitude, c.longitude,
-            ultimoFixVelocidad.lat, ultimoFixVelocidad.lon
-          );
-          velEfectivaKmh = (distM / dtS) * 3.6;
-          fuenteVelocidad = 'fallback';
-          if (!logueadoFallbackVelocidad) {
-            debug.log(`Velocidad fallback activa (GPS no reporta speed): ~${Math.round(velEfectivaKmh)} km/h`);
-            logueadoFallbackVelocidad = true;
-          }
-        }
+      // Velocidad y rumbo efectivos: los del GPS o, si no los da (Android
+      // viejos), calculados entre posiciones.
+      const mov = movimiento.actualizar(c, ahora);
+      const velEfectivaKmh = mov.velKmh;
+      const velCalculada = mov.fuenteVel === 'calculada';
+      const rumboEfectivo = mov.rumbo;
+      if (velCalculada && !logueadoFallbackVelocidad) {
+        debug.log(`Velocidad fallback activa (GPS no reporta speed): ~${Math.round(velEfectivaKmh)} km/h`);
+        logueadoFallbackVelocidad = true;
       }
-      ultimoFixVelocidad = { lat: c.latitude, lon: c.longitude, ts: ahora };
-
-      const precisionOk = c.accuracy == null || c.accuracy <= RUMBO_PRECISION_MAX_M;
-      if (!ultimoFixRumbo || !precisionOk) {
-        if (precisionOk) ultimoFixRumbo = { lat: c.latitude, lon: c.longitude };
-      } else if (distanciaMetros(ultimoFixRumbo.lat, ultimoFixRumbo.lon, c.latitude, c.longitude) >=
-                 Math.max(RUMBO_MIN_M, 2 * (c.accuracy || 0))) {
-        rumboCalculado = Geo.rumboHacia(ultimoFixRumbo.lat, ultimoFixRumbo.lon, c.latitude, c.longitude);
-        rumboCalculadoTs = ahora;
-        ultimoFixRumbo = { lat: c.latitude, lon: c.longitude };
-      }
-      const rumboEfectivo = (c.heading != null && !isNaN(c.heading))
-        ? c.heading
-        : (ahora - rumboCalculadoTs < RUMBO_CALCULADO_MS ? rumboCalculado : null);
 
       // FN-02a: registrar punto en el track del trayecto.
       if (window.Trayectos) {
@@ -1374,10 +976,10 @@
       if ($v4Coords) $v4Coords.textContent = formatearCoordsGMS(c.latitude, c.longitude);
       $precision.textContent = c.accuracy != null ? `${c.accuracy.toFixed(1)} m` : '—';
       $velocidad.textContent = velEfectivaKmh != null
-        ? `${velEfectivaKmh.toFixed(1)} km/h${fuenteVelocidad === 'fallback' ? ' (calc)' : ''}`
+        ? `${velEfectivaKmh.toFixed(1)} km/h${velCalculada ? ' (calc)' : ''}`
         : 'no disponible';
-      $rumbo.textContent = c.heading != null && !isNaN(c.heading)
-        ? `${c.heading.toFixed(0)}°`
+      $rumbo.textContent = rumboEfectivo != null
+        ? `${rumboEfectivo.toFixed(0)}°${mov.fuenteRumbo === 'calculado' ? ' (calc)' : ''}`
         : 'no disponible';
       $hora.textContent = new Date().toTimeString().slice(0, 8);
 
@@ -1385,17 +987,13 @@
       // cambia aquí; "km/h" está en el HTML y no se retoca. Prefijo "~" si la
       // velocidad viene del fallback calculado (coord. previas).
       const velNum = velEfectivaKmh != null
-        ? `${fuenteVelocidad === 'fallback' ? '~' : ''}${Math.round(velEfectivaKmh)}`
+        ? `${velCalculada ? '~' : ''}${Math.round(velEfectivaKmh)}`
         : '—';
       $v1Velocidad.textContent = velNum;
       $v1VelocidadLimite.textContent = maxspeedActual != null ? String(maxspeedActual) : '';
-      // FN-06: color de velocidad según exceso sobre maxspeedActual.
-      let claseExceso = '';
-      if (maxspeedActual != null && velEfectivaKmh != null) {
-        const exceso = velEfectivaKmh - maxspeedActual;
-        if (exceso > 15) claseExceso = 'exceso-grave';
-        else if (exceso > 5) claseExceso = 'exceso';
-      }
+      // FN-06: color de velocidad según exceso sobre maxspeedActual (nunca
+      // contra el límite de una vía sin confirmar: PENDIENTES n.º 1).
+      const claseExceso = Formato.claseExceso(velEfectivaKmh, maxspeedActual, carreteraVieja);
       $v1Velocidad.className = 'p1-speed-num u-tab' + (claseExceso ? ' ' + claseExceso : '');
 
       // IU-23: halo de exceso sobre V1. "leve" = 5-15 km/h (amarillo, sin pulso),
@@ -1463,9 +1061,9 @@
         actualizarGasolineras(c.latitude, c.longitude);
       }
 
-      // MotorwayExit se evalúa en CADA tick.
-      const rumboGrados  = (c.heading != null && !isNaN(c.heading)) ? c.heading : null;
-      actualizarProximasSalidas(c.latitude, c.longitude, rumboGrados, velEfectivaKmh);
+      // MotorwayExit se evalúa en CADA tick, con el mismo rumbo que el radar
+      // (PENDIENTES n.º 6: sin él no filtra por sentido).
+      actualizarProximasSalidas(c.latitude, c.longitude, rumboEfectivo, velEfectivaKmh);
     }
 
     // D25: qué falla y dónde se arregla (js/ayuda_gps.js). Sin permiso o sin
@@ -1661,7 +1259,8 @@
     configurarSafeAreaDev();
     const params = new URLSearchParams(location.search);
     if (params.get('logs') === '1') {
-      arrancarVistaLogs();
+      // Nunca el panel en modo logs, aunque falte el módulo.
+      if (window.LogsVista) LogsVista.arrancar();
     } else if (params.get('cuaderno') === '1' && window.CuadernoVista) {
       // Spec 001, H3: el cuaderno es un modo aparte; el panel no enlaza aquí.
       CuadernoVista.arrancar();

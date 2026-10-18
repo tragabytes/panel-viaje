@@ -107,28 +107,45 @@
   }
 
   // RA-01: Wikipedia geosearch para pueblos como fallback de Overpass.
-  // BPC-16: filtrar también con EXCLUIR_PUEBLOS_GEOSEARCH (estricta) para
-  // descartar palacios, conventos, ayuntamientos, etc. que Wikipedia devuelve
-  // mezclados con los pueblos reales y se persistían en IDB contaminando la
-  // lista en V1/V3 entre sesiones.
-  async function obtenerPueblosWikipedia(lat, lon) {
-    const url = `https://es.wikipedia.org/w/api.php?action=query&list=geosearch` +
-      `&gscoord=${lat}|${lon}&gsradius=10000&gslimit=50&format=json&origin=*`;
-    const datos = await fetchConTimeout(url, {}, TIMEOUT_WIKIPEDIA_MS);
-    const resultados = (datos.query && datos.query.geosearch) || [];
-    const pueblos = resultados
-      .filter(r => !POIMatch.EXCLUIR_GEOSEARCH.test(r.title) &&
-                   !POIMatch.EXCLUIR_PUEBLOS_GEOSEARCH.test(r.title))
-      .map(r => ({
-        nombre: r.title,
-        lat: r.lat,
-        lon: r.lon,
-        distKm: r.dist / 1000,
+  // PENDIENTES n.º 2: Wikipedia devuelve todo lo que tiene coordenadas en el
+  // radio, y los filtros de títulos (BPC-16) dejaban pasar cofradías, asedios
+  // o "País Leonés". Ahora la misma petición trae la descripción corta de cada
+  // artículo, que dice qué es; sin descripción, los filtros de títulos.
+  function esPuebloWikipedia(titulo, descripcion) {
+    if (descripcion && descripcion.trim()) return POIMatch.DESCRIPCION_PUEBLO.test(descripcion.trim());
+    return !POIMatch.EXCLUIR_GEOSEARCH.test(titulo) &&
+           !POIMatch.EXCLUIR_PUEBLOS_GEOSEARCH.test(titulo) &&
+           !POIMatch.NO_PUEBLO_TITULO.test(titulo);
+  }
+
+  // De la respuesta (generator=geosearch, prop=description|coordinates), los
+  // pueblos del más cercano al más lejano.
+  function parsearPueblosWikipedia(datos, lat, lon) {
+    const paginas = ((datos && datos.query && datos.query.pages) || [])
+      .filter(p => p && p.title && p.coordinates && p.coordinates[0] &&
+                   typeof p.coordinates[0].lat === 'number' && typeof p.coordinates[0].lon === 'number');
+    const buenas = paginas.filter(p => esPuebloWikipedia(p.title, p.description));
+    const pueblos = buenas
+      .map(p => ({
+        nombre: p.title,
+        lat: p.coordinates[0].lat,
+        lon: p.coordinates[0].lon,
+        distKm: Overpass.distanciaMetros(lat, lon, p.coordinates[0].lat, p.coordinates[0].lon) / 1000,
       }))
       .sort((a, b) => a.distKm - b.distKm)
       .slice(0, MAX_PUEBLOS);
+    return { pueblos, descartados: paginas.length - buenas.length, total: paginas.length };
+  }
+
+  async function obtenerPueblosWikipedia(lat, lon) {
+    // colimit=max: sin él, solo las 10 primeras páginas traen coordenadas.
+    const url = `https://es.wikipedia.org/w/api.php?action=query&generator=geosearch` +
+      `&ggscoord=${lat}|${lon}&ggsradius=10000&ggslimit=50&prop=description|coordinates&colimit=max` +
+      `&format=json&formatversion=2&origin=*`;
+    const datos = await fetchConTimeout(url, {}, TIMEOUT_WIKIPEDIA_MS);
+    const { pueblos, descartados, total } = parsearPueblosWikipedia(datos, lat, lon);
     if (typeof debug !== 'undefined') {
-      debug.log(`POI pueblos [Wikipedia]: ${pueblos.length} de ${resultados.length} resultados · más cercano: ${pueblos[0] ? pueblos[0].nombre + ' (' + pueblos[0].distKm.toFixed(1) + 'km)' : 'ninguno'}`);
+      debug.log(`POI pueblos [Wikipedia]: ${pueblos.length} de ${total} artículos (${descartados} no son pueblos) · más cercano: ${pueblos[0] ? pueblos[0].nombre + ' (' + pueblos[0].distKm.toFixed(1) + 'km)' : 'ninguno'}`);
     }
     return pueblos;
   }
@@ -208,17 +225,33 @@
     return feats;
   }
 
-  // RA-02: Wikipedia geosearch fallback para POIs de un pueblo.
-  async function obtenerPOIsWikipedia(nombre, lat, lon) {
-    const url = `https://es.wikipedia.org/w/api.php?action=query&list=geosearch` +
-      `&gscoord=${lat}|${lon}&gsradius=2000&gslimit=10&format=json&origin=*`;
-    const datos = await fetchConTimeout(url, {}, TIMEOUT_WIKIPEDIA_MS);
-    const resultados = (datos.query && datos.query.geosearch) || [];
-    const nombreLower = nombre.toLowerCase();
-    const pois = resultados
-      .filter(r => r.title.toLowerCase() !== nombreLower && !POIMatch.EXCLUIR_GEOSEARCH.test(r.title))
-      .map(r => ({ nombre: r.title, tipo: 'attraction', lat: r.lat, lon: r.lon, pageid: r.pageid }))
+  // RA-02: Wikipedia geosearch fallback para POIs de un pueblo. Con la
+  // descripción corta (como los pueblos): se colaban pueblos vecinos como si
+  // fueran monumentos ("Pedredo" como POI de Murias de Pedredo, 18/10).
+  function esPoiWikipedia(titulo, descripcion, nombrePueblo) {
+    if (titulo.toLowerCase() === String(nombrePueblo || '').toLowerCase()) return false;
+    if (POIMatch.EXCLUIR_GEOSEARCH.test(titulo)) return false;
+    const d = descripcion && descripcion.trim();
+    return !d || (!POIMatch.DESCRIPCION_PUEBLO.test(d) && !POIMatch.NO_POI_DESCRIPCION.test(d));
+  }
+
+  function parsearPOIsWikipedia(datos, nombre) {
+    return ((datos && datos.query && datos.query.pages) || [])
+      .filter(p => p && p.title && p.coordinates && p.coordinates[0])
+      // index: el orden de la búsqueda, del más cercano al más lejano.
+      .sort((a, b) => (a.index || 0) - (b.index || 0))
+      .filter(p => esPoiWikipedia(p.title, p.description, nombre))
+      .map(p => ({ nombre: p.title, tipo: 'attraction', lat: p.coordinates[0].lat, lon: p.coordinates[0].lon, pageid: p.pageid }))
       .slice(0, MAX_POIS_POR_PUEBLO);
+  }
+
+  async function obtenerPOIsWikipedia(nombre, lat, lon) {
+    const url = `https://es.wikipedia.org/w/api.php?action=query&generator=geosearch` +
+      `&ggscoord=${lat}|${lon}&ggsradius=2000&ggslimit=10&prop=description|coordinates&colimit=max` +
+      `&format=json&formatversion=2&origin=*`;
+    const datos = await fetchConTimeout(url, {}, TIMEOUT_WIKIPEDIA_MS);
+    const resultados = (datos.query && datos.query.pages) || [];
+    const pois = parsearPOIsWikipedia(datos, nombre);
     if (typeof debug !== 'undefined') {
       const top = pois.map(p => p.nombre).join(', ');
       debug.log(`POI [${nombre}] [Wikipedia]: ${pois.length} de ${resultados.length} resultados${pois.length ? ' · ' + top : ''}`);
@@ -331,6 +364,10 @@
     parsearPOIs,
     // fallbacks externos
     obtenerPueblosWikipedia,
+    esPuebloWikipedia,
+    parsearPueblosWikipedia,
+    esPoiWikipedia,
+    parsearPOIsWikipedia,
     obtenerPOIsWikipedia,
     obtenerPOIsPhoton,
     // enriquecimiento
