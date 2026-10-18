@@ -180,15 +180,12 @@
     if (window.Trayectos) Trayectos.iniciar();
     debug.log('Página cargada');
 
-    // DT-01 (sesión 33): registrar service worker para funcionamiento offline
-    // e instalación como PWA. Fire-and-forget; si falla el registro, el
-    // panel sigue funcionando normal (pero sin caché offline).
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('service-worker.js')
-        .then(reg => { debug.log('SW registrado (scope: ' + reg.scope + ')'); })
-        .catch(err => { debug.warn('SW registro fallido: ' + (err && err.message ? err.message : err)); });
-    } else {
-      debug.log('SW no soportado por este navegador');
+    // DT-01 + D24: service worker (sin cobertura, PWA) y actualizaciones que
+    // entran solas con el coche parado, nunca en marcha (js/actualizacion.js).
+    if (window.Actualizacion) {
+      Actualizacion.iniciar();
+    } else if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js').catch(() => {});
     }
 
     // Pedir wake lock para que la pantalla no se apague durante el viaje.
@@ -1430,6 +1427,8 @@
       if (window.RadarV4) {
         RadarV4.posicion({ lat: c.latitude, lon: c.longitude, rumbo: rumboEfectivo, velocidadKmh: velEfectivaKmh });
       }
+      // D24: una versión nueva solo entra con el coche parado.
+      if (window.Actualizacion) Actualizacion.gps(velEfectivaKmh);
       // Spec 003: las montañas de la vista 2 se deslizan solo en marcha; la
       // posición sirve para calcular la salida y la puesta del sol.
       if (window.PaisajeFX) {

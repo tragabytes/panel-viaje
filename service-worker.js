@@ -9,7 +9,7 @@
 //
 // Para forzar actualización, subir SW_VERSION.
 
-const SW_VERSION = 'v19-2026-10-18-cuaderno-radar-paisaje';
+const SW_VERSION = 'v20-2026-10-18-actualizacion-sola';
 const APP_CACHE = `panel-viaje-app-${SW_VERSION}`;
 const API_CACHE = `panel-viaje-api-${SW_VERSION}`;
 
@@ -33,6 +33,7 @@ const PRECACHE = [
   './js/cuaderno_vista.js',
   './js/trayectos.js',
   './js/debug.js',
+  './js/actualizacion.js',
   './js/wakelock.js',
   './js/carreteras.js',
   './js/overpass.js',

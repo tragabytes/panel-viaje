@@ -60,9 +60,14 @@ Todo lo que entra en `main` se publica solo en GitHub Pages (tarda 1-2 minutos).
 5. Comprobar que la versión publicada es la nueva: el `SW_VERSION` de
    https://tragabytes.github.io/panel-viaje/service-worker.js.
 
-En el móvil del panel, la página que ya está abierta sigue con la versión vieja: la nueva se
-descarga en segundo plano y entra **al recargar o volver a abrir** el panel (a veces hacen falta
-dos recargas).
+En el móvil del panel la versión nueva **entra sola** desde la v20 (D24): la app mira si hay
+versión nueva al abrirla y cada vez que vuelves a ella (como mucho cada 15 min), y se recarga sola
+solo con el coche parado: recién abierta, o tras 3 minutos parado. Nunca en marcha ni sin GPS
+reciente (túnel). Lo deja escrito en el log ("Actualización: …").
+
+Si un móvil tiene una versión anterior a la v20, la primera vez hay que forzarla a mano: cerrar la
+app desde recientes, abrirla con internet, esperar ~30 s, y cerrarla y abrirla otra vez. **No borrar
+los datos del sitio** en Chrome: se llevaría las marcas del cuaderno.
 
 ## 5. Sacar los logs de un viaje real
 

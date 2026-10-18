@@ -276,3 +276,23 @@ Overpass directamente. Siguen abiertas la 4, la 5 y la 6.
   según tus reglas, se preguntan aunque el resto lo decida yo.
 - **Hecho**: el mismo 18/10, al volver, dijiste "sube la v19" y se publicó (comprobado: la web
   sirve `v19-2026-10-18-cuaderno-radar-paisaje`).
+
+## 18/10/2026, noche
+
+### D24 · Las actualizaciones entran solas, nunca en marcha
+- **Por qué**: publicada la v19, no se veía en tu móvil. Android reanuda la app sin recargarla (y
+  así ni mira si hay versión nueva), y al arrancar de cero enseña la guardada mientras baja la
+  nueva: hacía falta cerrarla del todo dos veces. Me pediste que entraran solas "sin recargar
+  nunca en marcha".
+- **Qué**: la app mira si hay versión nueva al abrirla y al volver a ella (como mucho cada 15 min,
+  una petición pequeña). Cuando la tiene, se recarga sola **solo con el coche parado**: en el
+  primer minuto tras abrirla, o tras **3 minutos parado** (más que un semáforo largo, para no
+  recargar en una espera del viaje ni partir el log del trayecto). Nunca en marcha, ni sin un dato
+  de GPS de los últimos 10 s (túnel). Sin GPS en toda la sesión (en casa), enseguida. Nunca dos
+  recargas en menos de un minuto.
+- **Comprobado**: tests de la regla (7) y en el navegador: con el simulador a 100 km/h llegó una
+  versión nueva y no recargó; sin GPS, recargó sola en la versión nueva.
+- **Ojo**: tu móvil, que tiene la v18 o la v19, necesita **esta última vez** los pasos a mano
+  (cerrar desde recientes, abrir, esperar, volver a abrir). A partir de la v20, solas.
+- **Cómo se deshace**: el commit "actualizaciones solas"; quitar `js/actualizacion.js` vuelve al
+  registro de siempre.
