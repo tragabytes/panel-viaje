@@ -634,7 +634,7 @@
        comentario daba por vivo, resultó no tener consumidor y se eliminó de
        css/style.css.) */
 
-    /* ---- Vista 2: Ubicación + Meteo glanceable ---- */
+    /* ---- Vista 2: el tiempo como paisaje (spec 003) ---- */
     #vista2 {
       display: flex;
       flex-direction: column;
@@ -646,308 +646,75 @@
         calc(16px + var(--safe-bottom))
         calc(20px + var(--safe-left));
       position: relative;
-      transition: background 1.5s ease;
+      background: #050a14;
+      overflow: hidden;
     }
 
-    /* Gradientes por categoría meteo */
-    #vista2[data-meteo-cat="despejado"] { background: linear-gradient(135deg, #0a1628 0%, #1a3a5c 50%, #0f2035 100%); }
-    #vista2[data-meteo-cat="nublado"]   { background: linear-gradient(135deg, #1a1d24 0%, #2e3440 50%, #1a1d24 100%); }
-    #vista2[data-meteo-cat="niebla"]    { background: linear-gradient(135deg, #1c1f26 0%, #3a3d44 50%, #28292e 100%); }
-    #vista2[data-meteo-cat="lluvia"]    { background: linear-gradient(135deg, #0d1520 0%, #1a2a3e 50%, #0f1925 100%); }
-    #vista2[data-meteo-cat="nieve"]     { background: linear-gradient(135deg, #1a1e2e 0%, #2a3048 50%, #1e2236 100%); }
-    #vista2[data-meteo-cat="tormenta"]  { background: linear-gradient(135deg, #0f0a18 0%, #261830 50%, #140e1e 100%); }
-
-    /* IU-10: capa de animación sutil detrás del contenido. Solo transform y
-       opacity (no repintado), duraciones >= 30 s, opacidad baja para no
-       distraer. Primera entrega: despejado, nublado, lluvia. */
-    .v2-animacion {
+    /* Paisaje: cada capa es un lienzo pintado una vez; el compositor las
+       desliza con transform (js/v2_paisaje.js). */
+    .v2p {
       position: absolute;
       inset: 0;
       overflow: hidden;
       pointer-events: none;
       z-index: 0;
     }
-
-    /* IU-12: paleta del cielo por momento del día. Estas variables las
-       consumen la luminaria, los god-rays y la iluminación ambiental.
-       Valores diseñados con mix-blend-mode:screen en mente (no saturar). */
-    #vista2 {
-      --v2-disco-centro:  #fff3c8;
-      --v2-disco-borde:   #ffb64d;
-      --v2-halo-color:    rgba(255, 200, 120, 0.35);
-      --v2-halo-color-2:  rgba(255, 170, 80, 0.18);
-      --v2-rays-color:    rgba(255, 205, 130, 0.28);
-      --v2-ambient-color: rgba(255, 200, 130, 0.22);
-      --v2-star-alpha:    0;
-      --v2-luna-relieve:  0;
+    .v2p-cielo { position: absolute; inset: 0; }
+    .v2p-capa { position: absolute; left: 0; top: 0; will-change: transform; }
+    .v2p-capa canvas { display: block; }
+    .v2p-astro { will-change: auto; }
+    /* Estrellas que titilan: la capa B (las más brillantes) respira despacio. */
+    /* Solo opacity, que la anima el compositor; la opacidad de la capa (más
+       o menos estrellas según la luz) la pone JS en el contenedor. */
+    .v2p-estrellasB canvas { animation: v2p-titilar 6s ease-in-out infinite alternate; }
+    @keyframes v2p-titilar {
+      from { opacity: 0.35; }
+      to   { opacity: 1; }
     }
-    #vista2[data-momento="amanecer"] {
-      --v2-disco-centro:  #ffe4b5;
-      --v2-disco-borde:   #ff7a4d;
-      --v2-halo-color:    rgba(255, 140, 100, 0.40);
-      --v2-halo-color-2:  rgba(255, 90, 120, 0.20);
-      --v2-rays-color:    rgba(255, 150, 110, 0.32);
-      --v2-ambient-color: rgba(255, 130, 120, 0.28);
-    }
-    #vista2[data-momento="atardecer"] {
-      --v2-disco-centro:  #ffd390;
-      --v2-disco-borde:   #e84a5c;
-      --v2-halo-color:    rgba(240, 100, 120, 0.38);
-      --v2-halo-color-2:  rgba(190, 70, 150, 0.22);
-      --v2-rays-color:    rgba(255, 130, 140, 0.30);
-      --v2-ambient-color: rgba(230, 110, 140, 0.28);
-    }
-    #vista2[data-momento="noche"] {
-      --v2-disco-centro:  #e8ecf4;
-      --v2-disco-borde:   #aab4cc;
-      --v2-halo-color:    rgba(170, 195, 240, 0.28);
-      --v2-halo-color-2:  rgba(120, 150, 220, 0.14);
-      --v2-rays-color:    rgba(170, 200, 245, 0.16);
-      --v2-ambient-color: rgba(130, 160, 230, 0.16);
-      --v2-star-alpha:    0.7;
-      --v2-luna-relieve:  0.35;
-    }
-
-    /* IU-12: luminaria celeste (sol o luna según momento). Grande (360px),
-       posicionada 60% fuera de pantalla esquina superior-derecha. */
-    .v2-luminaria {
+    /* Tormenta: resplandor suave dentro de las nubes (nunca un destello). */
+    .v2p-resplandor {
       position: absolute;
-      top: -210px;
-      right: -180px;
-      width: 360px;
-      height: 360px;
-      display: none;
-      pointer-events: none;
-    }
-    #vista2[data-meteo-cat="despejado"] .v2-luminaria { display: block; }
-    .v2-lum-halo {
-      position: absolute;
-      inset: -30%;
-      border-radius: 50%;
-      background: radial-gradient(circle at center,
-        var(--v2-halo-color) 0%,
-        var(--v2-halo-color-2) 35%,
-        transparent 70%);
-      filter: blur(18px);
-    }
-    .v2-lum-disco {
-      position: absolute;
-      inset: 20%;
-      border-radius: 50%;
-      background: radial-gradient(circle at 35% 35%,
-        var(--v2-disco-centro) 0%,
-        var(--v2-disco-borde) 70%,
-        var(--v2-disco-borde) 100%);
-      filter: blur(1.5px);
-      opacity: 0.95;
-    }
-    /* Relieve lunar: cráteres suaves visibles solo de noche (var --v2-luna-relieve=0.35). */
-    .v2-lum-disco::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      border-radius: 50%;
-      opacity: var(--v2-luna-relieve, 0);
-      background:
-        radial-gradient(circle at 58% 38%, rgba(120,130,150,0.45) 0%, transparent 14%),
-        radial-gradient(circle at 42% 62%, rgba(110,120,145,0.40) 0%, transparent 10%),
-        radial-gradient(circle at 70% 70%, rgba(115,125,150,0.35) 0%, transparent 8%);
-    }
-
-    /* IU-12: iluminación ambiental. Radial gigante que baña la pantalla
-       desde la esquina de la luminaria. mix-blend-mode:screen suma luz
-       sobre el gradiente de fondo existente. */
-    .v2-ambient {
-      position: absolute;
-      inset: 0;
-      background: radial-gradient(ellipse 140% 100% at 95% -5%,
-        var(--v2-ambient-color) 0%,
-        transparent 55%);
-      mix-blend-mode: screen;
-      pointer-events: none;
-    }
-    #vista2[data-meteo-cat="despejado"] .v2-ambient,
-    #vista2[data-meteo-cat="nublado"]   .v2-ambient { display: block; }
-    .v2-ambient { display: none; }
-
-    /* IU-12: god-rays. 5 haces saliendo de la esquina superior-derecha
-       con mix-blend-mode:screen. Cada uno tiene su propia duración larga
-       (28-48s) y delay para que aparezcan desfasados. */
-    .v2-rays {
-      position: absolute;
-      top: 0;
+      left: 0;
       right: 0;
-      width: 100%;
-      height: 100%;
-      transform-origin: 100% 0%;
-      mix-blend-mode: screen;
-      pointer-events: none;
-      display: none;
-    }
-    #vista2[data-meteo-cat="despejado"] .v2-rays { display: block; }
-    .v2-ray {
-      position: absolute;
       top: 0;
-      right: 0;
-      width: 200%;
-      height: 38px;
-      background: linear-gradient(90deg, transparent 0%, var(--v2-rays-color) 55%, transparent 100%);
-      transform-origin: 100% 50%;
-      filter: blur(6px);
+      height: 55%;
       opacity: 0;
-      animation: v2-ray-pulso 36s ease-in-out infinite;
+      background: radial-gradient(ellipse 45% 70% at var(--rx, 50%) 30%, rgba(205, 195, 255, 0.55), rgba(205, 195, 255, 0) 70%);
+      mix-blend-mode: screen;
     }
-    .v2-ray-1 { transform: rotate(200deg); animation-duration: 28s; animation-delay:  -2s; }
-    .v2-ray-2 { transform: rotate(215deg); animation-duration: 34s; animation-delay:  -9s; }
-    .v2-ray-3 { transform: rotate(230deg); animation-duration: 42s; animation-delay: -15s; }
-    .v2-ray-4 { transform: rotate(245deg); animation-duration: 38s; animation-delay: -22s; }
-    .v2-ray-5 { transform: rotate(260deg); animation-duration: 48s; animation-delay: -31s; }
-    @keyframes v2-ray-pulso {
-      0%, 100% { opacity: 0; }
-      45%      { opacity: 0.35; }
-      55%      { opacity: 0.4;  }
-    }
-
-    /* IU-12: estrellas para noche despejada. Visibles solo si --v2-star-alpha > 0. */
-    .v2-estrella {
-      position: absolute;
-      width: 2px;
-      height: 2px;
-      border-radius: 50%;
-      background: #e6edf8;
-      opacity: calc(var(--v2-star-alpha, 0) * 0.9);
-      box-shadow: 0 0 3px rgba(230,237,248,0.6);
-      animation: v2-estrella-twinkle 8s ease-in-out infinite;
-    }
-    @keyframes v2-estrella-twinkle {
-      0%, 100% { opacity: calc(var(--v2-star-alpha, 0) * 0.3); transform: scale(0.8); }
-      50%      { opacity: calc(var(--v2-star-alpha, 0) * 1.0); transform: scale(1.1); }
-    }
-
-    /* IU-12: cuando V2 no está visible en el viewport, detenemos TODAS las
-       animaciones para ahorrar batería. La clase la añade IntersectionObserver. */
-    #vista2.v2-inactiva * {
-      animation-play-state: paused !important;
-    }
-    #vista2 > *:not(.v2-animacion):not(.v2-luminaria):not(.v2-ambient):not(.v2-rays):not(.v2-rain-canvas):not(.v2-snow-canvas):not(.v2-fog):not(.v2-lightning):not(.v2-lightning-eco):not(.v2-velocidad) { position: relative; z-index: 1; }
-    .v2-anim { display: none; position: absolute; inset: 0; }
-    #vista2[data-meteo-cat="despejado"] .v2-anim-despejado { display: block; }
-    #vista2[data-meteo-cat="nublado"]   .v2-anim-nublado   { display: block; }
-    #vista2[data-meteo-cat="niebla"].v2-fog-fallback .v2-anim-niebla { display: block; }
-
-    /* DT-14: .v2-sol y @keyframes v2-sol-rotar eliminados — el SVG del sol
-       desapareció al llegar los god-rays de IU-12 y nada usaba ya la regla. */
-
-    /* Nubes (nublado): 2 nubes con desplazamiento horizontal lento. */
-    .v2-nube {
-      position: absolute;
-      width: 180px;
-      height: 60px;
-      opacity: 0.10;
-      color: #cfd4dc;
-      will-change: transform;
-    }
-    .v2-nube-1 { top: 18%; animation: v2-nube-cruza 95s linear infinite; }
-    .v2-nube-2 { top: 55%; animation: v2-nube-cruza 140s linear infinite; animation-delay: -40s; opacity: 0.07; }
-    @keyframes v2-nube-cruza {
-      from { transform: translateX(-220px); }
-      to   { transform: translateX(calc(100vw + 220px)); }
-    }
-
-    /* IU-13: lluvia servida por js/v2_rainfx.js (canvas 2D). El canvas
-       se inserta como primer hijo de #vista2 y se controla via CSS con
-       el selector .v2-rain-canvas más abajo. */
-    .v2-rain-canvas {
+    /* Velo detrás de la palabra y la temperatura: el texto siempre se lee. */
+    .v2p-velo {
       position: absolute;
       inset: 0;
-      pointer-events: none;
-      display: none;
-      z-index: 0;
+      background: radial-gradient(ellipse 75% 65% at 16% 24%, rgba(0, 0, 0, 0.38), rgba(0, 0, 0, 0) 70%);
     }
-    #vista2[data-meteo-cat="lluvia"]   .v2-rain-canvas,
-    #vista2[data-meteo-cat="tormenta"] .v2-rain-canvas { display: block; }
+    #vista2 .p2-word, #vista2 .p2-temp { text-shadow: 0 2px 14px rgba(0, 0, 0, 0.55); }
 
-    /* IU-15: nieve servida por js/v2_snowfx.js (Canvas 2D) y niebla por
-       js/v2_fogfx.js (SVG feTurbulence+feDisplacementMap). Las reglas
-       siguientes solo aplican al fallback CSS de la niebla, activado por
-       #vista2.v2-fog-fallback cuando el navegador no soporta el filter
-       SVG o el usuario pasa ?fogfallback=1. Las dos capas radiales son
-       las originales de IU-11. */
+    /* Lluvia y nieve (v2_rainfx.js, v2_snowfx.js): delante del paisaje,
+       detrás del texto. */
+    .v2-rain-canvas,
     .v2-snow-canvas {
       position: absolute;
       inset: 0;
       pointer-events: none;
       display: none;
-      z-index: 0;
+      z-index: 1;
     }
+    #vista2[data-meteo-cat="lluvia"]   .v2-rain-canvas,
+    #vista2[data-meteo-cat="tormenta"] .v2-rain-canvas { display: block; }
     #vista2[data-meteo-cat="nieve"] .v2-snow-canvas { display: block; }
 
-    .v2-fog {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      display: none;
-      mix-blend-mode: screen;
-      z-index: 0;
+    /* IU-12: con V2 fuera de pantalla se pausan las animaciones CSS (la clase
+       la pone main.js); las del paisaje las pausa v2_paisaje.js. */
+    #vista2.v2-inactiva * {
+      animation-play-state: paused !important;
     }
-    #vista2[data-meteo-cat="niebla"]:not(.v2-fog-fallback) .v2-fog { display: block; }
-    .v2-fog-capa-1 { animation: v2-fog-drift-1 60s ease-in-out infinite alternate; }
-    .v2-fog-capa-2 { animation: v2-fog-drift-2 80s ease-in-out infinite alternate; }
-    @keyframes v2-fog-drift-1 {
-      from { transform: translate(-40px, -20px); }
-      to   { transform: translate( 40px,  10px); }
-    }
-    @keyframes v2-fog-drift-2 {
-      from { transform: translate( 30px,  15px); }
-      to   { transform: translate(-30px, -10px); }
-    }
-
-    /* Fallback CSS: dos radiales con pulso (comportamiento IU-11). */
-    .v2-niebla-capa {
-      position: absolute;
-      inset: -10%;
-      background: radial-gradient(ellipse at center, rgba(200,206,216,0.18) 0%, rgba(200,206,216,0) 70%);
-      animation: v2-niebla-pulsa 22s ease-in-out infinite;
-    }
-    .v2-niebla-capa-2 {
-      animation-duration: 32s;
-      animation-delay: -8s;
-      background: radial-gradient(ellipse at 30% 60%, rgba(180,188,200,0.14) 0%, rgba(180,188,200,0) 65%);
-    }
-    @keyframes v2-niebla-pulsa {
-      0%, 100% { opacity: 0.5; }
-      50%      { opacity: 1;   }
-    }
-
-    /* IU-14: rayo SVG (rama bifurcada con glow) y eco cálido servidos por
-       js/v2_lightningfx.js. El SVG ocupa toda V2; el eco es un overlay
-       con gradiente radial cálido controlado por JS. */
-    .v2-lightning {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      display: none;
-      z-index: 0;
-    }
-    .v2-lightning-eco {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      mix-blend-mode: screen;
-      display: none;
-      z-index: 0;
-    }
-    #vista2[data-meteo-cat="tormenta"] .v2-lightning,
-    #vista2[data-meteo-cat="tormenta"] .v2-lightning-eco { display: block; }
+    /* .p2-inner queda fuera: es absolute a propósito (inset 0 sobre la vista).
+       La regla antigua también lo pisaba y el texto se salía 32 px por abajo. */
+    #vista2 > *:not(.v2p):not(.v2-rain-canvas):not(.v2-snow-canvas):not(.p2-inner) { position: relative; z-index: 2; }
 
     @media (prefers-reduced-motion: reduce) {
-      .v2-nube,
-      .v2-niebla-capa, .v2-fog-capa-1, .v2-fog-capa-2,
-      .v2-lightning, .v2-lightning-eco { animation: none !important; display: none !important; }
+      .v2p-estrellasB canvas { animation: none; }
     }
 
     /* IU-24: bloques .v2-ubicacion/-municipio/-admin, .v2-meteo*, .v2-temp*,
@@ -957,7 +724,7 @@
     /* =========================================================
        V2 HUD expresivo (IU-20): tipografía dominante + timeline
        reactiva. El contenedor p2-inner se posiciona encima de las
-       capas de animación (.v2-ambient/rays/luminaria/animacion).
+       capas del paisaje (.v2p, spec 003).
        ========================================================= */
     .p2-off { display: none !important; }
 
@@ -1012,11 +779,13 @@
        tracking negativo (-0.03em) para empaquetarla fuerte.
        Tamaño: escala con min(vw, vh) para que quepa en landscape (alto = 360)
        sin desbordarse, manteniendo presencia en viewport portrait. */
+    /* Spec 003: tamaño para que quepan las palabras de 9 letras (DESPEJADO,
+       CHUBASCOS, AGUANIEVE) en el móvil apaisado; antes se cortaban. */
     .p2-word {
       font-family: 'Archivo Black', 'Space Grotesk', sans-serif;
-      font-size: clamp(52px, min(13vw, 22vh), 96px);
+      font-size: clamp(34px, min(9vw, 16vh), 86px);
       line-height: 1;
-      letter-spacing: 0.15em;
+      letter-spacing: 0.1em;
       color: var(--hud-white);
       margin-top: 0;
       white-space: nowrap;
@@ -1049,7 +818,7 @@
     /* IU-31: temperatura más grande tras subir la ubicación al header global. */
     .p2-temp {
       font-family: 'JetBrains Mono', monospace;
-      font-size: clamp(72px, min(18vw, 28vh), 140px);
+      font-size: clamp(60px, min(16vw, 24vh), 140px);
       font-weight: 200;
       line-height: 1;
       letter-spacing: -0.04em;
@@ -1162,6 +931,11 @@
       opacity: 0.7;
     }
     .p2-hr-pct:empty { opacity: 0; }
+    /* Spec 003: en el móvil apaisado (360 px de alto) caben 4 horas, no 6:
+       antes las dos últimas quedaban cortadas por abajo. */
+    @media (max-height: 420px) {
+      .p2-hr:nth-child(n+6) { display: none; }
+    }
 
     /* ---- Fin Vista 2 ---- */
 
@@ -2231,44 +2005,10 @@
   </section><!-- /vista1 -->
 
   <section class="vista" id="vista2" data-meteo-cat="despejado">
-    <!-- IU-10+IU-12: capa de animación por código WMO y momento del día. -->
-    <!-- IU-12: iluminación ambiental baja la luz cálida/fría sobre la V2. -->
-    <div class="v2-ambient" aria-hidden="true"></div>
-    <!-- IU-12: god-rays desde la esquina superior-derecha. -->
-    <div class="v2-rays" aria-hidden="true">
-      <div class="v2-ray v2-ray-1"></div>
-      <div class="v2-ray v2-ray-2"></div>
-      <div class="v2-ray v2-ray-3"></div>
-      <div class="v2-ray v2-ray-4"></div>
-      <div class="v2-ray v2-ray-5"></div>
-    </div>
-    <!-- IU-12: luminaria celeste (sol o luna según data-momento). -->
-    <div class="v2-luminaria" aria-hidden="true">
-      <div class="v2-lum-halo"></div>
-      <div class="v2-lum-disco"></div>
-    </div>
-    <!-- IU-12: contenedor de estrellas (visibles de noche despejada). -->
-    <div class="v2-animacion" aria-hidden="true">
-      <div class="v2-anim v2-anim-despejado" id="v2Estrellas">
-        <!-- SVG de rayos del sol eliminado: sustituido por god-rays realistas. -->
-      </div>
-      <div class="v2-anim v2-anim-nublado">
-        <svg class="v2-nube v2-nube-1" viewBox="0 0 180 60" fill="currentColor">
-          <ellipse cx="40"  cy="38" rx="34" ry="18"/>
-          <ellipse cx="90"  cy="30" rx="42" ry="22"/>
-          <ellipse cx="140" cy="38" rx="34" ry="18"/>
-        </svg>
-        <svg class="v2-nube v2-nube-2" viewBox="0 0 180 60" fill="currentColor">
-          <ellipse cx="40"  cy="38" rx="34" ry="18"/>
-          <ellipse cx="90"  cy="30" rx="42" ry="22"/>
-          <ellipse cx="140" cy="38" rx="34" ry="18"/>
-        </svg>
-      </div>
-      <div class="v2-anim v2-anim-niebla">
-        <div class="v2-niebla-capa"></div>
-        <div class="v2-niebla-capa v2-niebla-capa-2"></div>
-      </div>
-    </div>
+    <!-- Spec 003: paisaje lo-fi por capas (cielo, astros, montañas, nubes,
+         niebla). Lo construye y lo mueve js/v2_paisaje.js; la lluvia y la
+         nieve las añaden v2_rainfx.js y v2_snowfx.js por encima. -->
+    <div class="v2p" id="v2Paisaje" aria-hidden="true"></div>
     <!-- Contenido HUD expresivo (IU-20). Va por encima de las animaciones
          de fondo vía z-index. Orden: palabra + temp arriba con todo el
          espacio posible, después ubicación, métricas, story (SIN LLUVIA
@@ -2291,7 +2031,7 @@
 
       <!-- Timeline 6h -->
       <div class="p2-timeline-head u-caps u-dim">
-        <span>PRÓX. 6H</span>
+        <span>PRÓXIMAS HORAS</span>
         <span class="p2-timeline-legend">
           <span class="p2-timeline-legend-bar"></span>
           <span>LLUVIA %</span>
@@ -2427,10 +2167,9 @@
   <script src="js/pois/core.js"></script>
   <script src="js/rutas.js"></script>
   <script src="js/simulator.js"></script>
+  <script src="js/v2_paisaje.js"></script>
   <script src="js/v2_rainfx.js"></script>
-  <script src="js/v2_lightningfx.js"></script>
   <script src="js/v2_snowfx.js"></script>
-  <script src="js/v2_fogfx.js"></script>
   <script src="js/main.js"></script>
 
 </body>

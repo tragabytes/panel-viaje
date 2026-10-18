@@ -484,13 +484,13 @@
 
     // --- Efectos visuales de V2 ---
 
-    // IU-13: motor Canvas 2D de lluvia. Sustituye al sembrado CSS de IU-10.
+    // Spec 003: el tiempo como paisaje (cielo, astros, montañas, nubes, niebla).
+    // Sustituye a las nubes SVG, los rayos, la niebla de filtro SVG y las
+    // estrellas sueltas de IU-10..IU-15.
+    if (window.PaisajeFX) PaisajeFX.init();
+    // IU-13 / IU-15: lluvia y nieve en Canvas 2D, por delante del paisaje.
     if (window.RainFX) RainFX.init();
-    // IU-14: rayos SVG de tormenta con eco cálido.
-    if (window.LightningFX) LightningFX.init();
-    // IU-15: nieve Canvas 2D + niebla volumétrica SVG (con fallback CSS).
     if (window.SnowFX) SnowFX.init();
-    if (window.FogFX)  FogFX.init();
 
     // V4 (spec 002): radar con relieve. Las marcas del cuaderno que caigan
     // cerca salen en el radar como rombos.
@@ -498,27 +498,6 @@
       RadarV4.init();
       Cuaderno.listar().then((lista) => RadarV4.marcas(lista)).catch(() => {});
     }
-
-    // IU-12: estrellas para noche despejada. Generadas una vez con posición
-    // aleatoria y delay de twinkle desfasado. La visibilidad se controla
-    // por la variable CSS --v2-star-alpha en el selector [data-momento="noche"].
-    (function sembrarEstrellas() {
-      const cont = document.getElementById('v2Estrellas');
-      if (!cont) return;
-      const n = 35;
-      const frag = document.createDocumentFragment();
-      for (let i = 0; i < n; i++) {
-        const e = document.createElement('div');
-        e.className = 'v2-estrella';
-        e.style.left = (Math.random() * 100).toFixed(1) + '%';
-        // Sembrar en 2/3 superiores del cielo, no sobre el contenido central
-        e.style.top  = (Math.random() * 65).toFixed(1) + '%';
-        e.style.animationDelay    = (-Math.random() * 8).toFixed(2) + 's';
-        e.style.animationDuration = (5 + Math.random() * 6).toFixed(2) + 's';
-        frag.appendChild(e);
-      }
-      cont.appendChild(frag);
-    })();
 
     // IU-12: pausa las animaciones de V2 cuando no está visible en el
     // viewport para ahorrar batería. Basado en scroll horizontal de #visor.
@@ -1109,9 +1088,24 @@
       }
     }
 
+    // ?meteo=lluvia (o tormenta, nieve, niebla, nublado, cubierto, llovizna,
+    // despejado): pinta ese tiempo en lugar del real, para ver cada paisaje en
+    // el simulador. Solo cambia lo que se pinta; no toca la caché de Weather.
+    const METEO_FORZADA = { despejado: 0, nublado: 2, cubierto: 3, niebla: 45, llovizna: 53,
+      lluvia: 63, chubascos: 81, nieve: 73, tormenta: 95 }[new URLSearchParams(location.search).get('meteo')];
+    function forzarMeteo(meteo) {
+      if (METEO_FORZADA == null) return meteo;
+      const tr = MeteoCodigos.traducir(METEO_FORZADA, meteo.esDia);
+      return Object.assign({}, meteo, {
+        weatherCode: METEO_FORZADA, descripcion: tr.texto, etiqueta: tr.etiqueta,
+        categoria: tr.categoria, icono: tr.icono,
+        precipitacion: tr.categoria === 'lluvia' || tr.categoria === 'tormenta' ? 3 : (tr.categoria === 'nieve' ? 1.5 : 0),
+      });
+    }
+
     async function actualizarMeteo(lat, lon) {
       try {
-        const meteo = await Weather.obtenerTiempoActual(lat, lon);
+        const meteo = forzarMeteo(await Weather.obtenerTiempoActual(lat, lon));
         // DT-12: la clave incluye la temperatura redondeada — sin ella, una
         // respuesta fresca ya pagada con el mismo bloque de 15 min y el mismo
         // código WMO se descartaba aunque la temperatura hubiera cambiado
@@ -1162,15 +1156,11 @@
           RainFX.setMomento(momentoV2);
           RainFX.setMeteo(meteo);
         }
-        if (window.LightningFX) {
-          LightningFX.setMomento(momentoV2);
-          LightningFX.setCategoria(meteo.categoria || null);
-        }
         if (window.SnowFX) {
           SnowFX.setMomento(momentoV2);
           SnowFX.setMeteo(meteo);
         }
-        if (window.FogFX) FogFX.setMomento(momentoV2);
+        if (window.PaisajeFX) PaisajeFX.setMeteo(meteo);
 
         const nHoras = meteo.previsionHoraria ? meteo.previsionHoraria.length : 0;
         const etiqueta = meteo.deCache ? ' [cache]' : '';
@@ -1200,7 +1190,7 @@
         // la meteo vieja: setMeteo(null) lo para de verdad.
         if (window.RainFX) RainFX.setMeteo(null);
         if (window.SnowFX) SnowFX.setMeteo(null);
-        if (window.LightningFX) LightningFX.setCategoria(null);
+        if (window.PaisajeFX) PaisajeFX.setMeteo(null);
         meteoEnError = true;
         debug.error(`Weather: ${err.message}`);
       }
@@ -1411,6 +1401,8 @@
       if (window.RadarV4) {
         RadarV4.posicion({ lat: c.latitude, lon: c.longitude, rumbo: rumboEfectivo, velocidadKmh: velEfectivaKmh });
       }
+      // Spec 003: las montañas de la vista 2 se deslizan solo en marcha.
+      if (window.PaisajeFX) PaisajeFX.setVelocidad(velEfectivaKmh);
 
       let hayQueActualizar = false;
       if (!ultimaPosicionUbicacion) {

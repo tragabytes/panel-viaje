@@ -48,10 +48,9 @@ const PRECACHE = [
   './js/pois/core.js',
   './js/rutas.js',
   './js/simulator.js',
+  './js/v2_paisaje.js',
   './js/v2_rainfx.js',
-  './js/v2_lightningfx.js',
   './js/v2_snowfx.js',
-  './js/v2_fogfx.js',
   './js/main.js',
 ];
 
