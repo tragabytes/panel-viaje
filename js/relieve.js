@@ -15,10 +15,11 @@
 // un fallo esa tesela no se reintenta hasta pasado REINTENTO_MS.
 //
 // API pública (Relieve):
-//   Relieve.componer({ lat, lon, radioKm, pxPorKm, zoom?, red? })
+//   Relieve.componer({ lat, lon, radioKm, pxPorKm, zoom?, red?, circulo? })
 //       → Promise<{ canvas, lat, lon, radioKm, pxPorKm, faltan }>
 //       Lienzo cuadrado, norte arriba, centrado en (lat, lon). red:false = solo
-//       lo que ya esté guardado (no gasta datos).
+//       lo que ya esté guardado (no gasta datos). circulo:true = solo las teselas
+//       que tocan el círculo de radioKm (para el radar, que es un disco).
 //   Relieve.altitud(lat, lon) → metros | null   (si la tesela está en memoria)
 //   Puras (probadas en Node): pixelGlobal, metrosPorPixel, zoomPara,
 //       teselasParaVentana, decodificarTerrarium, sombrear, colorRelieve
@@ -38,7 +39,10 @@
   const MAX_TESELAS_IDB = 300;
   // En memoria: las procesadas (alturas + dibujo), para no recalcular.
   const MAX_TESELAS_MEMORIA = 16;
-  const TIMEOUT_MS = 10000;
+  const TIMEOUT_MS = 15000;
+  // Descargas a la vez como mucho: con 4-6 en paralelo en una conexión lenta,
+  // el plazo de cada una corría mientras esperaba a las otras y fallaban todas.
+  const MAX_DESCARGAS = 2;
   // Tras un fallo (sin cobertura), no reintentar esa tesela hasta pasado esto.
   const REINTENTO_MS = 60000;
 
@@ -83,8 +87,10 @@
     return Math.max(8, Math.min(12, z));
   }
 
-  // Qué teselas cubren un cuadrado de lado 2·radioKm centrado en (lat, lon).
-  function teselasParaVentana(lat, lon, radioKm, zoom) {
+  // Qué teselas cubren un cuadrado de lado 2·radioKm centrado en (lat, lon),
+  // o solo el círculo de ese radio si `circulo` (el radar es un disco: las
+  // teselas de las esquinas no se verían nunca).
+  function teselasParaVentana(lat, lon, radioKm, zoom, circulo) {
     const c = pixelGlobal(lat, lon, zoom);
     const medio = radioKm * 1000 / metrosPorPixel(lat, zoom);
     const max = Math.pow(2, zoom) - 1;
@@ -94,7 +100,15 @@
     const y1 = Math.min(max, Math.floor((c.y + medio) / TAM));
     const lista = [];
     for (let y = y0; y <= y1; y++) {
-      for (let x = x0; x <= x1; x++) lista.push({ z: zoom, x, y });
+      for (let x = x0; x <= x1; x++) {
+        if (circulo) {
+          // Punto de la tesela más cercano al centro: ¿cae dentro del círculo?
+          const px = Math.max(x * TAM, Math.min(c.x, (x + 1) * TAM));
+          const py = Math.max(y * TAM, Math.min(c.y, (y + 1) * TAM));
+          if (Math.hypot(px - c.x, py - c.y) > medio) continue;
+        }
+        lista.push({ z: zoom, x, y });
+      }
     }
     return lista;
   }
@@ -136,10 +150,15 @@
     const k = ESTILO.exageracion / (8 * mpp);
     const eq = ESTILO.equidistancia;
     const ma = ESTILO.maestra;
+    const dentro = (x, y) => alturas[y * ancho + x];
     const at = (x, y) => {
-      const xx = x < 0 ? 0 : (x >= ancho ? ancho - 1 : x);
-      const yy = y < 0 ? 0 : (y >= alto ? alto - 1 : y);
-      return alturas[yy * ancho + xx];
+      let xx = x, yy = y, fx = 0, fy = 0;
+      if (x < 0) { xx = 0; fx = 1; } else if (x >= ancho) { xx = ancho - 1; fx = -1; }
+      if (y < 0) { yy = 0; fy = 1; } else if (y >= alto) { yy = alto - 1; fy = -1; }
+      let v = dentro(xx, yy);
+      if (fx && ancho > 1) v = 2 * v - dentro(xx + fx, yy);
+      if (fy && alto > 1) v = 2 * v - dentro(xx, yy + fy);
+      return v;
     };
     for (let y = 0; y < alto; y++) {
       for (let x = 0; x < ancho; x++) {
@@ -257,11 +276,37 @@
 
   const fallos = new Map();     // clave → ts del último fallo
   const enCurso = new Map();    // clave → Promise<Blob|null>
+  let descargando = 0;
+  const esperando = [];
+
+  async function turnoDescarga() {
+    if (descargando < MAX_DESCARGAS) { descargando++; return; }
+    await new Promise((resolve) => esperando.push(resolve));
+  }
+
+  function soltarDescarga() {
+    const siguiente = esperando.shift();
+    if (siguiente) siguiente(); else descargando--;
+  }
 
   function bajarPng(t) {
     const clave = `${t.z}/${t.x}/${t.y}`;
     if (enCurso.has(clave)) return enCurso.get(clave);
     const p = (async () => {
+      await turnoDescarga();
+      try {
+        return await descargar(clave);
+      } finally {
+        soltarDescarga();
+      }
+    })();
+    enCurso.set(clave, p);
+    p.finally(() => enCurso.delete(clave)).catch(() => {});
+    return p;
+  }
+
+  function descargar(clave) {
+    return (async () => {
       const controller = new AbortController();
       const id = setTimeout(() => controller.abort(), TIMEOUT_MS);
       try {
@@ -272,9 +317,12 @@
         clearTimeout(id);
       }
     })();
-    enCurso.set(clave, p);
-    p.finally(() => enCurso.delete(clave)).catch(() => {});
-    return p;
+  }
+
+  function borrarIdb(clave) {
+    abrirDb().then((db) => {
+      db.transaction(STORE, 'readwrite').objectStore(STORE).delete(clave);
+    }).catch(() => {});
   }
 
   // --- Decodificar y procesar ---
@@ -322,11 +370,23 @@
       return m;
     }
     let blob = null;
-    const registro = await leerIdb(clave);
+    let registro = await leerIdb(clave);
     if (registro && registro.png) {
       blob = registro.png;
-      tocarIdb(registro);
-    } else {
+      try {
+        const procesada = procesar(t, await blobAPixeles(blob));
+        recordar(clave, procesada);
+        tocarIdb(registro);
+        return procesada;
+      } catch (err) {
+        // Guardada pero ilegible (corrupta): fuera, y se baja de nuevo.
+        if (typeof debug !== 'undefined') debug.warn(`Relieve ${clave}: guardada pero ilegible, se vuelve a bajar`);
+        borrarIdb(clave);
+        registro = null;
+        blob = null;
+      }
+    }
+    if (!blob) {
       if (!red) return null;
       const ultimoFallo = fallos.get(clave);
       if (ultimoFallo && Date.now() - ultimoFallo < REINTENTO_MS) return null;
@@ -354,13 +414,31 @@
     }
   }
 
+  // Regla 4: un hueco sin relieve se ve como tal (un rayado tenue), no como
+  // una llanura, que es lo que parecería con el fondo liso.
+  function rayarHueco(ctx, x, y, lado) {
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(x, y, lado, lado);
+    ctx.clip();
+    ctx.strokeStyle = 'rgba(61, 255, 110, 0.07)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let d = -lado; d < lado; d += 7) {
+      ctx.moveTo(x + d, y);
+      ctx.lineTo(x + d + lado, y + lado);
+    }
+    ctx.stroke();
+    ctx.restore();
+  }
+
   // --- API ---
 
   async function componer(op) {
     const lat = op.lat, lon = op.lon, radioKm = op.radioKm, pxPorKm = op.pxPorKm;
     const zoom = op.zoom || ZOOM_RADAR;
     const red = op.red !== false;
-    const teselas = teselasParaVentana(lat, lon, radioKm, zoom);
+    const teselas = teselasParaVentana(lat, lon, radioKm, zoom, !!op.circulo);
     const procesadas = await Promise.all(teselas.map((t) => obtenerTesela(t, red)));
     const lado = Math.ceil(2 * radioKm * pxPorKm);
     const canvas = document.createElement('canvas');
@@ -375,7 +453,11 @@
     let faltan = 0;
     teselas.forEach((t, i) => {
       const p = procesadas[i];
-      if (!p) { faltan++; return; }
+      if (!p) {
+        faltan++;
+        rayarHueco(ctx, (t.x * TAM - c.x) * escala + lado / 2, (t.y * TAM - c.y) * escala + lado / 2, TAM * escala);
+        return;
+      }
       ctx.drawImage(p.canvas,
         (t.x * TAM - c.x) * escala + lado / 2,
         (t.y * TAM - c.y) * escala + lado / 2,

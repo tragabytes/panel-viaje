@@ -591,6 +591,9 @@
     // Un rumbo calculado de hace más de esto ya no dice hacia dónde vas: parado
     // en un semáforo, la marca no debe llevar el sentido del último tramo.
     const RUMBO_CALCULADO_MS = 15000;
+    // Con peor precisión que esto, la deriva del GPS parado supera los 25 m y
+    // daría un rumbo al azar (el radar giraría en un semáforo).
+    const RUMBO_PRECISION_MAX_M = 20;
     let logueadoPrimerFixSpeed = false;
     let logueadoFallbackVelocidad = false;
 
@@ -1349,9 +1352,11 @@
       }
       ultimoFixVelocidad = { lat: c.latitude, lon: c.longitude, ts: ahora };
 
-      if (!ultimoFixRumbo) {
-        ultimoFixRumbo = { lat: c.latitude, lon: c.longitude };
-      } else if (distanciaMetros(ultimoFixRumbo.lat, ultimoFixRumbo.lon, c.latitude, c.longitude) >= RUMBO_MIN_M) {
+      const precisionOk = c.accuracy == null || c.accuracy <= RUMBO_PRECISION_MAX_M;
+      if (!ultimoFixRumbo || !precisionOk) {
+        if (precisionOk) ultimoFixRumbo = { lat: c.latitude, lon: c.longitude };
+      } else if (distanciaMetros(ultimoFixRumbo.lat, ultimoFixRumbo.lon, c.latitude, c.longitude) >=
+                 Math.max(RUMBO_MIN_M, 2 * (c.accuracy || 0))) {
         rumboCalculado = Geo.rumboHacia(ultimoFixRumbo.lat, ultimoFixRumbo.lon, c.latitude, c.longitude);
         rumboCalculadoTs = ahora;
         ultimoFixRumbo = { lat: c.latitude, lon: c.longitude };

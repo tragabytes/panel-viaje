@@ -78,6 +78,16 @@ test('las curvas de nivel aparecen donde se cruza un múltiplo de 100 m', () => 
   assert.ok(enCurva[1] > fuera[1] + 10, `curva ${enCurva} vs fuera ${fuera}`);
 });
 
+// Impide: una raya oscura en la junta de cada tesela (cada ~30 km) sobre las
+// montañas: en el borde, la pendiente salía a la mitad.
+test('en el borde de la tesela, una ladera se ve igual que en el centro', () => {
+  // Ladera uniforme; se comparan píxeles a la misma altura (x + y igual), porque
+  // el color también se aclara un poco con la altitud.
+  const rgba = Relieve.sombrear(terreno(8, 8, (x, y) => 600 + (x + y) * 15), 8, 8, 117);
+  assert.deepEqual(pixel(rgba, 8, 0, 4), pixel(rgba, 8, 2, 2));   // borde izquierdo
+  assert.deepEqual(pixel(rgba, 8, 7, 0), pixel(rgba, 8, 3, 4));   // esquina superior derecha
+});
+
 test('el mar se pinta como mar y la costa se marca', () => {
   const rgba = Relieve.sombrear(terreno(4, 1, (x) => (x < 2 ? -20 : 5)), 4, 1, 117);
   const mar = pixel(rgba, 4, 0, 0);

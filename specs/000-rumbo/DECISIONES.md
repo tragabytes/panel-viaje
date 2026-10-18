@@ -212,6 +212,62 @@ Overpass directamente. Siguen abiertas la 4, la 5 y la 6.
 - **Cómo se deshace**: el commit "meteo chillout" se puede revertir solo (vuelven los efectos
   anteriores).
 
+### D22 · Revisión a fondo: lo que se encontró y se arregló
+- **Cómo**: tres revisores independientes, uno por bloque (cuaderno, radar, paisaje), con el
+  encargo de buscar fallos concretos y demostrarlos; después comprobé cada hallazgo yo antes de
+  tocar nada. Varios se confirmaron con scripts y midiendo en el navegador a 640×360.
+- **Cuaderno** (13 hallazgos, todos arreglados):
+  - Sin cobertura, la marca se quedaba con los pueblos de donde hubo red (a 20 km) y al completarla
+    no se corregían. Ahora se apuntan como viejos y se sustituyen.
+  - Si fallaba el guardado (móvil lleno, conexión cerrada por Chrome), la marca se perdía. Ahora:
+    escritura duradera, reapertura de la conexión, un reintento y, si nada funciona, un respaldo que
+    pasa la marca al cuaderno en cuanto se puede. Hay un test que lo simula.
+  - Si el reloj del móvil retrocedía, todas las marcas se daban por repetidas durante una hora.
+  - La nota podía perder lo último tecleado al salir o al repintarse la pantalla.
+  - Una copia de seguridad con datos raros rompía el cuaderno: ahora se sanea campo a campo.
+  - Parado, la marca podía guardar el sentido de la marcha del último tramo.
+  - "◆ MARCADO" hacía saltar la cabecera una línea: ahora es una píldora encima del contenido.
+  - En la vista 3, mantener el dedo sobre una foto la arrastraba y no marcaba.
+  - Menores: candidatos con el mismo nombre en sitios distintos se fundían; Wikipedia con error se
+    guardaba como "sin sitios"; el filtro quitaba sitios buenos ("Hospital de Órbigo" es un pueblo);
+    el mapa se encogía por un candidato lejano.
+- **Paisaje** (15 hallazgos, todos arreglados):
+  - Sin cobertura usaba un horario de sol inventado: en junio pintaba de noche a las 20:30. Ahora la
+    salida y la puesta del sol se calculan con la fecha y la posición, sin internet (con test).
+  - Costuras al dar la vuelta las capas (sobre todo la niebla, que aparecía o desaparecía de golpe).
+  - La línea del viento caía sobre el horizonte, la franja más clara: contraste 1,6:1 de día y
+    casi nulo al atardecer. Ahora lleva velo, sombra y un gris más claro.
+  - Al ponerse el sol, el astro y su resplandor saltaban de lado; la luz cambiaba a saltos en el
+    crepúsculo.
+  - Las nubes iban en sentido contrario a la lluvia.
+  - El resplandor de tormenta hacía un doble pulso que de noche podía verse como destello: ahora es
+    un solo pulso lento, más tenue de noche.
+  - El vigilante de fluidez podía dejar el paisaje quieto por un atasco ajeno (Overpass): ahora mide
+    la mediana de los fotogramas.
+  - Menores: casas con luz a mediodía; cambios de viento que tardaban una hora en verse; montañas
+    que seguían moviéndose a 2 km/h; `?meteo=` llegaba a las marcas como si fuera real; el modo
+    ligero no paraba todo; la luna nueva se veía con manchas; horas de previsión cortadas.
+- **Radar** (12 hallazgos, todos arreglados):
+  - Los ecos se desincronizaban del barrido a los pocos minutos. Medido después: menos de 20 ms de
+    desfase, también tras recorrer kilómetros.
+  - El relieve gastaba 2-3 veces los datos que yo había puesto en la spec: componía un cuadrado de
+    19 km. Ahora solo el círculo que se ve, con 1,5 km de margen: casi siempre 4 teselas, nunca
+    más de 6. Aun así son 0,8-1,2 MB por hora con la vista 4 siempre abierta, y no "menos de 0,5"
+    como escribí el 30/09: lo he corregido en la spec y te dejo la alternativa (pregunta 4).
+  - En giros grandes, los ecos iban en recta mientras el relieve giraba en arco: ahora los giros de
+    más de 30° se aplican de golpe.
+  - El rumbo calculado metía ruido (el disco se balanceaba en recta) y, parado con mala señal,
+    podía girar en un semáforo: ahora hace falta buena precisión y no se gira por menos de 4°.
+  - Las etiquetas saltaban de lado a cada tick y se pisaban con la "N" y los rótulos de los
+    anillos. Al comprobarlo vi otra cosa: con los pueblos apiñados a 2-3 km solo salía un nombre
+    de cinco. Ahora cada etiqueta prueba seis sitios (a los lados, encima y debajo de su punto) y
+    se queda en el que tenía mientras quepa: en la misma prueba, salen cuatro de cinco.
+  - Una raya oscura en la junta de cada tesela; una tesela guardada corrupta dejaba un agujero
+    para siempre; donde faltaba relieve parecía una llanura (ahora se ve un rayado tenue).
+  - Menores: el primer giro daba la vuelta larga; dos pueblos con el mismo nombre salían como uno;
+    con conexión lenta fallaban todas las descargas a la vez; en vertical se escondían etiquetas
+    que cabían.
+
 ### D23 · Sin subir a GitHub
 - **Qué**: todo lo de esta tarde está en commits en tu ordenador, con `SW_VERSION`
   `v19-2026-10-18-cuaderno-radar-paisaje`, sin `push`.

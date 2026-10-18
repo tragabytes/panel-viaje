@@ -38,7 +38,10 @@ relieve del terreno debajo.
 
 - **Fuente**: las teselas de elevación de Amazon ("Terrain Tiles"), gratuitas, sin clave y
   utilizables desde el navegador. Probadas con llamadas reales el 30/09 y el 18/10.
-- **Cada tesela** cubre unos 30 km de lado y pesa unos 135 KB. El radar necesita entre 1 y 4.
+- **Cada tesela** cubre unos 30 km de lado y pesa unos 135 KB. El radar baja solo las que tocan
+  el círculo que se ve (más 1,5 km de margen para poder moverse sin recomponer): en el 84 % de
+  España son 4, y nunca más de 6. (La primera versión bajaba el cuadrado entero, de 4 a 9; lo
+  cazó la revisión, D22.)
 - **Se guardan en el móvil para siempre** (el relieve no cambia), con un tope de 300 teselas,
   unos 40 MB: si se llena, se borran las que hace más tiempo que no se usan. Por las zonas ya
   recorridas, **cero datos**.
@@ -46,8 +49,12 @@ relieve del terreno debajo.
   gasta nada. **(decidido)**, por la regla de que los datos cuestan.
 - **Sin cobertura**, el radar funciona igual sin el relieve de las zonas nuevas, y lo vuelve a
   intentar pasado un rato (no en bucle).
-- **Calculado a 100 km/h por zonas nuevas**: unos 135 KB cada 18 minutos con la vista 4 abierta,
-  menos de 0,5 MB por hora.
+- **Medido en simulación a 100 km/h por zonas nuevas** (saliendo de Madrid en cinco
+  direcciones): al abrir la vista, unos 0,8 MB; después, **entre 0,8 y 1,2 MB por hora** con la
+  vista 4 siempre en pantalla. Por zonas ya recorridas, cero. (El 30/09 escribí "menos de 0,5 MB
+  por hora": era una cuenta de servilleta, y estaba mal.)
+- **(decidido)** Se queda este nivel de detalle. Con teselas de la mitad de resolución bajaría a
+  unos 0,4 MB por hora, pero el relieve se vería borroso. Ver la pregunta 4.
 
 ## Casos raros
 
@@ -71,3 +78,4 @@ relieve del terreno debajo.
 1. ¿El giro con la marcha te ayuda o te marea? La alternativa es el norte siempre arriba.
 2. ¿El barrido distrae? Se puede quitar o hacer más lento.
 3. ¿Quieres ver también los puntos de interés (castillos, iglesias…) en el radar, o solo pueblos?
+4. ¿Te parece bien ~1 MB por hora con la vista 4 abierta, o prefieres menos detalle y ~0,4 MB?

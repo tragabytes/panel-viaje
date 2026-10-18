@@ -1293,7 +1293,13 @@
       opacity: 0;
     }
     .p4-relieve--listo { opacity: 0.95; }
-    .p4-sin-transicion .p4-relieve { transition: none; }
+    /* Recomponer el relieve o un giro grande (media vuelta): de golpe, todo a
+       la vez. Con transición, el relieve gira en arco y los ecos van en recta. */
+    .p4-recomponiendo .p4-relieve,
+    .p4-sin-transicion .p4-relieve,
+    .p4-sin-transicion .p4-giro,
+    .p4-sin-transicion .p4-blip,
+    .p4-sin-transicion .p4-norte { transition: none; }
     /* Barrido: la estela va detrás del borde brillante (sentido horario). */
     .p4-barrido {
       position: absolute;
@@ -1390,6 +1396,9 @@
     }
     .p4-blip-dist { font-size: 9px; color: var(--phos-200); }
     .p4-blip--izq .p4-blip-label { left: auto; right: 8px; text-align: right; }
+    .p4-blip--arr .p4-blip-label { top: -30px; }
+    .p4-blip--aba .p4-blip-label { top: 5px; }
+    .p4-anillo-txt--oculto { opacity: 0; }
     .p4-blip--sin-nombre .p4-blip-label { display: none; }
     .p4-blip--lejos .p4-blip-dot { background: var(--hud-white-mute); box-shadow: none; animation: none; opacity: 0.6; }
     .p4-blip--lejos .p4-blip-name { color: var(--hud-white-dim); }
