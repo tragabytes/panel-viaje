@@ -476,3 +476,5 @@ Overpass directamente. Siguen abiertas la 4, la 5 y la 6.
 ### D37 · Sin subir a GitHub
 - **Qué**: la v23 (`v23-2026-10-18-postales`) está en tu ordenador, sin `push`. Se publica cuando
   digas "sube".
+- **Hecho**: el mismo 18/10 por la noche dijiste "adelante" y se publicó (comprobado: la web sirve
+  `v23-2026-10-18-postales` desde las 19:26).
