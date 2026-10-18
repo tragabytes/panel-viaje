@@ -22,7 +22,7 @@ Lee, por este orden:
 
 **Por dónde seguir** (cuando haya contestado a D12):
 1. ~~**Arreglo de Overpass** (D7)~~ — hecho el 18/10 (DECISIONES D13); falta verlo con los servidores reales en carretera.
-2. ~~**Datos viejos sin cobertura** (D8)~~ — hecho el 18/10, atenuado en gris desde 2 km (DECISIONES D14). Pendiente: D15, el service worker que puede precargar ficheros viejos.
+2. ~~**Datos viejos sin cobertura** (D8)~~ — hecho el 18/10, atenuado en gris desde 2 km (DECISIONES D14). D15 (precarga con ficheros viejos), arreglado también.
 3. **Cuaderno, H1** (`specs/001-cuaderno-de-viaje/tasks.md`).
 4. **Prueba en carretera**: marcas reales + log del viaje (`?logs=1`), medir peticiones por hora y fallos de Overpass. Con eso, dar por buenas las 15 tarjetas que quedaron en revisión en la sesión 49 (DECISIONES D3).
 5. Después: radar con relieve (spec 002) y meteo chillout (spec 003, con mis referencias).

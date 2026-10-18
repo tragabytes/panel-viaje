@@ -124,5 +124,7 @@ Overpass directamente. Siguen abiertas la 4, la 5 y la 6.
   navegador que los baje de nuevo. En GitHub Pages esa caché dura 10 minutos: si el móvil abrió el
   panel en los 10 minutos antes de una publicación, puede quedarse con ficheros viejos bajo la
   versión nueva hasta la siguiente.
-- **No lo he tocado**: el arreglo es de una línea (precargar con "bájalo de nuevo"), pero no era
-  este encargo. Lo propongo como siguiente arreglo.
+- **Arreglado el 18/10** (lo pediste): la precarga pide cada fichero de nuevo al servidor
+  (`cache: 'reload'`). Lo vigila un test de `tests/invariantes.test.mjs`. Comprobado en el
+  navegador: con el panel cargado, se cambia un fichero y la versión, y la versión nueva guarda el
+  fichero nuevo. `SW_VERSION` pasa a `v17-2026-10-18-precarga-fresca`.

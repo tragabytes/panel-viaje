@@ -53,6 +53,24 @@ test('(control) la comprobación del precache detecta un script olvidado', () =>
   assert.deepEqual(scriptsSinPrecache(html, sw), ['js/nuevo.js']);
 });
 
+function precargaPideFicherosNuevos(sw) {
+  const install = sw.match(/addEventListener\('install'[\s\S]*?\n\}\);/);
+  return !!install && /cache:\s*'reload'/.test(install[0]);
+}
+
+// Impide: que una versión nueva del service worker se instale con los ficheros
+// viejos de la caché normal del navegador (10 min en GitHub Pages), y el panel
+// se quede con la versión anterior hasta la siguiente publicación (D15).
+test('al instalarse, el service worker baja los ficheros de nuevo', () => {
+  assert.ok(precargaPideFicherosNuevos(leer('service-worker.js')),
+    "La precarga del evento install tiene que pedir cada fichero con { cache: 'reload' }");
+});
+
+test('(control) la comprobación de la precarga detecta un addAll directo', () => {
+  const sw = "self.addEventListener('install', (event) => {\n  event.waitUntil(caches.open(C).then((c) => c.addAll(PRECACHE)));\n});";
+  assert.equal(precargaPideFicherosNuevos(sw), false);
+});
+
 // ---------------------------------------------------------------- regla 8
 
 function stubAntesDeScripts(html) {

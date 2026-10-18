@@ -9,7 +9,7 @@
 //
 // Para forzar actualización, subir SW_VERSION.
 
-const SW_VERSION = 'v16-2026-10-18-datos-viejos';
+const SW_VERSION = 'v17-2026-10-18-precarga-fresca';
 const APP_CACHE = `panel-viaje-app-${SW_VERSION}`;
 const API_CACHE = `panel-viaje-api-${SW_VERSION}`;
 
@@ -101,7 +101,9 @@ async function recortarApiCache(cache) {
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(APP_CACHE)
-      .then((cache) => cache.addAll(PRECACHE))
+      // D15: 'reload' salta la caché HTTP del navegador (10 min en GitHub
+      // Pages); sin él, la versión nueva podía guardarse con ficheros viejos.
+      .then((cache) => cache.addAll(PRECACHE.map((url) => new Request(url, { cache: 'reload' }))))
       .then(() => self.skipWaiting())
   );
 });
