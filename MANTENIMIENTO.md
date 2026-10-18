@@ -94,3 +94,29 @@ Cada cosa en su sitio, para que ninguna limpieza toque lo que no debe:
 
 **Copia de seguridad del cuaderno**: en `?cuaderno=1`, menú "⋯" → "Descargar copia de seguridad".
 Es un `.json`; "Importar una copia" lo vuelve a cargar (solo añade las marcas que falten).
+
+## 7. Si algo falla en un móvil
+
+Antes de tocar nada en un móvil con marcas: **copia de seguridad del cuaderno** (sección 6). Y
+nunca "borrar datos del sitio" en Chrome: se lleva las marcas.
+
+**No se ve la versión nueva.** Desde la v20 entra sola al abrir la app parado (D24). Con una
+anterior: cerrar la app desde recientes, abrirla con internet, esperar ~30 s, y cerrarla y abrirla
+otra vez. Señales de la versión actual: vista 2 con montañas, vista 4 con un radar redondo.
+
+**"Sin permiso de ubicación"** (o, en versiones viejas, "Error de GPS: Permiso denegado"). La v21
+saca una tarjeta con los pasos (D25). Lo típico, por orden: ubicación del móvil apagada; Chrome sin
+permiso de ubicación en Android (Ajustes → Aplicaciones → Chrome → Permisos → Ubicación); la web
+bloqueada en Chrome (⋮ → Configuración → Configuración de sitios → Ubicación); la web abierta dentro
+de otra app; en móviles de empresa, la ubicación del perfil de trabajo apagada o una política que la
+bloquea (`chrome://policy`: "DefaultGeolocationSetting" con valor 2). **Prueba rápida**: Google Maps
+en ese mismo Chrome (maps.google.com → botón de ubicación); si tampoco localiza, es el teléfono.
+No es un problema de HTTPS: el de GitHub Pages vale en cualquier móvil (D25).
+
+**"Esta aplicación no se puede instalar"** al instalarla desde Chrome. La web cumple lo que pide
+Chrome (manifiesto, iconos de 192 y 512 px, service worker: comprobado el 18/10), así que es el
+móvil. Por orden: una copia vieja ya instalada (Ajustes → Aplicaciones → "Panel": desinstalarla
+sin borrar datos y volver a instalar); poco espacio libre; Chrome o los servicios de Google Play
+desactualizados; Chrome sin permiso para "instalar aplicaciones desconocidas"; un móvil sin Google
+Play. Si nada funciona, "Crear acceso directo" sirve igual (se abre en Chrome; el botón de pantalla
+completa quita las barras).
