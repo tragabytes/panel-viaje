@@ -104,7 +104,8 @@ function ficherosJs(dir) {
 function urlsSinHttps(texto) {
   return [...texto.matchAll(/['"`](http:\/\/[^'"`\s]+)/g)]
     .map((m) => m[1])
-    .filter((url) => !url.startsWith('http://www.w3.org/')); // espacios de nombres SVG, no son peticiones
+    // Espacios de nombres (SVG, KML del cuaderno): identificadores, no peticiones.
+    .filter((url) => !url.startsWith('http://www.w3.org/') && !url.startsWith('http://www.opengis.net/'));
 }
 
 // Impide: una petición por http:// que el navegador bloquea en una página HTTPS
@@ -138,4 +139,38 @@ test('las búsquedas de Wikipedia por coordenadas no se guardan en la caché', (
   assert.equal(sw.esApiCacheable('https://es.wikipedia.org/w/api.php?action=query&generator=geosearch&ggscoord=40|-4'), false);
   assert.equal(sw.esApiCacheable('https://es.wikipedia.org/w/api.php?action=query&list=geosearch&gscoord=40|-4'), false);
   assert.equal(sw.esApiCacheable('https://es.wikipedia.org/api/rest_v1/page/summary/Astorga'), true);
+});
+
+// ---------------------------------------------------------------- tick del GPS
+
+// Las llamadas opcionales del tick que no van protegidas por sinRomper().
+const OPCIONALES_TICK = ['RadarV4.posicion(', 'PaisajeFX.setVelocidad(', 'PaisajeFX.setPosicion(',
+  'ModoNoche.posicion(', 'Actualizacion.gps(', 'comprobarAquiMarcaste('];
+function opcionalesSinProteger(main) {
+  const ini = main.indexOf('function alRecibirPosicion(');
+  const fin = main.indexOf('\n    }\n', ini);
+  if (ini < 0 || fin < 0) return ['(no encuentro alRecibirPosicion)'];
+  const malas = [];
+  let dentro = false; // dentro de un sinRomper('…', () => { … });
+  for (const linea of main.slice(ini, fin).split('\n')) {
+    if (/sinRomper\(.*=>\s*\{\s*$/.test(linea)) { dentro = true; continue; }
+    if (dentro && /^\s*\}\);\s*$/.test(linea)) { dentro = false; continue; }
+    for (const op of OPCIONALES_TICK) {
+      const i = linea.indexOf(op);
+      if (i < 0) continue;
+      if (!dentro && linea.lastIndexOf('sinRomper(', i) < 0) malas.push(linea.trim());
+    }
+  }
+  return malas;
+}
+
+// Impide: que un fallo en el radar, el paisaje o un aviso corte el tick del
+// GPS y deje el panel sin pueblo, vía ni tiempo (lo de después no corre).
+test('en el tick del GPS, lo opcional va protegido', () => {
+  assert.deepEqual(opcionalesSinProteger(leer('js/main.js')), []);
+});
+
+test('(control) la comprobación detecta una llamada opcional sin proteger', () => {
+  const main = "    function alRecibirPosicion(pos) {\n      sinRomper('Radar', () => RadarV4.posicion(p));\n      ModoNoche.posicion(1, 2);\n    }\n";
+  assert.deepEqual(opcionalesSinProteger(main), ['ModoNoche.posicion(1, 2);']);
 });

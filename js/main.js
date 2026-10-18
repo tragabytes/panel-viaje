@@ -209,11 +209,16 @@
     if (window.SnowFX) SnowFX.init();
 
     // V4 (spec 002): radar con relieve. Las marcas del cuaderno que caigan
-    // cerca salen en el radar como rombos.
-    if (window.RadarV4) {
-      RadarV4.init();
-      Cuaderno.listar().then((lista) => RadarV4.marcas(lista)).catch(() => {});
+    // cerca salen en el radar como rombos (y sirven para «Aquí marcaste»).
+    if (window.RadarV4) RadarV4.init();
+    let marcasCuaderno = [];
+    function recargarMarcas() {
+      Cuaderno.listar().then((lista) => {
+        marcasCuaderno = lista;
+        if (window.RadarV4) RadarV4.marcas(lista);
+      }).catch(() => {});
     }
+    recargarMarcas();
 
     // IU-12: pausa las animaciones de V2 cuando no está visible en el
     // viewport para ahorrar batería. Basado en scroll horizontal de #visor.
@@ -947,6 +952,19 @@
 
     // --- Tick GPS ---
 
+    // Lo que no es imprescindible va protegido: un fallo en el radar, el
+    // paisaje o un aviso no puede dejar el panel sin pueblo, vía ni tiempo (lo
+    // que viene después en el tick no llegaría a correr). Se apunta una vez.
+    const fallosAvisados = new Set();
+    function sinRomper(nombre, fn) {
+      try {
+        fn();
+      } catch (err) {
+        if (!fallosAvisados.has(nombre)) debug.error(`${nombre} falló: ${err && err.message}`);
+        fallosAvisados.add(nombre);
+      }
+    }
+
     function alRecibirPosicion(pos) {
       const c = pos.coords;
       const ahora = Date.now();
@@ -1027,17 +1045,20 @@
         ts: ahora,
       };
       if (window.RadarV4) {
-        RadarV4.posicion({ lat: c.latitude, lon: c.longitude, rumbo: rumboEfectivo, velocidadKmh: velEfectivaKmh });
+        sinRomper('Radar', () => RadarV4.posicion({ lat: c.latitude, lon: c.longitude, rumbo: rumboEfectivo, velocidadKmh: velEfectivaKmh }));
       }
+      sinRomper('Aquí marcaste', () => comprobarAquiMarcaste(ultimaPosicionMarca, ahora));
       // D24: una versión nueva solo entra con el coche parado.
-      if (window.Actualizacion) Actualizacion.gps(velEfectivaKmh);
+      if (window.Actualizacion) sinRomper('Actualización', () => Actualizacion.gps(velEfectivaKmh));
       // Spec 003: las montañas de la vista 2 se deslizan solo en marcha; la
       // posición sirve para calcular la salida y la puesta del sol.
       if (window.PaisajeFX) {
-        PaisajeFX.setVelocidad(velEfectivaKmh);
-        PaisajeFX.setPosicion(c.latitude, c.longitude);
+        sinRomper('Paisaje', () => {
+          PaisajeFX.setVelocidad(velEfectivaKmh);
+          PaisajeFX.setPosicion(c.latitude, c.longitude);
+        });
       }
-      if (window.ModoNoche) ModoNoche.posicion(c.latitude, c.longitude);
+      if (window.ModoNoche) sinRomper('Modo noche', () => ModoNoche.posicion(c.latitude, c.longitude));
 
       let hayQueActualizar = false;
       if (!ultimaPosicionUbicacion) {
@@ -1178,12 +1199,34 @@
 
     const $marcaAviso = document.getElementById('marcaAviso');
     let marcaAvisoTimer = null;
-    function avisarMarca(texto, clase) {
+    function avisarMarca(texto, clase, duracionMs) {
       $marcaAviso.textContent = texto;
       $marcaAviso.className = 'marca-aviso u-caps' + (clase ? ' ' + clase : '');
       $marcaAviso.hidden = false;
       clearTimeout(marcaAvisoTimer);
-      marcaAvisoTimer = setTimeout(() => { $marcaAviso.hidden = true; }, 2000);
+      marcaAvisoTimer = setTimeout(() => { $marcaAviso.hidden = true; }, duracionMs || 2000);
+    }
+
+    // «Aquí marcaste»: al volver a pasar junto a una marca de otro momento, un
+    // aviso de 8 s con lo que era (js/cuaderno.js, marcasAqui). Las ya
+    // recordadas se apuntan en el móvil para no repetirlas en un mes (en un
+    // trayecto de todos los días serían un aviso diario). Es una comodidad: si
+    // localStorage falla, como mucho se repite un aviso.
+    const CLAVE_RECORDADAS = 'cuaderno-recordadas';
+    const RECORDADAS_MS = 31 * 24 * 3600 * 1000;
+    let recordadas = {};
+    try { recordadas = JSON.parse(localStorage.getItem(CLAVE_RECORDADAS)) || {}; } catch (e) { recordadas = {}; }
+    function comprobarAquiMarcaste(pos, ahora) {
+      const aqui = Cuaderno.marcasAqui(marcasCuaderno, pos, ahora, recordadas);
+      if (!aqui.length) return;
+      for (const x of aqui) recordadas[x.marca.id] = ahora;
+      for (const id of Object.keys(recordadas)) {
+        if (ahora - recordadas[id] > RECORDADAS_MS) delete recordadas[id];
+      }
+      try { localStorage.setItem(CLAVE_RECORDADAS, JSON.stringify(recordadas)); } catch (e) { /* solo en memoria */ }
+      const m = aqui[0].marca;
+      avisarMarca(Cuaderno.textoAquiMarcaste(m, ahora), 'recuerdo', 8000);
+      debug.log(`Cuaderno: aquí marcaste (marca del ${new Date(m.id).toLocaleString('es')}, a ${Math.round(aqui[0].distM)} m)`);
     }
 
     const detectorMarca = Cuaderno.crearDetectorToqueLargo(() => {
@@ -1210,7 +1253,7 @@
           const m = r.marca;
           const c = m.contexto || {};
           debug.log(`Cuaderno: marca guardada · ${m.lat != null ? m.lat.toFixed(5) + ', ' + m.lon.toFixed(5) : 'sin posición'}${m.aproximada ? ' (aproximada)' : ''} · ${c.municipio || 'sin municipio'}${c.via ? ' · ' + (c.via.codigo || c.via.texto) : ''} · ${(c.pueblos || []).length} pueblos${c.pendiente ? ' · pendiente de completar' : ''}`);
-          if (window.RadarV4) Cuaderno.listar().then((lista) => RadarV4.marcas(lista)).catch(() => {});
+          recargarMarcas();
         }
       });
     });

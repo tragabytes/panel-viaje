@@ -528,19 +528,34 @@
     }
   }
 
-  async function exportar() {
-    const copia = await Cuaderno.exportar();
-    const blob = new Blob([JSON.stringify(copia, null, 1)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
+  // Descarga un archivo con la fecha de hoy en el nombre (.json o .kml).
+  function descargar(contenido, tipo, extension) {
+    const url = URL.createObjectURL(new Blob([contenido], { type: tipo }));
     const d = new Date();
     const a = document.createElement('a');
     a.href = url;
-    a.download = `cuaderno-viaje-${d.getFullYear()}${pad2(d.getMonth() + 1)}${pad2(d.getDate())}.json`;
+    a.download = `cuaderno-viaje-${d.getFullYear()}${pad2(d.getMonth() + 1)}${pad2(d.getDate())}.${extension}`;
     document.body.appendChild(a);
     a.click();
     a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  async function exportar() {
+    const copia = await Cuaderno.exportar();
+    descargar(JSON.stringify(copia, null, 1), 'application/json', 'json');
     avisar(`Copia descargada con ${copia.marcas.length} marcas.`, 4000);
+  }
+
+  // Para verlas en un mapa de Google: My Maps (Crear mapa → Importar) o
+  // Google Earth. Es otra cosa que la copia de seguridad: no se puede volver a
+  // importar aquí, y las marcas sin posición no van.
+  function exportarKml() {
+    const conPosicion = marcas.filter((m) => m.lat != null && m.lon != null).length;
+    if (!conPosicion) { avisar('Ninguna marca tiene posición: no hay nada que llevar a un mapa.', 4000); return; }
+    descargar(Cuaderno.aKML(marcas), 'application/vnd.google-earth.kml+xml', 'kml');
+    const sin = marcas.length - conPosicion;
+    avisar(`Mapa descargado con ${conPosicion} marcas${sin ? ` (${sin} sin posición no van)` : ''}. Ábrelo en Google My Maps (Crear mapa → Importar) o en Google Earth.`, 7000);
   }
 
   async function importar(archivo) {
@@ -615,6 +630,7 @@
     });
     document.addEventListener('click', (e) => { if (!e.target.closest('#cuMenu')) cerrarMenu(); });
     document.getElementById('cuExportar').addEventListener('click', () => { cerrarMenu(); exportar(); });
+    document.getElementById('cuKml').addEventListener('click', () => { cerrarMenu(); exportarKml(); });
     document.getElementById('cuImportar').addEventListener('click', () => { cerrarMenu(); $.archivo.click(); });
     document.getElementById('cuCompletar').addEventListener('click', () => { cerrarMenu(); completarPendientes(true); });
     $.archivo.addEventListener('change', () => {

@@ -193,6 +193,8 @@
       pointer-events: none;
     }
     .marca-aviso.error { color: var(--amber); border-color: rgba(255, 181, 71, 0.6); }
+    /* «Aquí marcaste»: en ámbar, como las marcas en el radar y en el cuaderno. */
+    .marca-aviso.recuerdo { color: var(--amber); border-color: rgba(255, 181, 71, 0.45); }
     /* Mantener el dedo 1 s es el gesto de marcar: que el navegador no lo
        tome por "seleccionar texto" ni saque su menú. */
     .visor, .app-header {
@@ -1922,6 +1924,7 @@
       <button id="cuCompartir" type="button" class="cu-boton">Compartir</button>
       <button id="cuMas" type="button" class="cu-boton cu-boton--icono" aria-haspopup="true" aria-label="Más opciones">⋯</button>
       <div id="cuMenu" class="cu-menu" hidden>
+        <button id="cuKml" type="button">Llevar a Google Maps (KML)</button>
         <button id="cuExportar" type="button">Descargar copia de seguridad</button>
         <button id="cuImportar" type="button">Importar una copia</button>
         <button id="cuCompletar" type="button">Completar con internet</button>

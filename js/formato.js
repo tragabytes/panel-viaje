@@ -247,20 +247,27 @@
 
   // V1 (los 3 primeros) y V3 (los 6 primeros): los POIs de todos los pueblos en
   // una lista, en orden (los pueblos vienen del más cercano al más lejano), sin
-  // repetir el que comparten dos pueblos vecinos (BPC-17: mismo nombre y mismas
-  // coordenadas). La usan el pintado y el camino rápido de las distancias
-  // (DT-18): antes eran tres copias que tenían que casar a mano.
+  // repetir el que comparten dos pueblos vecinos (BPC-17) ni el mismo sitio con
+  // dos nombres casi iguales ("Ermita Ecce Homo" de OpenStreetMap y "Ermita del
+  // Ecce Homo" de Wikipedia): mismo nombre sin artículos ni tildes y a menos de
+  // MISMO_POI_GRADOS (~300 m). La usan el pintado y el camino rápido de las
+  // distancias (DT-18): antes eran tres copias que tenían que casar a mano.
+  const MISMO_POI_GRADOS = 0.003;
+  function nombreParaComparar(nombre) {
+    return String(nombre || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .split(/[^a-z0-9ñ]+/).filter((w) => w && !['de', 'del', 'la', 'las', 'el', 'los', 'y'].includes(w)).join(' ');
+  }
   function aplanarPOIs(pueblos) {
-    const vistos = new Set();
+    const vistos = [];
     const lista = [];
     for (const p of pueblos || []) {
       for (const poi of (p.pois || [])) {
-        const clave = (poi.nombre || '').toLowerCase() + '|' +
-          (poi.lat != null ? poi.lat.toFixed(4) : '') + ',' +
-          (poi.lon != null ? poi.lon.toFixed(4) : '');
-        if (vistos.has(clave)) continue;
-        vistos.add(clave);
-        lista.push({ nombre: poi.nombre, foto: poi.foto, tipo: poi.tipo, pueblo: p.nombre, distKm: p.distKm });
+        const nombre = nombreParaComparar(poi.nombre);
+        const repetido = vistos.some((v) => v.nombre === nombre &&
+          (poi.lat == null || v.lat == null || (Math.abs(v.lat - poi.lat) < MISMO_POI_GRADOS && Math.abs(v.lon - poi.lon) < MISMO_POI_GRADOS)));
+        if (repetido) continue;
+        vistos.push({ nombre, lat: poi.lat, lon: poi.lon });
+        lista.push({ nombre: poi.nombre, foto: poi.foto, tipo: poi.tipo, lat: poi.lat, lon: poi.lon, pueblo: p.nombre, distKm: p.distKm });
       }
     }
     return lista;

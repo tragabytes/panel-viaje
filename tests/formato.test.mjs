@@ -66,3 +66,16 @@ test('escapar vale también dentro de un atributo', () => {
   assert.equal(Formato.escapar(null), '');
   assert.equal(Formato.escapar(42), '42');
 });
+
+// Impide: "Ermita Ecce Homo" y "Ermita del Ecce Homo" como dos sitios en la
+// vista 1 (el nombre de OpenStreetMap y el de Wikipedia; visto el 18/10).
+test('el mismo sitio con dos nombres casi iguales sale una vez', () => {
+  const pueblos = [{ nombre: 'Valdeviejas', distKm: 3.5, pois: [
+    { nombre: 'Ermita Ecce Homo', lat: 42.4501, lon: -6.0902 },
+    { nombre: 'Ermita del Ecce Homo', lat: 42.4503, lon: -6.0899 },
+    { nombre: 'Ermita del Ecce Homo', lat: 42.6, lon: -6.3 },   // otra, lejos: se queda
+    { nombre: 'Ermita de San Roque', lat: 42.4502, lon: -6.0900 }, // otro nombre: se queda
+  ] }];
+  assert.deepEqual(Formato.aplanarPOIs(pueblos).map((p) => p.nombre + '@' + p.lat),
+    ['Ermita Ecce Homo@42.4501', 'Ermita del Ecce Homo@42.6', 'Ermita de San Roque@42.4502']);
+});

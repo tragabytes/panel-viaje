@@ -415,3 +415,98 @@ test('ningún módulo vacía localStorage entero', () => {
 test('el service worker no toca IndexedDB', () => {
   assert.equal(/indexedDB/.test(leer('service-worker.js')), false);
 });
+
+// ---------------------------------------------------------------- «Aquí marcaste»
+
+const HORA = 3600 * 1000;
+const DIA = 24 * HORA;
+const AHORA = new Date(2026, 9, 18, 18, 30).getTime();
+const ASTORGA = { lat: 42.4587, lon: -6.0558 };
+// 1 m al norte ≈ 0,000008993° de latitud.
+const marcaA = (metrosNorte, haceMs, extra) => Object.assign({
+  id: AHORA - haceMs, lat: ASTORGA.lat + metrosNorte * 0.000008993, lon: ASTORGA.lon,
+}, extra);
+
+test('aquí marcaste: una marca de otro día a menos de 150 m', () => {
+  const lejos = marcaA(400, 3 * DIA);
+  const cerca = marcaA(100, 3 * DIA);
+  const r = Cuaderno.marcasAqui([lejos, cerca], ASTORGA, AHORA, {});
+  assert.deepEqual(r.map((x) => x.marca.id), [cerca.id]);
+  assert.ok(Math.abs(r[0].distM - 100) < 2);
+});
+
+// Impide: que el aviso salte con la marca que acabas de hacer.
+test('aquí marcaste: no la que acabas de hacer', () => {
+  assert.deepEqual(Cuaderno.marcasAqui([marcaA(10, 5 * 60 * 1000)], ASTORGA, AHORA, {}), []);
+  assert.equal(Cuaderno.marcasAqui([marcaA(10, 2 * HORA)], ASTORGA, AHORA, {}).length, 1, 'a la vuelta del mismo viaje, sí');
+});
+
+// Impide: un aviso cada día en un trayecto de todos los días.
+test('aquí marcaste: una que ya te recordó hace poco, no; pasado un mes, otra vez', () => {
+  const m = marcaA(50, 60 * DIA);
+  assert.deepEqual(Cuaderno.marcasAqui([m], ASTORGA, AHORA, { [m.id]: AHORA - 2 * DIA }), []);
+  assert.equal(Cuaderno.marcasAqui([m], ASTORGA, AHORA, { [m.id]: AHORA - 31 * DIA }).length, 1);
+});
+
+test('aquí marcaste: sin posición no hay aviso, ni con marcas sin posición', () => {
+  assert.deepEqual(Cuaderno.marcasAqui([marcaA(10, DIA)], null, AHORA, {}), []);
+  assert.deepEqual(Cuaderno.marcasAqui([{ id: AHORA - DIA, lat: null, lon: null }], ASTORGA, AHORA, {}), []);
+  assert.deepEqual(Cuaderno.marcasAqui(null, ASTORGA, AHORA, {}), []);
+});
+
+test('aquí marcaste: el texto dice cuándo y qué era', () => {
+  const castillo = marcaA(0, 0, { id: new Date(2026, 8, 12, 10, 5).getTime(), revision: { elegido: { nombre: 'Castillo de Turienzo' }, nota: 'muy bonito' } });
+  assert.equal(Cuaderno.textoAquiMarcaste(castillo, AHORA), '◆ Aquí marcaste · 12 sep · Castillo de Turienzo');
+  const conNota = marcaA(0, 0, { id: new Date(2026, 9, 18, 10, 23).getTime(), revision: { elegido: null, nota: 'castillo arriba a la izquierda, en lo alto del cerro' } });
+  assert.equal(Cuaderno.textoAquiMarcaste(conNota, AHORA), '◆ Aquí marcaste · hoy 10:23 · «castillo arriba a la izqu…»');
+  const otroAno = marcaA(0, 0, { id: new Date(2025, 7, 3, 9, 0).getTime() });
+  assert.equal(Cuaderno.textoAquiMarcaste(otroAno, AHORA), '◆ Aquí marcaste · 3 ago 2025');
+});
+
+// ---------------------------------------------------------------- KML
+
+// Comprobación mínima de XML bien formado: etiquetas que abren y cierran en
+// orden, y ningún & suelto.
+function xmlBienFormado(xml) {
+  const cuerpo = xml.replace(/^<\?xml[^?]*\?>\s*/, '');
+  const pila = [];
+  for (const m of cuerpo.matchAll(/<(\/?)([A-Za-z][\w:]*)[^>]*?(\/?)>/g)) {
+    if (m[3]) continue;
+    if (!m[1]) pila.push(m[2]);
+    else if (pila.pop() !== m[2]) return false;
+  }
+  return pila.length === 0 && !/&(?!(amp|lt|gt|quot|apos|#\d+);)/.test(cuerpo);
+}
+
+test('(control) la comprobación de XML detecta una etiqueta mal cerrada y un & suelto', () => {
+  assert.equal(xmlBienFormado('<a><b></a></b>'), false);
+  assert.equal(xmlBienFormado('<a>R&D</a>'), false);
+  assert.equal(xmlBienFormado('<a><b/>x &amp; y</a>'), true);
+});
+
+test('KML para Google My Maps: un punto por marca, en su viaje, con lo que era', () => {
+  const marcas = [
+    { id: new Date(2026, 9, 18, 10, 23).getTime(), lat: 42.4587, lon: -6.0558,
+      contexto: { municipio: 'Astorga', via: { codigo: 'N-VI' } },
+      revision: { elegido: { nombre: 'Catedral de Astorga', lat: 42.4578, lon: -6.0563 }, nota: 'volver con tiempo' } },
+    { id: new Date(2026, 9, 18, 11, 0).getTime(), lat: 42.47, lon: -6.1, contexto: { municipio: 'Murias de Rechivaldo' } },
+    { id: new Date(2026, 8, 1, 9, 0).getTime(), lat: 40.5786, lon: -4.0016, contexto: {} },
+    { id: new Date(2026, 8, 2, 9, 0).getTime(), lat: null, lon: null },
+  ];
+  const kml = Cuaderno.aKML(marcas);
+  assert.ok(kml.startsWith('<?xml version="1.0" encoding="UTF-8"?>'));
+  assert.ok(kml.includes('<kml xmlns="http://www.opengis.net/kml/2.2">'));
+  assert.ok(xmlBienFormado(kml));
+  assert.equal((kml.match(/<Placemark>/g) || []).length, 3, 'la marca sin posición no va');
+  assert.equal((kml.match(/<Folder>/g) || []).length, 2, 'una carpeta por viaje');
+  assert.ok(kml.includes('<name>Catedral de Astorga</name>'));
+  assert.ok(kml.includes('<coordinates>-6.05630,42.45780,0</coordinates>'), 'el sitio elegido, en orden longitud,latitud');
+  assert.ok(kml.includes('<name>Murias de Rechivaldo · 11:00</name>'), 'sin «qué era», el pueblo y la hora');
+  assert.ok(kml.includes('volver con tiempo'));
+});
+
+test('KML: los nombres y notas raros no rompen el archivo', () => {
+  const kml = Cuaderno.aKML([{ id: AHORA, lat: 40, lon: -4, revision: { elegido: null, nota: 'R&D <b>"ojo"</b> ]]> fin' } }]);
+  assert.ok(xmlBienFormado(kml));
+  assert.ok(kml.includes('R&amp;D &lt;b&gt;'));
+});

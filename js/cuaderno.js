@@ -25,7 +25,7 @@
 //     construirMarca, construirContexto, necesitaCompletar, completarContexto,
 //     aplicarRevision, candidatos, agruparPorViaje, fusionarImportacion,
 //     leerCopia, sanearMarca, textoParaCompartir, urlMapa, urlWikipedia,
-//     crearDetectorToqueLargo
+//     crearDetectorToqueLargo, marcasAqui, textoAquiMarcaste, aKML
 
 (function () {
   const __global__ = (typeof window !== 'undefined') ? window : globalThis;
@@ -470,6 +470,99 @@
     return lineas.join('\n');
   }
 
+  // --- «Aquí marcaste» (pura) ---
+  //
+  // Al volver a pasar a menos de AQUI_M de una marca, el panel lo recuerda con
+  // un aviso discreto. No con la que acabas de hacer (AQUI_ANTIGUEDAD_MS) ni con
+  // una que ya te recordó hace poco (AQUI_REPETIR_MS): en un trayecto de todos
+  // los días sería un aviso diario. `recordadas`: { idMarca: cuándo se recordó }.
+  const AQUI_M = 150;
+  const AQUI_ANTIGUEDAD_MS = 30 * 60 * 1000;
+  const AQUI_REPETIR_MS = 30 * 24 * 3600 * 1000;
+
+  function marcasAqui(marcas, pos, ahora, recordadas) {
+    if (!hayPosicion(pos)) return [];
+    const r = recordadas || {};
+    return (marcas || [])
+      .filter((m) => m && typeof m.id === 'number' && hayPosicion(m))
+      .filter((m) => ahora - m.id >= AQUI_ANTIGUEDAD_MS)
+      .filter((m) => !(r[m.id] && ahora - r[m.id] < AQUI_REPETIR_MS))
+      .map((m) => ({ marca: m, distM: _Geo.distanciaMetros(pos.lat, pos.lon, m.lat, m.lon) }))
+      .filter((x) => x.distM <= AQUI_M)
+      .sort((a, b) => a.distM - b.distM);
+  }
+
+  const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+
+  // "◆ Aquí marcaste · 12 sep · Castillo de Turienzo": cuándo y qué era (lo
+  // elegido al revisarla o el principio de la nota), corto para leerlo de un vistazo.
+  function textoAquiMarcaste(m, ahora) {
+    const d = new Date(m.id);
+    const hoy = new Date(ahora);
+    const fecha = d.toDateString() === hoy.toDateString()
+      ? `hoy ${pad2(d.getHours())}:${pad2(d.getMinutes())}`
+      : `${d.getDate()} ${MESES[d.getMonth()]}${d.getFullYear() !== hoy.getFullYear() ? ' ' + d.getFullYear() : ''}`;
+    const corto = (t, max) => (t.length > max ? t.slice(0, max - 1).trimEnd() + '…' : t);
+    const e = m.revision && m.revision.elegido;
+    const nota = m.revision && typeof m.revision.nota === 'string' ? m.revision.nota.replace(/\s+/g, ' ').trim() : '';
+    const que = e && e.nombre ? corto(e.nombre, 28) : (nota ? '«' + corto(nota, 26) + '»' : '');
+    return ['◆ Aquí marcaste', fecha, que].filter(Boolean).join(' · ');
+  }
+
+  // --- Para Google My Maps y Google Earth (pura) ---
+  //
+  // Un KML con un punto por marca (en el sitio elegido al revisarla, o donde
+  // estabas), una carpeta por viaje, y la fecha, el pueblo, la vía y la nota.
+  // Las marcas sin posición no pueden ir en un mapa.
+
+  function escaparXml(s) {
+    return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;' }[c]));
+  }
+
+  function fechaHora(ms) {
+    const d = new Date(ms);
+    return `${pad2(d.getDate())}/${pad2(d.getMonth() + 1)}/${d.getFullYear()} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+  }
+
+  function aKML(marcas) {
+    const dato = (nombre, valor) => (valor ? `<Data name="${nombre}"><value>${escaparXml(valor)}</value></Data>` : '');
+    const conPosicion = (marcas || []).filter((m) => m && typeof m.id === 'number' && hayPosicion(m));
+    const lineas = [
+      '<?xml version="1.0" encoding="UTF-8"?>',
+      '<kml xmlns="http://www.opengis.net/kml/2.2">',
+      '<Document>',
+      '<name>Cuaderno de viaje</name>',
+      // Ámbar, como en el cuaderno (KML: aabbggrr).
+      '<Style id="marca"><IconStyle><color>ff47b5ff</color></IconStyle></Style>',
+    ];
+    for (const viaje of agruparPorViaje(conPosicion).reverse()) {
+      lineas.push('<Folder>', `<name>Viaje del ${fechaHora(viaje.inicio).slice(0, 10)}</name>`);
+      for (const m of viaje.marcas) {
+        const c = m.contexto || {};
+        const e = m.revision && m.revision.elegido;
+        const nota = m.revision && typeof m.revision.nota === 'string' ? m.revision.nota.trim() : '';
+        const via = c.via ? (c.via.codigo || c.via.texto || '') : '';
+        const lugar = [c.municipio, via].filter(Boolean).join(', ');
+        const punto = e && hayPosicion(e) ? e : m;
+        // Sin "qué era", el pueblo y la hora: varias marcas en Astorga no
+        // pueden llamarse todas "Astorga" en el mapa.
+        const nombre = (e && e.nombre) || `${c.municipio || 'Marca'} · ${fechaHora(m.id).slice(11)}`;
+        lineas.push(
+          '<Placemark>',
+          `<name>${escaparXml(nombre)}</name>`,
+          `<description>${escaparXml([fechaHora(m.id) + (lugar ? ' · ' + lugar : ''), nota].filter(Boolean).join('\n'))}</description>`,
+          '<styleUrl>#marca</styleUrl>',
+          '<ExtendedData>' + dato('Fecha', fechaHora(m.id)) + dato('Lugar', c.municipio) + dato('Vía', via) + dato('Nota', nota) + '</ExtendedData>',
+          `<Point><coordinates>${punto.lon.toFixed(5)},${punto.lat.toFixed(5)},0</coordinates></Point>`,
+          '</Placemark>'
+        );
+      }
+      lineas.push('</Folder>');
+    }
+    lineas.push('</Document>', '</kml>');
+    return lineas.join('\n');
+  }
+
   // --- El gesto (puro: recibe los eventos ya traducidos) ---
   //
   // down(id, x, y, esPrimario) · move(id, x, y) · up(id) — up sirve también
@@ -742,6 +835,10 @@
     sanearMarca,
     fusionarImportacion,
     textoParaCompartir,
+    marcasAqui,
+    textoAquiMarcaste,
+    aKML,
+    AQUI_M,
     urlMapa,
     urlWikipedia,
     crearDetectorToqueLargo,
