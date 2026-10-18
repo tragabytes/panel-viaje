@@ -14,13 +14,12 @@ Lee, por este orden:
 4. `specs/001-cuaderno-de-viaje/spec.md` y `tasks.md`.
 5. `MANTENIMIENTO.md` si vas a probar o publicar.
 
-**Estado (01/10, madrugada).**
-- Publicado en https://tragabytes.github.io/panel-viaje/ con `SW_VERSION` `v14-2026-08-20-s49`: la versión de la sesión 49. Esta noche no se tocó la app.
-- Método nuevo desde esta noche (copiado de `temario-eir`). El tablero Kanvas y `docs/seguimiento.json` son archivo: se consultan, no se actualizan.
-- Commits de esta noche **sin subir** a GitHub, a la espera de mi "sube".
-- `overpass-api.de` bloqueó temporalmente la IP de casa la noche del 30/09 por exceso de pruebas (DECISIONES D7). Antes de medir contra Overpass desde casa, comprobar que vuelve a responder, y medir con pocas peticiones.
+**Estado (18/10).**
+- Publicado en https://tragabytes.github.io/panel-viaje/ con `SW_VERSION` `v17-2026-10-18-precarga-fresca`: arreglo de Overpass (D13), datos viejos en gris (D14) y precarga del service worker (D15).
+- Método nuevo desde el 30/09 (copiado de `temario-eir`). El tablero Kanvas y `docs/seguimiento.json` son archivo: se consultan, no se actualizan.
+- El 18/10, desde casa, Overpass seguía sin funcionar (`overpass-api.de` colgado, `private.coffee` con errores). Antes de medir contra Overpass desde casa, comprobar que responde, y medir con pocas peticiones.
 
-**Por dónde seguir** (cuando haya contestado a D12):
+**Por dónde seguir:**
 1. ~~**Arreglo de Overpass** (D7)~~ — hecho el 18/10 (DECISIONES D13); falta verlo con los servidores reales en carretera.
 2. ~~**Datos viejos sin cobertura** (D8)~~ — hecho el 18/10, atenuado en gris desde 2 km (DECISIONES D14). D15 (precarga con ficheros viejos), arreglado también.
 3. **Cuaderno, H1** (`specs/001-cuaderno-de-viaje/tasks.md`).
@@ -28,5 +27,5 @@ Lee, por este orden:
 5. Después: radar con relieve (spec 002) y meteo chillout (spec 003, con mis referencias).
 
 **Pendiente de mí:**
-- Contestar las preguntas de DECISIONES D12.
+- De D12 quedan: dónde revisar el cuaderno (pregunta 2 de la spec), qué hacer con los ficheros archivados y borrar las carpetas viejas (D11).
 - Buscar dos o tres referencias de lo que para mí es "chillout".
