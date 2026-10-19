@@ -14,8 +14,9 @@ Estado del trabajo. Se marca cada casilla al cerrarla. Lo imprevisto se anota aq
 - [x] Probar en el navegador con una API de GitHub de mentira: sube los 10 viajes (el más largo, 54 KB), no reenvía lo que no ha crecido, con la clave mala lo dice y deja el viaje pendiente
 - [x] Probar con la API de verdad (desde el ordenador, con su sesión de `gh`): subir, leer con tildes y borrar un log de prueba
 - [x] Publicar (`SW_VERSION` v24, `node --test` en verde), con el "sube" de Laureano — 19/10, 7:41
-- [ ] Laureano crea la clave y la pega en `?logs=1` del móvil del panel
-- [ ] **Parar y validar**: un trayecto de verdad y leo su log desde el ordenador
+- [x] Laureano crea la clave y la pega en `?logs=1` del móvil del panel (19/10)
+- [x] **Parar y validar**: un trayecto de verdad y leo su log desde el ordenador — 19/10: llegaron
+  los 10 viajes del 18 y 19/10 (Galaxy S21, `SM-G991B`) y los leí con `infra/leer-logs.py`
 
 ## H2 · Se borran solos a los 30 días
 - [x] Limpieza de cada noche en el repositorio: fuera lo de más de 30 días desde que llegó, también del historial (`infra/repositorio-logs/`)
@@ -29,10 +30,13 @@ Estado del trabajo. Se marca cada casilla al cerrarla. Lo imprevisto se anota aq
 ## Cierre
 - [x] `node --test` en verde, con los tests de los invariantes que pueden romperse en silencio
 - [x] `MANTENIMIENTO.md`: cómo leo los logs de la nube, qué guarda el repositorio y cómo se anula la clave
-- [ ] Probar el flujo de verdad en el móvil del panel
+- [x] Probar el flujo de verdad en el móvil del panel (19/10: clave pegada, "Subir ahora", llegaron todos)
 - [ ] Quitar de `PENDIENTES.md` la línea que apunta aquí
 
 ## Aprendido
 - **El navegador de pruebas comparte los logs entre pestañas**: con el simulador abierto en otra
   pestaña, su viaje seguía creciendo y "Subir ahora" lo volvía a subir. Es lo correcto (había
   crecido), pero despista al probar.
+- **En Windows, los nombres llegaban con un retorno de carro**: `leer-logs.py` escribía con fin de
+  línea CRLF y un nombre copiado de la lista no casaba. Ahora escribe solo `
+` y recorta lo que recibe.

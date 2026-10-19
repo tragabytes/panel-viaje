@@ -41,12 +41,12 @@ def texto(nombre):
 
 
 def main():
-    sys.stdout.reconfigure(encoding='utf-8')
+    sys.stdout.reconfigure(encoding='utf-8', newline=chr(10))  # sin CR en Windows
     nombres = lista()
     if len(sys.argv) < 2:
         print('\n'.join(nombres) if nombres else 'No hay logs en la nube.')
         return
-    arg = sys.argv[1]
+    arg = sys.argv[1].strip()
     if arg == 'ultimo':
         elegidos = nombres[:1]
     elif arg in nombres:
