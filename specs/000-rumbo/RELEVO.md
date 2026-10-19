@@ -32,11 +32,10 @@ Lee, por este orden:
   más de 30 días (spec 005, D38). Pegué la clave el 19/10 y llegaron los 10 viajes que guardaba el
   móvil (un Galaxy S21, `SM-G991B`). "Revisa los logs" se hace con `python infra/leer-logs.py`
   (MANTENIMIENTO, sección 8).
-- **En el ordenador, sin publicar**: la **v25** (`v25-2026-10-19-mapas-pantalla-pueblos`, D40), lo
+- **Publicada el 19/10 a las 8:49**: la **v25** (`v25-2026-10-19-mapas-pantalla-pueblos`, D40), lo
   que salió de esos logs: el servidor de mapas fallaba casi siempre (no era mi cobertura: el
   principal tardaba 22 s y el de reserva estaba roto), la pantalla encendida no se recuperaba al
   volver con el móvil bloqueado, y junto a las ciudades salían urbanizaciones como pueblos.
-  **Espera mi "sube".**
 - **Ningún móvil tiene confirmada la v23 todavía.** Los que tenían una versión anterior a la v20
   necesitan una vez la actualización a mano (MANTENIMIENTO, sección 4).
 - El log de la prueba en carretera con la v18 (18/10 por la mañana) ya no está: el móvil guarda
@@ -49,12 +48,11 @@ Lee, por este orden:
   se puede instalar". **Copia del cuaderno antes de desinstalar nada.**
 
 **Por dónde seguir:**
-1. **Publicar la v25** cuando diga "sube" (MANTENIMIENTO, sección 4).
-2. **Otra prueba en carretera** con la v25 y leer su log (`python infra/leer-logs.py ultimo`): si el
+1. **Otra prueba en carretera** con la v25 y leer su log (`python infra/leer-logs.py ultimo`): si el
    servidor de mapas ya contesta (pueblos, postales, gasolineras y, en autovía, la próxima salida),
    marcas, «Aquí marcaste», modo noche al anochecer, radar en ciudad y en autovía, paisaje.
    Contestar las preguntas de las specs 002 y 003.
-3. Las dos funcionalidades grandes de `PENDIENTES.md` (nota de voz, horizonte de verdad): spec
+2. Las dos funcionalidades grandes de `PENDIENTES.md` (nota de voz, horizonte de verdad): spec
    antes de construir.
 
 **Pendiente de mí:**

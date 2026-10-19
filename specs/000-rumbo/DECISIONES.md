@@ -573,3 +573,5 @@ Overpass directamente. Siguen abiertas la 4, la 5 y la 6.
 ### D41 · Sin subir a GitHub
 - **Qué**: la v25 (`v25-2026-10-19-mapas-pantalla-pueblos`) está en tu ordenador, sin `push`. Se
   publica cuando digas "sube".
+- **Hecho**: el mismo 19/10 por la mañana dijiste "sube" y se publicó (comprobado: la web sirve
+  `v25-2026-10-19-mapas-pantalla-pueblos` desde las 8:49).
