@@ -713,8 +713,9 @@
         }
 
         // Caso B: Nominatim dio nombre de vía pero sin código reconocible.
-        // Decisión 22, sesión 9.8.
-        if (info.textoCrudo && window.RoadRef) {
+        // Decisión 22, sesión 9.8. D40: a una calle no se le busca código.
+        const esCalle = Carreteras.esCalle(info.tipoOsm);
+        if (info.textoCrudo && window.RoadRef && !esCalle) {
           const rr = await RoadRef.consultar(lat, lon);
           if (miSeq !== seqCarretera) return; // DT-13: respuesta obsoleta
           const refOverpass = rr && rr.ref;
@@ -769,7 +770,7 @@
         maxspeedActual = null;
         pintarCarretera(info);
         if (info.textoCrudo) {
-          debug.log(`Vía [${info.fuente}]: "${info.textoCrudo}" (sin código ni en Nominatim ni en Overpass)`);
+          debug.log(`Vía [${info.fuente}]: "${info.textoCrudo}" (${esCalle ? 'calle: sin código, no se busca' : 'sin código ni en Nominatim ni en Overpass'})`);
         } else {
           debug.log(`Carretera [${info.fuente}]: sin vía en Nominatim`);
         }

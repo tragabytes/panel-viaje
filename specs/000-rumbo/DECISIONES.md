@@ -513,3 +513,63 @@ Overpass directamente. Siguen abiertas la 4, la 5 y la 6.
   digas "sube".
 - **Hecho**: el 19/10 por la mañana dijiste "venga, súbela" y se publicó (comprobado: la web sirve
   `v24-2026-10-18-logs-nube` desde las 7:41).
+
+## 19/10/2026: lo que dijeron los logs del trayecto por Las Rozas
+
+### D40 · v25: servidor de mapas, pantalla encendida y pueblos junto a ciudades
+- **El encargo**: "revisa los logs" del trayecto del 18/10 por Las Rozas (19:31-19:45, 1,6 km),
+  ya en la nube. A los arreglos que te propuse dijiste "sí, todo", y a los pueblos, "fuera junto a
+  ciudades".
+- **Qué pasaba**:
+  - **El servidor de mapas (Overpass) falló en 49 de sus 54 consultas.** No era tu cobertura: el
+    19/10, desde casa, el principal tardaba 22 s en contestar cualquier cosa (hasta su página de
+    estado) y 28-34 s la consulta de pueblos; el de reserva daba error 500 sin cabeceras CORS (el
+    navegador lo ve como "Failed to fetch"), y un tercero (maps.mail.ru) contestó una vez en 14 s y
+    la siguiente dio 504. El panel se rendía a los 8 s, repetía cada 50 m lo que acababa de fallar
+    (Monte del Pilar, seis veces) y llamó 31 veces al roto. Por eso las postales se quedaron en una
+    al principio y no hubo gasolineras.
+  - **La pantalla**: al volver al panel con el móvil bloqueado (18/10 a las 16:29 y 19/10 a las
+    7:30), Android negó "pantalla siempre encendida" y el panel no lo volvió a pedir.
+  - **Pueblos cercanos**: en Las Rozas salieron La Puentecilla y Los Majuelos (8 habitantes), Monte
+    del Pilar (26) y El Mayorazgo (7). Son núcleos de población oficiales, por eso pasaban el filtro
+    de pedanías, pero junto a una ciudad son urbanizaciones y fincas.
+  - **Sin cobertura** (18:51), el log decía "HTTP 503": ese error se lo inventa el service worker
+    para que nada se rompa.
+- **Qué hace ahora**:
+  - Servidor de mapas: espera hasta 45 s; si a los 8 s no hay respuesta, pregunta también al
+    siguiente servidor y se queda con la primera que llegue. El que falla, o tarda más que otro, se
+    aparta un minuto y no se le pregunta. Con todos apartados no sale ninguna consulta. Y hay un
+    tercer servidor (maps.mail.ru).
+  - Lo que falla no se repite enseguida: los sitios de un pueblo, hasta 5 minutos después; las
+    gasolineras y el código de la vía, 5 minutos en el mismo sitio (alejándose se pregunta igual).
+  - A las calles no se les busca código de carretera: Nominatim dice si es una calle.
+  - En la fila de consultas, la nueva del código de la vía sustituye a la vieja, que ya no sirve.
+  - La pantalla encendida se vuelve a pedir cada 5 s mientras el panel esté a la vista.
+  - Pueblos: cerca de una ciudad (a menos de 6 km de una de 10.000 habitantes o más) no entran los
+    caseríos de menos de 50 habitantes. En el campo no cambia nada.
+  - Sin red, el log dice "sin conexión".
+- **Decidido al construirlo** (revísalo):
+  - "Esperar más en lo que no corre prisa" quedó en esperar hasta 45 s en todo, con el relevo a
+    los 8 s: así la vía no espera a un servidor callado si hay otro que conteste, y uno lento pero
+    vivo llega.
+  - Junto a una ciudad, los caseríos **sin dato de población** cuentan como pequeños: si no, en
+    Las Rozas entraban "Casa Vinatea" (una casa) o "Romanillos" (0 habitantes).
+  - **6 km** porque es lo mínimo que limpia Las Rozas (Romanillos está a 5,7 km de Majadahonda).
+    Con la regla, en Las Rozas salen Las Rozas, Majadahonda, Villanueva del Pardillo, Pozuelo y
+    Boadilla; en Cangas de Onís, las mismas aldeas que antes.
+  - Las listas de pueblos guardadas en el móvil se vuelven a pedir: las viejas traían las
+    urbanizaciones.
+  - No se guarda el log antes de recargar: las aperturas seguidas eran tuyas.
+- **Comprobado**: 20 tests nuevos (200 en total), con respuestas reales de OpenStreetMap de Las
+  Rozas y de Cangas de Onís; en el navegador, con el simulador de Las Rozas a 640×360: el tercer
+  servidor dio las gasolineras, con todos caídos no salió ninguna consulta, la fila de la vía no
+  pasó de una y, sin red, salió "sin conexión".
+- **Sin comprobar**: en el coche, con los datos del móvil. El servidor principal no se puede probar
+  desde el navegador de pruebas: rechaza a los navegadores que se presentan como Claude.
+- **De paso**: el log de la prueba en carretera con la v18 (18/10 por la mañana) ya no está: el
+  móvil guarda los 10 últimos viajes, y el más antiguo que llegó a la nube es de las 15:53.
+- **Cómo se deshace**: el commit "v25: servidor de mapas, pantalla encendida y pueblos".
+
+### D41 · Sin subir a GitHub
+- **Qué**: la v25 (`v25-2026-10-19-mapas-pantalla-pueblos`) está en tu ordenador, sin `push`. Se
+  publica cuando digas "sube".

@@ -22,6 +22,23 @@
   var soportado = ('wakeLock' in navigator);
   var estadoActual = soportado ? 'liberado' : 'no-soportado';
 
+  // D40: al volver con el móvil bloqueado, Chrome dice "visible" antes de
+  // desbloquear, Android niega el lock ("The requesting page is not visible")
+  // y al desbloquear no llega otro aviso: la pantalla se apagaba sola (logs
+  // del 18/10 a las 16:29 y del 19/10 a las 7:30). Mientras el panel esté
+  // visible y sin lock, se vuelve a pedir cada REINTENTO_MS.
+  var REINTENTO_MS = 5000;
+  var reintento = null;
+  var avisadoFallo = false;
+
+  function programarReintento() {
+    if (reintento) return;
+    reintento = setTimeout(function () {
+      reintento = null;
+      if (document.visibilityState === 'visible' && (!lock || lock.released)) activar();
+    }, REINTENTO_MS);
+  }
+
   function activar() {
     if (!soportado) {
       debug.warn('WakeLock no soportado por este navegador');
@@ -35,6 +52,7 @@
       .then(function (sentinel) {
         lock = sentinel;
         estadoActual = 'activo';
+        avisadoFallo = false;
         debug.log('WakeLock activo: pantalla no se apagará');
         // Cuando el sistema lo libera (por ejemplo al pasar a segundo plano),
         // se dispara este evento. Lo registramos para saberlo en el log.
@@ -46,7 +64,12 @@
       })
       .catch(function (err) {
         estadoActual = 'error';
-        debug.error('WakeLock error: ' + (err && err.message ? err.message : err));
+        // Solo el primer fallo al log: los reintentos callados hasta que salga.
+        if (!avisadoFallo) {
+          debug.error('WakeLock error: ' + (err && err.message ? err.message : err) + ' · se reintenta cada ' + (REINTENTO_MS / 1000) + ' s');
+          avisadoFallo = true;
+        }
+        if (document.visibilityState === 'visible') programarReintento();
         return false;
       });
   }

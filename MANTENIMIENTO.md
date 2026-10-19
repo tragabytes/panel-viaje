@@ -16,7 +16,8 @@ código el navegador de pruebas puede seguir enseñando la versión anterior. An
 cambio: dar de baja el service worker, borrar sus cachés y volver a pedir los ficheros con
 `cache: 'reload'` (o subir `SW_VERSION` y recargar dos veces). Si aun así un módulo sale viejo (la
 pestaña guarda copias en memoria: el 18/10 cargó un `cuaderno.js` anterior con el `main.js`
-nuevo), **abrir una pestaña nueva**. Para saber qué versión corre: `Object.keys(Cuaderno)` o
+nuevo), **abrir una pestaña nueva**. Y al darlo de baja, salir de la página antes de volver a
+registrarlo: registrarlo desde la misma pestaña resucita el viejo, sin precargar nada (19/10). Para saber qué versión corre: `Object.keys(Cuaderno)` o
 cualquier función nueva desde la consola.
 
 ## 2. Banderas de la URL

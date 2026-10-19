@@ -36,8 +36,9 @@
   const TTL_CACHE_MS = 2 * 60 * 60 * 1000;
   // RA-04: TTL corto para cachés nacidas de un fallo de red (patrón TTL_NULL
   // de roadref.js): no martillear mirrors en cada tick, pero permitir
-  // recuperación rápida cuando la red vuelva.
-  const TTL_FALLO_MS = 30 * 1000;
+  // recuperación cuando la red vuelva. D40: era 30 s y el 18/10 se repitió
+  // cada medio minuto con el servidor caído; alejarse 2 km pregunta igual.
+  const TTL_FALLO_MS = 5 * 60 * 1000;
 
   let cache = null; // { lat, lon, lista, ts, fallo }
   let enVuelo = null; // Promise compartida si ya hay una consulta en curso

@@ -21,7 +21,7 @@
 //   · Fallback entre mirrors: delegado a Overpass.query() (overpass.js).
 //   · Caché por proximidad: 300 m. Una carretera interurbana es larga y un
 //     cambio de ref real no ocurre a menos de 300 m del punto anterior.
-//   · Timeout de cliente: 8 s por mirror (configurado en overpass.js).
+//   · Timeout de cliente: el de overpass.js (D40: 45 s, con relevo a los 8 s).
 //   · Se llama SOLO como fallback cuando Nominatim no ha dado código, no
 //     por cada tick del GPS. El rate limiter vive en index.html (por el
 //     dedupe + filtro de desplazamiento), aquí no hay cola.
@@ -42,10 +42,11 @@ __global__.RoadRef = (() => {
   // DT-05 (sesión 33) + RA-04: TTL para refrescar más allá del radio.
   //  · TTL_OK (5 min) para respuestas confirmadas: con ref válida O sin-ref
   //    legítimo (Overpass respondió y la vía no tiene código).
-  //  · TTL_NULL (30 s) SOLO para fallo de mirrors: tras 30 s probamos de
-  //    nuevo aunque el coche no se mueva.
+  //  · TTL_NULL SOLO para fallo de mirrors: pasado ese rato probamos de
+  //    nuevo aunque el coche no se mueva. D40: era 30 s y el 18/10 se repitió
+  //    cada medio minuto con el servidor caído; alejarse 300 m pregunta igual.
   const TTL_OK_MS = 5 * 60 * 1000;
-  const TTL_NULL_MS = 30 * 1000;
+  const TTL_NULL_MS = 5 * 60 * 1000;
 
   // La misma regex que carreteras.js usa internamente, replicada aquí
   // para no crear un acoplamiento circular. Si algún día la movemos a
@@ -168,6 +169,8 @@ __global__.RoadRef = (() => {
       cache = { lat, lon, ref: info.ref, maxspeedKmh: info.maxspeedKmh, ts: Date.now(), fallo: false };
       return info;
     } catch (err) {
+      // D40: sustituida en la fila por otra más nueva; no es un fallo.
+      if (err && err.message === 'reemplazada') return { ref: null, maxspeedKmh: null };
       // Todos los mirrors fallaron. Cacheamos null con TTL corto (TTL_NULL_MS)
       // para no martillear en tics sucesivos pero reintentar pronto si la red
       // se recupera aunque el coche esté parado.

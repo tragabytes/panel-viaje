@@ -215,10 +215,20 @@ const Carreteras = (() => {
     return (!sinParentesis || repite.test(sinParentesis)) ? '' : sinParentesis;
   }
 
+  // D40: tipos de vía de OSM (el `type` de Nominatim) que son calles y nunca
+  // llevan código, así que no se le pregunta al servidor de mapas por él.
+  // Ojo: una travesía como "Calle Real" que es una N- viene como primary o
+  // tertiary, no como residential; por eso se mira el tipo y no el nombre.
+  const TIPOS_CALLE = new Set(['residential', 'living_street', 'pedestrian', 'service']);
+  function esCalle(tipoOsm) {
+    return TIPOS_CALLE.has(tipoOsm);
+  }
+
   return {
     extraerCodigo,
     clasificarTipo,
     etiquetaVia,
+    esCalle,
     // Se exponen para poder testearlas desde consola si hiciera falta:
     _buscarCodigoEnTexto: buscarCodigoEnTexto,
     _normalizarTexto: normalizarTexto,

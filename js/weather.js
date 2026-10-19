@@ -104,8 +104,10 @@
         .then(function (res) {
           var ms = Math.round(performance.now() - t0);
           if (!res.ok) {
-            debug.warn('Weather intento ' + intento + ' HTTP ' + res.status + ' (' + ms + ' ms)');
-            throw new Error('HTTP ' + res.status);
+            // D40: sin red, el 503 lo pone el service worker, marcado.
+            var motivo = res.headers && res.headers.get('X-Panel-Sin-Red') ? 'sin conexión' : 'HTTP ' + res.status;
+            debug.warn('Weather intento ' + intento + ' ' + motivo + ' (' + ms + ' ms)');
+            throw new Error(motivo);
           }
           return res.text().then(function (txt) {
             var bytes = txt.length;

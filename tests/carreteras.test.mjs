@@ -38,3 +38,16 @@ test('sin nombre, nada', () => {
   assert.equal(etiqueta('A-6', null), '');
   assert.equal(etiqueta('A-6', '   '), '');
 });
+
+// Impide: preguntar al servidor de mapas por el código de cada calle (13 veces en
+// un cuarto de hora por Las Rozas el 18/10): las calles no tienen código (D40).
+// Nominatim, 19/10/2026: "Calle Luarca" es residential; "Carretera de El
+// Escorial" (la M-505, que llega sin código y se rescata) es trunk.
+test('a las calles no se les busca código; a las carreteras con nombre, sí', () => {
+  for (const tipo of ['residential', 'living_street', 'pedestrian', 'service']) {
+    assert.equal(Carreteras.esCalle(tipo), true, tipo);
+  }
+  for (const tipo of ['trunk', 'primary', 'secondary', 'tertiary', 'unclassified', 'motorway', null, undefined]) {
+    assert.equal(Carreteras.esCalle(tipo), false, String(tipo));
+  }
+});

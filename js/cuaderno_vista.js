@@ -76,7 +76,8 @@
     const id = setTimeout(() => controller.abort(), TIMEOUT_MS);
     try {
       const resp = await fetch(url, { signal: controller.signal });
-      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      // D40: sin red, el 503 lo pone el service worker, marcado.
+      if (!resp.ok) throw new Error(resp.headers && resp.headers.get('X-Panel-Sin-Red') ? 'sin conexión' : 'HTTP ' + resp.status);
       return await resp.json();
     } finally {
       clearTimeout(id);

@@ -43,8 +43,9 @@ Lo que habrá que resolver en la spec:
 
 ## En marcha
 
-- **Los logs del viaje en la nube, con borrado a los 30 días**: construido (v24); falta que
-  pongas la clave en el móvil ([`specs/005-logs-en-la-nube/`](../005-logs-en-la-nube/tasks.md)).
+- **Los logs del viaje en la nube, con borrado a los 30 días**: funcionando desde el 19/10 (v24,
+  con tu clave); falta comprobar a los 30 días que el primero se ha borrado solo
+  ([`specs/005-logs-en-la-nube/`](../005-logs-en-la-nube/tasks.md)).
 
 ## Esperan tu decisión
 

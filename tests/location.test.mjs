@@ -40,3 +40,14 @@ test('en una comunidad de una sola provincia, la provincia es la comunidad', () 
 test('si alguna vez vuelve province, manda province', () => {
   assert.equal(normalizar({ town: 'X', province: 'León', state_district: 'Otra', state: 'Castilla y León' }).provincia, 'León');
 });
+
+// D40: el tipo de vía que da Nominatim (zoom 17) llega a quien decide si se
+// busca el código. Respuesta real del 19/10/2026 en Las Rozas.
+test('la vía lleva el tipo que da Nominatim', () => {
+  globalThis.Carreteras = globalThis.Carreteras || require('../js/carreteras.js');
+  const r = LocationModule._normalizarCarretera({ class: 'highway', type: 'residential', address: { road: 'Calle Luarca' } });
+  assert.equal(r.tipoOsm, 'residential');
+  assert.equal(r.textoCrudo, 'Calle Luarca');
+  assert.equal(r.codigo, null);
+  assert.equal(LocationModule._normalizarCarretera({ class: 'place', type: 'house', address: {} }).tipoOsm, null);
+});

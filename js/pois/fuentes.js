@@ -57,7 +57,8 @@
     const id = setTimeout(() => controller.abort(), timeoutMs);
     try {
       const resp = await fetch(url, { ...opciones, signal: controller.signal });
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      // D40: sin red, el 503 lo pone el service worker, marcado.
+      if (!resp.ok) throw new Error(resp.headers && resp.headers.get('X-Panel-Sin-Red') ? 'sin conexión' : `HTTP ${resp.status}`);
       return await resp.json();
     } catch (err) {
       if (err.name === 'AbortError') throw new Error('timeout');
@@ -78,9 +79,36 @@
     );
   }
 
+  // D40: junto a una ciudad, los caseríos (hamlet) de menos de 50 habitantes,
+  // o sin dato, son urbanizaciones y fincas: en Las Rozas salían La Puentecilla
+  // y Los Majuelos (8 hab.), Monte del Pilar (26) y El Mayorazgo (7) en lugar de
+  // los pueblos de alrededor (18/10). En el campo las aldeas pequeñas siguen
+  // saliendo. Ciudad: place=city, o place=town de 10.000 habitantes o más.
+  const CIUDAD_MIN_HAB = 10000;
+  const CERCA_DE_CIUDAD_M = 6000;
+  const CASERIO_MIN_HAB = 50;
+
+  function poblacion(tags) {
+    const n = parseInt(tags.population, 10);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  function esCiudad(el) {
+    if (el.tags.place === 'city') return true;
+    return el.tags.place === 'town' && (poblacion(el.tags) || 0) >= CIUDAD_MIN_HAB;
+  }
+
+  function esCaserioJuntoACiudad(el, ciudades) {
+    if (el.tags.place !== 'hamlet') return false;
+    const hab = poblacion(el.tags);
+    if (hab != null && hab >= CASERIO_MIN_HAB) return false;
+    return ciudades.some(c => Overpass.distanciaMetros(el.lat, el.lon, c.lat, c.lon) < CERCA_DE_CIUDAD_M);
+  }
+
   // BPC-18: de la respuesta de Overpass, los pueblos de verdad, del más cercano
   // al más lejano. Descarta los "hamlet" falsos (urbanizaciones, fincas,
-  // microparajes...) en tres pasadas por orden de confianza:
+  // microparajes...) en cuatro pasadas por orden de confianza:
+  //  0) hamlet pequeño junto a una ciudad (D40, arriba). Fuera.
   //  1) place=village/town/city → pueblo real por definición OSM. Pasa.
   //  2) hamlet con población/wikidata/wikipedia → señal extra de núcleo. Pasa.
   //  3) hamlet sin señal: última red por regex EXCLUIR_PUEBLOS_OSM.
@@ -88,7 +116,9 @@
   function parsearPueblos(datos, lat, lon) {
     const crudo = ((datos && datos.elements) || [])
       .filter(el => el.tags && el.tags.name && typeof el.lat === 'number');
+    const ciudades = crudo.filter(esCiudad);
     const filtrados = crudo.filter(el => {
+      if (esCaserioJuntoACiudad(el, ciudades)) return false;
       const place = el.tags.place;
       if (place && place !== 'hamlet') return true;
       if (el.tags.population || el.tags.wikidata || el.tags.wikipedia) return true;

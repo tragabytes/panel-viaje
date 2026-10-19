@@ -205,3 +205,41 @@ test('el service worker deja pasar la API de GitHub sin guardarla', () => {
   const fetchHandler = leer('service-worker.js').slice(leer('service-worker.js').indexOf("addEventListener('fetch'"));
   assert.ok(fetchHandler.indexOf('esNube(') !== -1 && fetchHandler.indexOf('esNube(') < fetchHandler.indexOf('cacheFirst('));
 });
+
+// ---------------------------------------------------------------- D40: «sin conexión»
+
+// Sin red, el service worker contesta él mismo un 503 vacío para que nadie se
+// rompa, y el log lo apuntaba como "HTTP 503", un error del servidor que no
+// hubo (18/10, 18:51: todo falló en milisegundos). Lo marca, y quien apunta un
+// error HTTP de algo que pasa por él mira la marca.
+const MARCA_SIN_RED = 'X-Panel-Sin-Red';
+// No pasan por el service worker: Overpass va por POST, y el relieve y la nube
+// se dejan pasar sin tocar (esTeselaRelieve, esNube).
+const NO_PASAN_POR_EL_SW = ['js/overpass.js', 'js/relieve.js', 'js/nube.js'];
+
+function apuntaHttpSinMirarLaMarca(src) {
+  const apuntaHttp = /HTTP '\s*\+\s*\w+\.status|HTTP \$\{\w+\.status\}/.test(src);
+  return apuntaHttp && !src.includes(MARCA_SIN_RED);
+}
+
+function modulos() {
+  const lista = [];
+  for (const dir of ['js', 'js/pois']) {
+    for (const f of readdirSync(join(RAIZ, dir))) if (f.endsWith('.js')) lista.push(`${dir}/${f}`);
+  }
+  return lista;
+}
+
+test('sin red, el log dice «sin conexión» y no un error del servidor', () => {
+  assert.ok(leer('service-worker.js').includes(`'${MARCA_SIN_RED}'`), 'el service worker no marca su 503');
+  const sinMirar = modulos()
+    .filter((f) => !NO_PASAN_POR_EL_SW.includes(f))
+    .filter((f) => apuntaHttpSinMirarLaMarca(leer(f)));
+  assert.deepEqual(sinMirar, []);
+});
+
+test('(control) la comprobación detecta un error HTTP que no mira la marca', () => {
+  assert.equal(apuntaHttpSinMirarLaMarca("if (!r.ok) throw new Error('HTTP ' + r.status);"), true);
+  assert.equal(apuntaHttpSinMirarLaMarca('if (!r.ok) throw new Error(`Nominatim HTTP ${r.status}`);'), true);
+  assert.equal(apuntaHttpSinMirarLaMarca("const m = r.headers.get('X-Panel-Sin-Red') ? 'sin conexión' : 'HTTP ' + r.status;"), false);
+});

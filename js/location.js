@@ -97,7 +97,8 @@ const LocationModule = (() => {
     const t0 = performance.now();
     try {
       const resp = await fetch(url.toString(), { signal: controller.signal });
-      if (!resp.ok) throw new Error(`Nominatim HTTP ${resp.status}`);
+      // D40: sin red, el 503 lo pone el service worker, marcado.
+      if (!resp.ok) throw new Error(resp.headers && resp.headers.get('X-Panel-Sin-Red') ? 'Nominatim sin conexión' : `Nominatim HTTP ${resp.status}`);
       const datos = await resp.json();
       const dt = Math.round(performance.now() - t0);
       debug.log(`Nominatim z${zoom} OK en ${dt}ms`);
@@ -141,7 +142,10 @@ const LocationModule = (() => {
     return {
       codigo: resultado ? resultado.codigo : null,
       tipo:   resultado ? resultado.tipo   : null,  // 'estatal' | 'autonomica' | null
-      textoCrudo: textoCrudo || refExtra || null
+      textoCrudo: textoCrudo || refExtra || null,
+      // D40: tipo de vía de OSM ('residential', 'trunk'...), para no buscar
+      // código a las calles (Carreteras.esCalle).
+      tipoOsm: datos.class === 'highway' ? (datos.type || null) : null
     };
   }
 
@@ -210,6 +214,7 @@ const LocationModule = (() => {
     obtenerCarretera,
     // Expuesto para los tests:
     _normalizarUbicacion: normalizarUbicacion,
+    _normalizarCarretera: normalizarCarretera,
   };
 })();
 

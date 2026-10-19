@@ -9,7 +9,7 @@
 //
 // Para forzar actualización, subir SW_VERSION.
 
-const SW_VERSION = 'v24-2026-10-18-logs-nube';
+const SW_VERSION = 'v25-2026-10-19-mapas-pantalla-pueblos';
 const APP_CACHE = `panel-viaje-app-${SW_VERSION}`;
 const API_CACHE = `panel-viaje-api-${SW_VERSION}`;
 
@@ -155,9 +155,11 @@ async function networkFirst(request) {
     const cached = await cache.match(request);
     if (cached) return cached;
     // Fallback silencioso: JSON vacío para que los consumidores no rompan.
+    // D40: marcado, para que el log diga «sin conexión» y no un error del
+    // servidor que no hubo.
     return new Response('{}', {
       status: 503,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-Panel-Sin-Red': '1' },
     });
   }
 }

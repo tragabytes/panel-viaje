@@ -17,8 +17,8 @@
   const UMBRAL_REFRESCO_PUEBLOS_KM = 5;
   const MAX_POIS_POR_PUEBLO = POIFuentes.MAX_POIS_POR_PUEBLO;
   // BPC-05: timeout global de actualizar(). Si todos los mirrors Overpass
-  // están saturados, el peor caso secuencial puede llegar a 3 min
-  // (3 mirrors × 8 s × ~7 queries). Cortamos a 90 s y devolvemos lo parcial
+  // están saturados, el peor caso secuencial pasa de varios minutos
+  // (hasta 45 s por consulta, D40, × ~7 queries). Cortamos a 90 s y devolvemos lo parcial
   // que llevemos para no bloquear futuras actualizaciones.
   const TIMEOUT_GLOBAL_ACTUALIZAR_MS = 90000;
 
@@ -35,6 +35,12 @@
   const cachePOIs = new Map();       // nombre → [{nombre, tipo, lat, lon}]
   const cacheEnriq = new Map();      // key → {foto, texto, fuente}
   const cacheMunicipio = new Map();  // nombre → {nombre, poblacion, altitud, superficie}
+
+  // D40: un pueblo cuya búsqueda de POIs falló por red no se vuelve a buscar
+  // hasta pasado este rato. Solo en memoria: no es un dato, es no insistir
+  // (el 18/10, Monte del Pilar seis veces en siete minutos, cada 50 m).
+  const REINTENTO_POIS_MS = 5 * 60 * 1000;
+  const reintentoPOIs = new Map();   // nombre → no antes de (ms)
 
   let ultimoResultado = null;
   let enActualizacion = false;
@@ -72,7 +78,8 @@
     // "-v2" (18/10/2026, PENDIENTES n.º 2): las listas guardadas antes podían
     // traer cofradías o asedios de Wikipedia; así no se vuelven a leer (se
     // borran solas a los 14 días, como todo lo de esta caché).
-    const idbKey = `pueblos-v2:${lat.toFixed(2)}:${lon.toFixed(2)}`;
+    // "-v3" (19/10/2026, D40): y las de antes, urbanizaciones junto a ciudades.
+    const idbKey = `pueblos-v3:${lat.toFixed(2)}:${lon.toFixed(2)}`;
     const idbDatos = await POIIdb.leer(idbKey);
     if (idbDatos) {
       const pueblosIdb = idbDatos.map(p => ({
@@ -142,6 +149,13 @@
       return idbDatos;
     }
 
+    if (Date.now() < (reintentoPOIs.get(nombre) || 0)) {
+      if (typeof debug !== 'undefined') {
+        debug.log(`POI [${nombre}]: falló hace poco; no se busca hasta dentro de ${Math.ceil((reintentoPOIs.get(nombre) - Date.now()) / 60000)} min`);
+      }
+      return [];
+    }
+
     let pois = [];
     let falloRed = false;
     let falloOverpass = false;
@@ -190,6 +204,8 @@
     if (pois.length > 0 || !falloRed) {
       cachePOIs.set(nombre, pois);
       if (!falloOverpass) POIIdb.guardar(idbKey, pois);
+    } else {
+      reintentoPOIs.set(nombre, Date.now() + REINTENTO_POIS_MS);
     }
     return pois;
   }
@@ -233,7 +249,8 @@
           const id = setTimeout(() => controller.abort(), 8000);
           try {
             const r = await fetch(url, { signal: controller.signal });
-            if (!r.ok) throw new Error(`HTTP ${r.status}`);
+            // D40: sin red, el 503 lo pone el service worker, marcado.
+            if (!r.ok) throw new Error(r.headers && r.headers.get('X-Panel-Sin-Red') ? 'sin conexión' : `HTTP ${r.status}`);
             return await r.json();
           } finally { clearTimeout(id); }
         })();
@@ -490,6 +507,7 @@
     cachePOIs.clear();
     cacheEnriq.clear();
     cacheMunicipio.clear();
+    reintentoPOIs.clear();
     ultimoResultado = null;
     enActualizacion = false;
     if (typeof debug !== 'undefined') {
@@ -503,5 +521,6 @@
     reset,
     // Expuestos para tests / debugging
     _PRIORIDAD: PRIORIDAD,
+    _obtenerPOIsPueblo: obtenerPOIsPueblo,
   };
 })();
