@@ -18,14 +18,14 @@ Lee, por este orden:
 7. `MANTENIMIENTO.md` si vas a probar o publicar (y su sección 7 si algo falla en un móvil).
 
 **Estado (19/10, mañana).**
-- **Publicado** en https://tragabytes.github.io/panel-viaje/: la **v23**
-  (`v23-2026-10-18-postales`, el 18/10 a las 19:26). Lleva las mejoras pequeñas de la v22
+- **En la web** (https://tragabytes.github.io/panel-viaje/): la **v25**, publicada el 19/10 a las
+  8:49 (abajo). Las anteriores, por orden:
+- **Publicada el 18/10 a las 19:26**: la **v23** (`v23-2026-10-18-postales`). Lleva las mejoras pequeñas de la v22
   (DECISIONES D26-D34): los seis pendientes arreglados (provincia, nombre de vía, datos del pueblo
   anterior, límite sin cobertura, pueblos de Wikipedia que no eran pueblos, próxima salida sin
   rumbo), modo noche, radar que se acerca a 6 km en ciudad, «Aquí marcaste», marcas a Google Maps
   (KML), el código reorganizado y el tick del GPS a prueba de fallos, más los 16 arreglos de la
-  revisión (D34).
-  y, además, la vista 3 con postales, la opción que elegí (D36).
+  revisión (D34), y además la vista 3 con postales, la opción que elegí (D36).
 - Desde la v20 las versiones entran solas en el móvil, con el coche parado (D24).
 - **Publicada el 19/10 a las 7:41**: la **v24** (`v24-2026-10-18-logs-nube`): los logs de cada viaje
   se suben solos a un repositorio privado de GitHub (`tragabytes/panel-viaje-logs`) que borra lo de
@@ -36,8 +36,9 @@ Lee, por este orden:
   que salió de esos logs: el servidor de mapas fallaba casi siempre (no era mi cobertura: el
   principal tardaba 22 s y el de reserva estaba roto), la pantalla encendida no se recuperaba al
   volver con el móvil bloqueado, y junto a las ciudades salían urbanizaciones como pueblos.
-- **Ningún móvil tiene confirmada la v23 todavía.** Los que tenían una versión anterior a la v20
-  necesitan una vez la actualización a mano (MANTENIMIENTO, sección 4).
+- El Galaxy S21 ya corrió la v23 y la v24 (lo dicen sus logs del 18 y 19/10); la v25 le entra
+  sola con el coche parado. Un móvil con una versión anterior a la v20 necesita una vez la
+  actualización a mano (MANTENIMIENTO, sección 4).
 - El log de la prueba en carretera con la v18 (18/10 por la mañana) ya no está: el móvil guarda
   los 10 últimos viajes (D40).
 - Overpass, el 19/10: `overpass-api.de` contesta, pero tarda 22-34 s; `private.coffee` da error 500
@@ -54,8 +55,12 @@ Lee, por este orden:
    Contestar las preguntas de las specs 002 y 003.
 2. Las dos funcionalidades grandes de `PENDIENTES.md` (nota de voz, horizonte de verdad): spec
    antes de construir.
+3. **Hacia el 18/11**: comprobar que el primer log de la nube se ha borrado solo, a los 30 días de
+   llegar (spec 005, H2).
 
 **Pendiente de mí:**
+- Revisar las dos cosas que decidió Claude en la v25 (D40): junto a una ciudad, los caseríos sin
+  dato de población cuentan como pequeños, y "junto" es a menos de 6 km.
 - Decir si el 70 % del modo noche está bien, después de verlo al anochecer (D29).
 - Lo de los dos móviles y las preguntas de las specs 002 y 003 tras verlas en el coche.
 - Qué hacer con los ficheros archivados y las carpetas viejas (D11, D12).
