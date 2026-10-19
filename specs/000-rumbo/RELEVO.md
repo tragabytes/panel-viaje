@@ -27,9 +27,9 @@ Lee, por este orden:
   revisión (D34).
   y, además, la vista 3 con postales, la opción que elegí (D36).
 - Desde la v20 las versiones entran solas en el móvil, con el coche parado (D24).
-- **En local, sin subir**: la **v24** (`v24-2026-10-18-logs-nube`): los logs de cada viaje se suben
-  solos a un repositorio privado de GitHub (`tragabytes/panel-viaje-logs`) que borra lo de más de
-  30 días (spec 005, D38). El repositorio y su limpieza ya existen; **falta que pegue la clave en
+- **Publicada el 19/10 a las 7:41**: la **v24** (`v24-2026-10-18-logs-nube`): los logs de cada viaje
+  se suben solos a un repositorio privado de GitHub (`tragabytes/panel-viaje-logs`) que borra lo de
+  más de 30 días (spec 005, D38). El repositorio y su limpieza ya existen; **falta que pegue la clave en
   `?logs=1` del móvil**. Después, "revisa los logs" se hace con `python infra/leer-logs.py`
   (MANTENIMIENTO, sección 8).
 - **Ningún móvil tiene confirmada la v23 todavía.** Los que tenían una versión anterior a la v20

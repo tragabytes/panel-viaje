@@ -511,3 +511,5 @@ Overpass directamente. Siguen abiertas la 4, la 5 y la 6.
 ### D39 · Sin subir a GitHub
 - **Qué**: la v24 (`v24-2026-10-18-logs-nube`) está en tu ordenador, sin `push`. Se publica cuando
   digas "sube".
+- **Hecho**: el 19/10 por la mañana dijiste "venga, súbela" y se publicó (comprobado: la web sirve
+  `v24-2026-10-18-logs-nube` desde las 7:41).

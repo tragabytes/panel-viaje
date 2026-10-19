@@ -1,6 +1,6 @@
 # Especificación: los logs del viaje, en la nube y con borrado automático
 
-**Carpeta**: `specs/005-logs-en-la-nube/` · **Fecha**: 2026-10-18 · **Estado**: construida (H1, H2 y H3) en la v24; falta que Laureano ponga la clave en el móvil y un viaje de verdad
+**Carpeta**: `specs/005-logs-en-la-nube/` · **Fecha**: 2026-10-18 · **Estado**: construida (H1, H2 y H3) y publicada en la v24 (19/10); falta que Laureano ponga la clave en el móvil y un viaje de verdad
 
 **Lo que se pidió**: "Hay que hacer algo para que tengas acceso a los logs guardarlos en alguna
 infra con una política de housekeeping."

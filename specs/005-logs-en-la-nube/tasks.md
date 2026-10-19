@@ -13,7 +13,7 @@ Estado del trabajo. Se marca cada casilla al cerrarla. Lo imprevisto se anota aq
 - [x] Sitio en `?logs=1` para pegar la clave, y guía paso a paso para crearla limitada a ese repositorio
 - [x] Probar en el navegador con una API de GitHub de mentira: sube los 10 viajes (el más largo, 54 KB), no reenvía lo que no ha crecido, con la clave mala lo dice y deja el viaje pendiente
 - [x] Probar con la API de verdad (desde el ordenador, con su sesión de `gh`): subir, leer con tildes y borrar un log de prueba
-- [ ] Publicar (`SW_VERSION` v24, `node --test` en verde), con el "sube" de Laureano
+- [x] Publicar (`SW_VERSION` v24, `node --test` en verde), con el "sube" de Laureano — 19/10, 7:41
 - [ ] Laureano crea la clave y la pega en `?logs=1` del móvil del panel
 - [ ] **Parar y validar**: un trayecto de verdad y leo su log desde el ordenador
 
